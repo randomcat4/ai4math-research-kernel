@@ -11,6 +11,7 @@ from rk.domain import (
     RunSnapshot,
     VerifiedCapability,
 )
+from rk.kernel import ResearchKernel
 
 __all__ = [
     "ApplyRequest",
@@ -19,6 +20,7 @@ __all__ = [
     "CreateRequest",
     "EventPage",
     "ExportRequest",
+    "ResearchKernel",
     "RunHandle",
     "RunSnapshot",
     "VerifiedCapability",

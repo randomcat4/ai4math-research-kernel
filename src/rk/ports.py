@@ -6,9 +6,10 @@ test adapters both vary at the same seam.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
 from rk.domain import ArtifactInput, ArtifactRef, VerifiedCapability
 
@@ -22,13 +23,17 @@ class IdGenerator(Protocol):
 
 
 class CapabilityVerifier(Protocol):
-    def verify(self, credential_path: Path, action: str, run_id: str | None) -> VerifiedCapability: ...
+    def verify(
+        self, credential_path: Path, action: str, run_id: str | None
+    ) -> VerifiedCapability: ...
 
 
 class ArtifactStore(Protocol):
     def ingest(self, value: ArtifactInput, *, now: datetime) -> ArtifactRef: ...
 
-    def put_bytes(self, data: bytes, *, media_type: str, now: datetime, at_revision: int) -> ArtifactRef: ...
+    def put_bytes(
+        self, data: bytes, *, media_type: str, now: datetime, at_revision: int
+    ) -> ArtifactRef: ...
 
     def read_bytes(self, artifact_id: str) -> bytes: ...
 

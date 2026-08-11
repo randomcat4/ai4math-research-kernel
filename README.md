@@ -3,8 +3,9 @@
 An auditable local research kernel for typed mathematical evidence, explicit claim graphs,
 composition closure, resumable runs, and thin external-tool adapters.
 
-Status: early implementation of RK-PRD-2. This repository does not claim that the full system,
-any adapter, or any mathematical result is verified merely because code exists.
+Status: executable milestone 1 of RK-PRD-2. The contract/claim/evidence lifecycle is connected
+end to end, but the full product is not complete. No adapter or mathematical result is verified
+merely because code exists. See `docs/implementation-status.md` for exact limits.
 
 ## Public interface
 

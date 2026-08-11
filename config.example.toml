@@ -1,0 +1,19 @@
+# Every path is resolved relative to this file. Copy locally; do not commit secrets.
+workspace_root = ".rk"
+db_path = ".rk/rk.sqlite"
+cas_root = ".rk/cas"
+spec_root = "docs/spec"
+inbox_roots = [".rk/inbox"]
+
+busy_timeout_ms = 5000
+max_artifact_bytes = 67108864
+orphan_grace_seconds = 86400
+
+# The key bytes live outside Git. Both values are required only by rkctl write commands.
+capability_key_path = ".rk/secrets/capability.key"
+capability_key_id = "replace-with-host-key-id"
+
+# Profiles are registries, not model-specific business branches. Add deployment values locally.
+[adapter_profiles]
+
+[verifier_profiles]
