@@ -1,0 +1,61 @@
+{
+  "schema_version": "rk.method_card.v1",
+  "card_id": "MC_PARITY_INVARIANT_V1",
+  "title": "有限对象上的模 2 不变量",
+  "source_lineage": ["parity argument", "invariant", "handshaking lemma modulo two"],
+  "node_admission": {
+    "required": [
+      "对象与相关总和有限，或有明确有限支撑",
+      "局部操作对模 2 贡献可精确列出",
+      "目标确实只需奇偶信息",
+      "初态/总量的 parity 已由硬恒等式给出"
+    ],
+    "reject_if": [
+      "无限基数或无限和被口头称为奇偶",
+      "局部操作可能改变 parity 一次",
+      "从 parity 推出更强整数等式",
+      "边界对象的贡献约定未固定"
+    ]
+  },
+  "decisive_choice": "选择在每个基本对象上贡献 0 或 2 次的总量，再模 2；不从结论中的“偶数”字样反推。",
+  "selection_criterion": {
+    "prefer": "局部生成元的 parity 变化直接为 0 的表示",
+    "tie_break": "总量具有独立整数恒等式证据",
+    "reject": "需要给无限集合定义未经合同允许的 parity"
+  },
+  "proof_spine": [
+    {"obligation_id": "pi.finiteness", "claim": "相关集合/和有限或有限支撑。", "check": "finite_scope"},
+    {"obligation_id": "pi.define", "claim": "定义整数总量及目标奇偶量。", "check": "typed_integer_quantity"},
+    {"obligation_id": "pi.local_contribution", "claim": "每个基本对象贡献为偶数或保持 parity。", "check": "case_table"},
+    {"obligation_id": "pi.global_even", "claim": "总量为偶数。", "check": "integer_identity"},
+    {"obligation_id": "pi.reduce_mod2", "claim": "模 2 后偶贡献消失，剩余项恰是目标。", "check": "support_identity"},
+    {"obligation_id": "pi.conclude", "claim": "目标计数为偶数。", "check": "no_strengthening"}
+  ],
+  "progress_measure": "不适用迭代；证明进度按义务顺序，局部贡献表闭合后结束。",
+  "auxiliary_strengthening": {
+    "allowed": "先证明整数恒等式再取模 2，或用生成操作不变量覆盖可达对象。",
+    "forbidden": "假定目标集合有限而合同只给局部有限。"
+  },
+  "sharp_examples": ["空对象", "恰两个奇贡献", "单个边界生成元", "无限射线反例"],
+  "sentinel_suite": {
+    "positive_case_ids": ["P03"],
+    "near_miss_case_ids": ["N03"],
+    "mutations": [
+      "删除 finiteness，必须拒绝",
+      "把一个局部贡献从 2 改为 1，必须失败",
+      "把结论从偶数加强为 4 的倍数，必须失败"
+    ]
+  },
+  "failure_conditions": [
+    {"at": "pi.finiteness", "record": "无限 parity 未定义，先修合同或换方法"},
+    {"at": "pi.local_contribution", "record": "发现奇变化生成元，构造最短反例"},
+    {"at": "pi.reduce_mod2", "record": "剩余 support 不等于目标集合"}
+  ],
+  "composition_obligation": {
+    "coverage": "局部贡献表包含全部基本对象/操作",
+    "invariant": "每个生成操作保持所称 parity",
+    "boundary": "空对象、自环/端点等按合同约定",
+    "closure": "只得到模 2 结论，不向整数强结论外推"
+  },
+  "expected_artifacts": ["integer_quantity.md", "local_contributions.json", "mod2_reduction.md", "boundary_suite.json"]
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": "rk.method_card.v1",
+  "card_id": "MC_DOUBLE_COUNTING_V1",
+  "title": "带重叠与边界审计的双计数",
+  "source_lineage": ["classical double counting", "inclusion-exclusion", "bijection partition"],
+  "node_admission": {
+    "required": [
+      "目标是有限对象的精确恒等式或递推",
+      "至少能定义一个共同的带权对象族 Ω",
+      "两种计数都能逐项解释且权重位于交换加法幺半群",
+      "局部分类的并、交与边界约定可精确写出"
+    ],
+    "reject_if": [
+      "对象族无限且没有绝对收敛/有限支撑",
+      "第二次计数实际换了对象或权重",
+      "多重覆盖次数未可计算",
+      "删点/缩并后不保持同一问题类"
+    ]
+  },
+  "decisive_choice": "先选 Ω 与每个对象的权重，再选择两个投影/分类；不得从目标公式倒推虚构对象。",
+  "selection_criterion": {
+    "prefer": "能使每个对象的 multiplicity 在两边都局部可判定的 Ω",
+    "tie_break": "对象定义更短，其次边界例更容易完整枚举",
+    "reject": "需要用待证恒等式才能证明两种计数覆盖相同 Ω"
+  },
+  "proof_spine": [
+    {"obligation_id": "dc.objects", "claim": "定义有限带权对象族 Ω，并证明每个目标对象与 Ω 的关系。", "check": "finite_or_finitely_supported"},
+    {"obligation_id": "dc.first_count", "claim": "按第一坐标/分类计数 Ω。", "check": "partition_or_multiplicity_certificate"},
+    {"obligation_id": "dc.second_count", "claim": "按第二坐标/分类计数同一 Ω。", "check": "same_object_identity"},
+    {"obligation_id": "dc.two_counts", "claim": "证明两式都等于 Ω 的总权，而非只形式相似。", "check": "term_level_map"},
+    {"obligation_id": "dc.overlap_correction", "claim": "计算重复、交叠与 inclusion-exclusion 校正项。", "check": "sentinel_triple_overlap"},
+    {"obligation_id": "dc.partition", "claim": "若分情形，证明情形两两不交且完备。", "check": "coverage_certificate"},
+    {"obligation_id": "dc.bijections", "claim": "递推所用删点/缩并映射双向且保持限制。", "check": "inverse_map_and_class_preservation"},
+    {"obligation_id": "dc.boundary_loops", "claim": "自环、重边、空对象等边界采用合同约定。", "check": "boundary_suite"},
+    {"obligation_id": "dc.identity", "claim": "等同两次总权并做代数整理。", "check": "exact_arithmetic"}
+  ],
+  "progress_measure": "未分类对象的数量或递推参数 n；每次缩并必须严格减小。",
+  "auxiliary_strengthening": {
+    "allowed": "引入带权版本、标记点或有根对象，只要原对象是明确特化且不增加原题假设。",
+    "forbidden": "假设对象一般位置、无交叠或额外对称，除非合同原本包含。"
+  },
+  "sharp_examples": ["所有集合相等", "集合两两不交", "单自环多重图", "n=0,1,2 的递推"],
+  "sentinel_suite": {
+    "positive_case_ids": ["P01", "P02", "P06"],
+    "near_miss_case_ids": ["N01", "N02", "N06"],
+    "mutations": [
+      "把三集合 inclusion-exclusion 的三重交项删除，必须失败",
+      "把有向边的出度贡献从 1 改为 2，必须失败",
+      "给递推对象添加一个删点后不保持的禁配，必须失败"
+    ]
+  },
+  "failure_conditions": [
+    {"at": "dc.objects", "record": "无法定义共同对象族，方法名不构成进展"},
+    {"at": "dc.overlap_correction", "record": "遗漏高阶交叠，优先构造最小重叠反例"},
+    {"at": "dc.bijections", "record": "约束不被缩并保持，登记 FALSE_REDUCTION"}
+  ],
+  "composition_obligation": {
+    "coverage": "所有对象恰按所称 multiplicity 被两次计数",
+    "compatibility": "两次计数使用同一 Ω、同一权重与同一边界约定",
+    "simultaneous_choice": "NOT_APPLICABLE：不从局部存在见证拼接",
+    "closure": "dc.identity 只推出本局部恒等式；用到父结论时仍需父 DAG edge"
+  },
+  "expected_artifacts": ["object_family.md", "count1.json", "count2.json", "boundary_cases.json", "proof_spine.json"]
+}

@@ -1,0 +1,151 @@
+{
+  "schema_version": "rk.legacy_slice.v1",
+  "fixture_id": "N2_AJT5_SLICE_V1",
+  "stable_project_id": "N2_AJT5",
+  "project_alias_guard": {
+    "N2": "N2_AJT5",
+    "must_not_map_to": ["ZHAO_C61", "TOTAL_22"]
+  },
+  "source_root": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research",
+  "readonly": true,
+  "contract": {
+    "version": 1,
+    "status": "FROZEN",
+    "statement": "对每个 n≥1 和每个 A∈GL_n(F_5)，存在 x∈(F_5^*)^n 使 Ax∈(F_5^*)^n。",
+    "exact_negation": "存在 n≥1 与 A∈GL_n(F_5)，使每个 x∈(F_5^*)^n 都至少有一个坐标满足 (Ax)_i=0。",
+    "mathematical_status": "UNRESOLVED",
+    "explicit_non_claims": [
+      "任何有限搜索无命中都不是 AJT(5) 的证明",
+      "任何受限稀疏矩阵类定理都不是完整 AJT(5)",
+      "Lean 部分覆盖不形式化完整 AJT(5)",
+      "局部路线结果不自动成为 root PARTIAL_RESULT"
+    ],
+    "migration_confidence": "HIGH",
+    "source_artifacts": [
+      {
+        "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/README.md",
+        "byte_count": 31502,
+        "sha256": "5B75D0441D6B7C44EBF6CCF07CC5257883F20C75286FB8DA7B2FD83A5F8E61A5"
+      },
+      {
+        "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/residual_obligation.md",
+        "byte_count": 15534,
+        "sha256": "A63A4C477514090845966DCEB52F9E122FF5D15AC1467481CD4A8F360A0C3ACE"
+      }
+    ]
+  },
+  "retired_routes": [
+    {
+      "legacy_route_id": "R01_FOUR_PENCIL",
+      "expected_status": "RETIRED",
+      "failure_kind": "FALSE_LEMMA",
+      "root_impact": "AJT_UNCHANGED",
+      "artifacts": [
+        {
+          "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/outputs/round1_r01_canonical.md",
+          "byte_count": 9032,
+          "sha256": "589DF66BC7C9782A1A82403EF04971A15D5A7ECEA78373CBF4A25D79FBFEFC45"
+        },
+        {
+          "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/outputs/round1_r01_r02_audit.md",
+          "byte_count": 6084,
+          "sha256": "275B102A4CDBBA06FBD1A24EC0D02892FC3E4440C26FF487BBF0C2B7ABD94F30"
+        }
+      ]
+    },
+    {
+      "legacy_route_id": "R02_FOUR_SHIFT_CHOW",
+      "expected_status": "RETIRED",
+      "failure_kind": "FALSE_LEMMA",
+      "root_impact": "AJT_UNCHANGED",
+      "artifacts": [
+        {
+          "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/outputs/round1_r02_canonical.md",
+          "byte_count": 9025,
+          "sha256": "11D237DD1B42A4348B3E0239854C40DF48E5ECD7E2D69C2A78669F26EC0E4E85"
+        },
+        {
+          "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/outputs/round1_r01_r02_audit.md",
+          "byte_count": 6084,
+          "sha256": "275B102A4CDBBA06FBD1A24EC0D02892FC3E4440C26FF487BBF0C2B7ABD94F30"
+        }
+      ]
+    }
+  ],
+  "no_hit_record": {
+    "legacy_id": "R03_TRIGGER_SMOKE",
+    "expected_status": "NO_HIT_NOT_A_PROOF",
+    "completeness_scope": "仅冻结有限 smoke 域；不得外推",
+    "root_impact": "AJT_UNCHANGED",
+    "artifact": {
+      "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/verifications/r03_trigger_smoke_test_output.json",
+      "byte_count": 2471,
+      "sha256": "13C039817C24AAD5210EA2A8640F597977673B65653E66394C6361E611620DA8"
+    }
+  },
+  "fresh_verified_route_local": {
+    "legacy_id": "R03SPARSEVERIFY01",
+    "claim_scope": "任意维、任意仿射平移、每一行支撑至多 2 的可逆 F_5 矩阵类",
+    "expected_route_result": "ROUTE_LOCAL",
+    "machine_verdict": "UNVERIFIED",
+    "peer_verdict": "ACCEPTED",
+    "semantic_verdict": "HUMAN_ATTESTED",
+    "quality_verdict": "UNREVIEWED",
+    "root_impact": "AJT_UNCHANGED",
+    "why_not_machine": "完整纸面证明、主实例审计与独立新上下文验缝；尚未进入 Lean 或预注册确定性 checker",
+    "artifacts": [
+      {
+        "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/outputs/r03sparseverify01.md",
+        "byte_count": 7843,
+        "sha256": "DC5FCBDB40ED30CB40387651AE3557DB1D45597D8065EA868A612679CA36AB11"
+      },
+      {
+        "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/outputs/r03sparseverifyaudit.md",
+        "byte_count": 3494,
+        "sha256": "EA5B9C35BD9201FC9B18690FC698861E452176DEDF9BFCEF0515F2E3841ABD6D"
+      },
+      {
+        "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/outputs/r03sparseverifymanifest.json",
+        "byte_count": 686,
+        "sha256": "C326CD1D4C4155F0A1B983195C96CB201593040907D7F263BB546267F3DB8B02"
+      }
+    ]
+  },
+  "lean_partial_record": {
+    "legacy_id": "N2_M_SERIES_LEAN_PARTIAL",
+    "expected_machine_verdict": "KERNEL_VERIFIED",
+    "expected_semantic_verdict": "TESTED",
+    "expected_route_result": "LOCAL_LEMMAS_VERIFIED",
+    "root_impact": "AJT_UNCHANGED",
+    "coverage_limit": "只覆盖共同事件语言、算术蕴含、切片、局部接口等；不含 AJT、AFF3/AFF4/C4/C5、覆盖枚举或各 M 主体",
+    "artifacts": [
+      {
+        "path": "C:/game/ai4math/lean/Ai4math/MSeries.lean",
+        "byte_count": 10938,
+        "sha256": "D02E799E06504DFC16BA56034CE408F7E627BE26F50E34FF5BD87C3F4891C3DF"
+      },
+      {
+        "path": "C:/game/ai4math/math/2026-08-03_n2-ajt5-research/verifications/lean.md",
+        "byte_count": 3395,
+        "sha256": "82F4560246D51D26EC1FAA81BC4DF17C206F2E9B87C9EB34C2BA9AFE7C21BA22"
+      }
+    ]
+  },
+  "expected_import_counts": {
+    "contract_versions": 1,
+    "routes": 3,
+    "failure_records": 2,
+    "no_hit_records": 1,
+    "route_local_claims": 1,
+    "lean_partial_records": 1
+  },
+  "post_import_assertions": [
+    "run.stable_project_id == N2_AJT5",
+    "root claim mathematical outcome remains UNRESOLVED",
+    "R01 and R02 are RETIRED and retain artifacts",
+    "NO_HIT record does not create MACHINE or PEER acceptance",
+    "R03 sparse theorem is ROUTE_LOCAL and not MACHINE verified",
+    "Lean partial record does not close the root composition obligation",
+    "source files are byte-for-byte unchanged"
+  ]
+}

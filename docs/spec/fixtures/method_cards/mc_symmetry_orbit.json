@@ -1,0 +1,63 @@
+{
+  "schema_version": "rk.method_card.v1",
+  "card_id": "MC_SYMMETRY_ORBIT_V1",
+  "title": "群作用、轨道分解与规范代表",
+  "source_lineage": ["group action", "orbit-stabilizer", "coset partition", "symmetry normalization"],
+  "node_admission": {
+    "required": [
+      "作用群、作用对象和作用律可精确定义",
+      "目标量在作用下保持或变换规律明确",
+      "轨道/陪集确实分割目标集合",
+      "稳定子或轨道大小可计算"
+    ],
+    "reject_if": [
+      "只有幺半群/半群而证明需要逆元",
+      "规范化操作不在同一轨道",
+      "固定代表破坏合同边界/标记",
+      "不同轨道大小被默认相等"
+    ]
+  },
+  "decisive_choice": "选择保持全部承重结构且稳定子最易描述的作用；规范代表必须附回到原对象的逆变换。",
+  "selection_criterion": {
+    "prefer": "自由作用或稳定子可独立计数，轨道覆盖清楚",
+    "tie_break": "代表的边界例最少，其次 canonicalization 可确定性实现",
+    "reject": "通过‘不失一般性’丢掉多个不等价轨道"
+  },
+  "proof_spine": [
+    {"obligation_id": "so.action", "claim": "定义群作用并验证单位元/结合律。", "check": "action_laws"},
+    {"obligation_id": "so.preserve", "claim": "作用保持对象类、假设与目标量。", "check": "contract_invariance"},
+    {"obligation_id": "so.orbits", "claim": "轨道/陪集两两不交并覆盖。", "check": "equivalence_relation_partition"},
+    {"obligation_id": "so.stabilizer", "claim": "描述稳定子并证明其确切性。", "check": "iff_membership"},
+    {"obligation_id": "so.equal_size", "claim": "用群元素给出轨道/陪集间双射或 orbit-stabilizer。", "check": "inverse_map"},
+    {"obligation_id": "so.representative", "claim": "规范代表选择不遗漏轨道，tie rule 确定。", "check": "canonicalization"},
+    {"obligation_id": "so.partition", "claim": "对轨道求和/计数得到目标。", "check": "coverage_and_multiplicity"}
+  ],
+  "progress_measure": "不适用迭代时为 N/A；若逐轨道处理，则为未处理轨道数。",
+  "auxiliary_strengthening": {
+    "allowed": "给对象加根/标记以消除稳定子，再除以经证明的恒定 multiplicity。",
+    "forbidden": "假设作用自由、传递或轨道等大而未证明。"
+  },
+  "sharp_examples": ["平凡子群", "全群", "非自由作用", "不同大小轨道", "只有幺半群逆元失败"],
+  "sentinel_suite": {
+    "positive_case_ids": ["P05"],
+    "near_miss_case_ids": ["N05"],
+    "mutations": [
+      "把群替换为幺半群，equal_size 必须失败",
+      "把传递作用改为多轨道，representative 必须列全",
+      "删除稳定子因子，orbit size 检查必须失败"
+    ]
+  },
+  "failure_conditions": [
+    {"at": "so.action", "record": "所谓对称不是群作用"},
+    {"at": "so.preserve", "record": "规范化破坏合同对象或边界"},
+    {"at": "so.equal_size", "record": "无逆元/轨道不同大小，构造最小反例"}
+  ],
+  "composition_obligation": {
+    "coverage": "所有对象恰落入一个轨道/陪集",
+    "compatibility": "代表上的结论经逆作用回到原对象",
+    "invariant": "合同假设和目标量在作用下保持",
+    "simultaneous_choice": "若多个局部代表需同时选择，另建 gluing obligation",
+    "closure": "轨道求和 multiplicity 与稳定子因子全部核销"
+  },
+  "expected_artifacts": ["action_laws.md", "orbit_partition.json", "stabilizers.json", "canonicalization.json", "orbit_sum.md"]
+}

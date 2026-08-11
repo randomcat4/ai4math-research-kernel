@@ -1,0 +1,24 @@
+{
+  "fixture_version": "archon-horizon.a4565a.run-json.v1",
+  "source": {
+    "repo_commit": "a4565a48b4b84189384a05b9a4e6409e875122e1",
+    "producer": "src/archon_horizon/commands/run.py::_emit_reports",
+    "contract_test": "tests/test_cli_json.py::test_run_dry_run_json",
+    "capture_status": "LIVE_DRY_RUN_RECORDED",
+    "capture_host": "36.150.116.220:30412",
+    "capture_date": "2026-08-11",
+    "temporary_workspace_cleaned": true
+  },
+  "stdout": {
+    "dry_run": true,
+    "rounds": [
+      {
+        "round": 0,
+        "planned": ["workspace-all"]
+      }
+    ]
+  },
+  "expected_exit_code": 0,
+  "stderr_contains": ["Starting Run (ID: 0001)", "Run 0001 finished"],
+  "trust_effect": "EXECUTION_PLAN_ONLY"
+}

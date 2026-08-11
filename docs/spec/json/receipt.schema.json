@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.ai4math/rk/receipt.schema.json",
+  "title": "RK CommandReceipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "request_id", "command_id", "run_id", "accepted",
+    "revision_before", "revision_after", "event_ids", "artifact_ids",
+    "rejection_code", "missing_conditions", "decided_at"
+  ],
+  "properties": {
+    "schema_version": {"const": "rk.receipt.v1"},
+    "request_id": {"type": "string", "format": "uuid"},
+    "command_id": {"type": "string", "format": "uuid"},
+    "run_id": {"type": "string", "format": "uuid"},
+    "accepted": {"type": "boolean"},
+    "revision_before": {"type": "integer", "minimum": 0},
+    "revision_after": {"type": "integer", "minimum": 0},
+    "event_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}, "uniqueItems": true},
+    "artifact_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}, "uniqueItems": true},
+    "rejection_code": {"type": ["string", "null"]},
+    "missing_conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "path", "params"],
+        "properties": {
+          "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"},
+          "path": {"type": "string"},
+          "params": {"type": "object"}
+        }
+      }
+    },
+    "decided_at": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"accepted": {"const": true}}},
+      "then": {
+        "properties": {
+          "rejection_code": {"type": "null"},
+          "missing_conditions": {"maxItems": 0}
+        }
+      },
+      "else": {
+        "properties": {
+          "rejection_code": {"type": "string"},
+          "missing_conditions": {"minItems": 1}
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "schema_version": "rk.method_card.v1",
+  "card_id": "MC_MINIMAL_COUNTEREXAMPLE_V1",
+  "title": "最小反例与可逆局部约化",
+  "source_lineage": ["infinite descent", "minimal counterexample", "reducible configuration"],
+  "node_admission": {
+    "required": [
+      "反例类在明确良序 measure 下存在最小元",
+      "目标性质与对象等价关系已固定",
+      "能提出保持合同对象类的局部约化候选",
+      "约化后解可以通过显式 lift 恢复"
+    ],
+    "reject_if": [
+      "measure 不良基或可能不降",
+      "约化偷偷加强假设/改变对象类",
+      "lift 只在一般位置成立",
+      "最小性被用于证明 measure 下降本身"
+    ]
+  },
+  "decisive_choice": "选择使局部构型可删除/收缩且 lift 义务最短的字典序 measure，而不是只选对象大小。",
+  "selection_criterion": {
+    "measure": "由合同允许的不变量构成自然数元组，字典序良基",
+    "reduction": "优先保持最多全局不变量且引入最少边界例的操作",
+    "reject": "需要假定待证性质才能恢复被删构型"
+  },
+  "proof_spine": [
+    {"obligation_id": "mc.counterexample_class", "claim": "写出精确反例谓词及非空假设。", "check": "exact_negation_match"},
+    {"obligation_id": "mc.measure", "claim": "定义良基 measure。", "check": "well_founded_certificate"},
+    {"obligation_id": "mc.minimal", "claim": "在反例类中取 measure 最小对象。", "check": "choice_scope"},
+    {"obligation_id": "mc.configuration", "claim": "证明最小对象必含可约构型。", "check": "coverage_or_structure_lemma"},
+    {"obligation_id": "mc.reduction", "claim": "构造更小对象。", "check": "strict_measure_drop"},
+    {"obligation_id": "mc.reduction_preserves_class", "claim": "约化对象仍满足合同全部前提。", "check": "assumption_by_assumption"},
+    {"obligation_id": "mc.lift", "claim": "从较小对象的解恢复原对象的解。", "check": "explicit_inverse_or_extension"},
+    {"obligation_id": "mc.contradiction", "claim": "得到更小反例或原对象非反例，矛盾。", "check": "logical_closure"}
+  ],
+  "progress_measure": "预注册的自然数元组；每次 reduction 在字典序严格下降。",
+  "auxiliary_strengthening": {
+    "allowed": "在归纳命题中加入恢复所需的边界数据/根/预着色，只要对所有原对象可构造。",
+    "forbidden": "只研究连通/简单/一般位置对象而未证明分解或归约。"
+  },
+  "sharp_examples": ["最小允许大小", "约化会产生重边/空分支的边界", "不能 lift 的最小构型"],
+  "sentinel_suite": {
+    "positive_case_ids": ["P08"],
+    "near_miss_case_ids": ["N08"],
+    "mutations": [
+      "把森林改为单圈图，reduction_preserves_class 必须失败",
+      "让 measure 在某个边界操作不变，progress 必须失败",
+      "删除 lift 的一个边界分支，最小构型必须暴露"
+    ]
+  },
+  "failure_conditions": [
+    {"at": "mc.configuration", "record": "结构引理成为新的明确义务，禁止假装完成"},
+    {"at": "mc.reduction_preserves_class", "record": "约化离开对象类，路线退回"},
+    {"at": "mc.lift", "record": "局部解不可恢复，登记 GLUE_FAILURE"}
+  ],
+  "composition_obligation": {
+    "coverage": "结构引理覆盖所有最小反例",
+    "progress": "每次约化严格下降且不会无限循环",
+    "boundary": "lift 覆盖全部新边界/退化构型",
+    "closure": "所有 reduction 分支都回到同一合同命题"
+  },
+  "expected_artifacts": ["counterexample_predicate.json", "measure.json", "reduction_map.md", "lift_map.md", "boundary_suite.json"]
+}

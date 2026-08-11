@@ -1,0 +1,63 @@
+{
+  "schema_version": "rk.method_card.v1",
+  "card_id": "MC_AUX_INDUCTION_V1",
+  "title": "合法辅助强化的结构归纳",
+  "source_lineage": ["mathematical induction", "strengthened induction hypothesis", "telescoping"],
+  "node_admission": {
+    "required": [
+      "对象有自然数或良基结构参数",
+      "目标类对基本拆解闭合",
+      "归纳步需要的信息可被写成对所有原对象可满足的辅助结论",
+      "最终可明确消去辅助数据回到原命题"
+    ],
+    "reject_if": [
+      "所谓强化实际增加原题假设",
+      "步中参数不严格下降",
+      "极限交换/无穷过程没有单独定理",
+      "归纳假设被用于当前同规模对象"
+    ]
+  },
+  "decisive_choice": "只强化结论携带恢复所需的数据，不强化输入假设；选择让归纳步成为局部代数恒等式的最小辅助参数。",
+  "selection_criterion": {
+    "prefer": "辅助命题对 n=0/边界自然成立，归纳步只调用更小参数",
+    "tie_break": "最终 specialization 最短且不使用新假设",
+    "reject": "辅助命题无法从原题每个输入构造，或只对一般位置成立"
+  },
+  "proof_spine": [
+    {"obligation_id": "ai.parameter", "claim": "定义良基归纳参数和对象类。", "check": "well_founded_scope"},
+    {"obligation_id": "ai.strengthen", "claim": "写出辅助强化，并证明它不增加原题假设。", "check": "assumption_diff_empty"},
+    {"obligation_id": "ai.preserved_assumptions", "claim": "拆解后的子对象仍满足合同前提。", "check": "assumption_mapping"},
+    {"obligation_id": "ai.base", "claim": "覆盖所有最小参数与空对象。", "check": "boundary_enumeration"},
+    {"obligation_id": "ai.step", "claim": "只用更小参数的辅助命题推出当前辅助命题。", "check": "strict_dependency"},
+    {"obligation_id": "ai.cancel", "claim": "若为 telescoping/代数归纳，内部项按精确索引消去。", "check": "index_alignment"},
+    {"obligation_id": "ai.limit_passage", "claim": "涉及极限时另证收敛与极限交换；有限题标 N/A。", "check": "analysis_gate"},
+    {"obligation_id": "ai.discharge", "claim": "将辅助命题特化为原结论。", "check": "no_extra_assumption"}
+  ],
+  "progress_measure": "归纳参数严格下降；结构归纳记录每个 recursive child 的 measure。",
+  "auxiliary_strengthening": {
+    "allowed": "结论中加入边界值、根、标记、参数化权重或更一般输出，且对每个原输入可实例化。",
+    "forbidden": "输入中加入交换性、一般位置、收敛性、连通性等新假设而不 amend。"
+  },
+  "sharp_examples": ["n=0", "n=1", "变量相等的退化例", "振荡序列的无穷 near miss"],
+  "sentinel_suite": {
+    "positive_case_ids": ["P04", "P07"],
+    "near_miss_case_ids": ["N04", "N07"],
+    "mutations": [
+      "删除交换性假设后 Vandermonde 普通行列式证明必须拒绝",
+      "把有限和改无穷和且不加收敛，limit_passage 必须失败",
+      "让归纳步调用同规模对象，strict_dependency 必须失败"
+    ]
+  },
+  "failure_conditions": [
+    {"at": "ai.strengthen", "record": "辅助命题增加假设，要求 amend 或拒绝"},
+    {"at": "ai.preserved_assumptions", "record": "子对象离开合同类"},
+    {"at": "ai.limit_passage", "record": "有限恒等式不能推出无穷收敛"}
+  ],
+  "composition_obligation": {
+    "coverage": "base + step 覆盖参数全部值",
+    "progress": "每个递归依赖严格更小",
+    "invariant": "合同假设对拆解保持",
+    "closure": "discharge 移除全部辅助输出且不遗留新假设"
+  },
+  "expected_artifacts": ["strengthening_diff.json", "base_cases.json", "dependency_measure.json", "induction_step.md", "discharge.md"]
+}
