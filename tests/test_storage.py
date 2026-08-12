@@ -149,9 +149,7 @@ def test_command_event_revision_and_inspect_are_one_composable_transaction(
             recorded_at=NOW,
             contract_version=1,
         )
-        assert storage.advance_revision(
-            connection, "run-1", 0, updated_at=NOW
-        ) == 1
+        assert storage.advance_revision(connection, "run-1", 0, updated_at=NOW) == 1
     assert cursor == 1
 
     found = storage.find_command("run-1", "request-1")

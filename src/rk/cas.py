@@ -163,9 +163,7 @@ class ContentAddressedStore:
             digest = hasher.hexdigest()
             if byte_count != value.byte_count or digest != value.sha256:
                 raise CasValidationError("artifact size or digest does not match its declaration")
-            line_count = self._line_count(
-                value.media_type, byte_count, newline_count, last_byte
-            )
+            line_count = self._line_count(value.media_type, byte_count, newline_count, last_byte)
             return StagedArtifact(
                 artifact_id=self._id_generator.new(),
                 sha256=digest,
@@ -251,9 +249,9 @@ class ContentAddressedStore:
         now: datetime,
         at_revision: int,
     ) -> ArtifactRef:
-        return self.commit(
-            self.stage_bytes(data, media_type=media_type), now=now
-        ).to_ref(at_revision=at_revision)
+        return self.commit(self.stage_bytes(data, media_type=media_type), now=now).to_ref(
+            at_revision=at_revision
+        )
 
     def read_bytes(self, artifact_id: str) -> bytes:
         if self._artifact_lookup is None:

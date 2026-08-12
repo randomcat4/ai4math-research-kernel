@@ -158,7 +158,7 @@ rename 必须是原子操作。
 | `RecordQualityReview` | `claim_id`, `contract_version`, `review_artifact_id`, `verdict`, `dimensions`, `training_pool` |
 | `RecordLiterature` | `contract_version`, `claim_id?`, `status`, `relation?`, `scope`, `cutoff_date`, `query_families[]`, `query_log_artifact_id`, `reference_artifact_id?`, `assessment_artifact_id` |
 | `RegisterBridge` | `bridge_id?`, `contract_version`, `source_claim_id`, `target_claim_id`, `directionality`, `term_mapping`, `forward_obligations[]`, `reverse_obligations[]`, `loss_accounting`, `target_audit_review_id?`, `backtranslation_artifact_id?` |
-| `RecordLeanFeedback` | `claim_id`, `attempt_id?`, `contract_version`, `environment_profile_id`, `toolchain`, `mathlib_commit?`, `source_artifact_id`, `output_artifact_id`, `feedback_kind`, `first_failed_obligation_id?`, `diagnostic` |
+| `RecordLeanFeedback` | `claim_id`, `attempt_id?`（`REPLAY_PASS` 时必需）, `contract_version`, `environment_profile_id`, `toolchain`, `mathlib_commit?`, `source_artifact_id`, `output_artifact_id`, `feedback_kind`, `first_failed_obligation_id?`, `diagnostic` |
 | `RegisterClaim` | `contract_version`, `claim_kind`, `stable_label`, `statement_artifact_id`, `statement_hash`, `normalized_statement`, `target_route_id?` |
 | `RegisterClaimEdge` | `contract_version`, `from_claim_id`, `to_claim_id`, `edge_kind`, `direction`, `justification_kind`, `justification_ref` |
 | `RegisterRoute` | `contract_version`, `target_claim_id`, `label`, `representation`, `tool_family`, `approach_root`, `budget_policy` |

@@ -166,6 +166,7 @@ class ResearchKernel:
         policy = {
             "adapter_profiles": dict(config.adapter_profiles),
             "verifier_profiles": dict(config.verifier_profiles),
+            **dict(config.budget_policy),
         }
         return cls(
             storage=storage,
@@ -268,7 +269,7 @@ class ResearchKernel:
                         "status": "COMMITTED",
                     }
                     for item in request.artifact_inputs
-                ]
+                ],
             }
             if any(not item.accepted for item in inspections):
                 quarantined = any(
@@ -413,9 +414,7 @@ class ResearchKernel:
 
             artifact_ids = tuple(
                 sorted(
-                    {
-                        str(value["artifact_id"]) for value in canonical_by_name.values()
-                    }
+                    {str(value["artifact_id"]) for value in canonical_by_name.values()}
                     | set(generated.values())
                 )
             )

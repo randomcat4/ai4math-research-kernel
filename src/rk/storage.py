@@ -268,9 +268,7 @@ class SQLiteStorage:
         connection: sqlite3.Connection | None = None,
     ) -> dict[str, Any] | None:
         with self._reader(connection) as conn:
-            row = conn.execute(
-                "SELECT * FROM runs WHERE run_id = ?", (run_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
         return dict(row) if row is not None else None
 
     def find_command(
@@ -389,8 +387,7 @@ class SQLiteStorage:
         next_revision = expected_revision + 1
         if status is None:
             result = connection.execute(
-                "UPDATE runs SET revision = ?, updated_at = ? "
-                "WHERE run_id = ? AND revision = ?",
+                "UPDATE runs SET revision = ?, updated_at = ? WHERE run_id = ? AND revision = ?",
                 (next_revision, updated_at, run_id, expected_revision),
             )
         else:
@@ -463,9 +460,7 @@ class SQLiteStorage:
         connection: sqlite3.Connection | None = None,
     ) -> dict[str, Any] | None:
         with self._reader(connection) as conn:
-            row = conn.execute(
-                "SELECT * FROM artifacts WHERE sha256 = ?", (sha256,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM artifacts WHERE sha256 = ?", (sha256,)).fetchone()
         return dict(row) if row is not None else None
 
     def link_artifact(
@@ -486,8 +481,7 @@ class SQLiteStorage:
             (run_id, artifact_id, logical_name, role, linked_at),
         )
         row = connection.execute(
-            "SELECT artifact_id, role FROM run_artifacts "
-            "WHERE run_id = ? AND logical_name = ?",
+            "SELECT artifact_id, role FROM run_artifacts WHERE run_id = ? AND logical_name = ?",
             (run_id, logical_name),
         ).fetchone()
         if row is None or str(row["artifact_id"]) != artifact_id or str(row["role"]) != role:
@@ -551,15 +545,28 @@ class SQLiteStorage:
             witnesses = rows("closure_witnesses", "witness_id")
             bindings = rows("execution_bindings", "binding_id")
             failures = rows("failure_records", "failure_record_id")
-            evidence = rows("evidence", "evidence_id")
+            evidence = [
+                dict(item)
+                for item in conn.execute(
+                    "SELECT e.*,r.root_kind,r.verifier_profile_id,c.capability_id AS "
+                    "submitter_capability_id,c.subject_id AS submitter_subject_id "
+                    "FROM evidence e JOIN evidence_roots r "
+                    "ON r.evidence_root_id = e.evidence_root_id "
+                    "JOIN commands cmd ON cmd.command_id = e.submitted_by_command_id "
+                    "JOIN capabilities c ON c.capability_id = cmd.capability_id "
+                    "WHERE e.run_id = ? ORDER BY e.evidence_id",
+                    (run_id,),
+                ).fetchall()
+            ]
+            lean_feedback = rows("lean_feedback_events", "lean_feedback_id")
+            budget_events = rows("budget_events", "budget_event_id")
             interrupt = conn.execute(
                 "SELECT payload_json FROM events WHERE run_id = ? "
                 "AND event_type = 'RUN_INTERRUPTED' ORDER BY event_seq DESC LIMIT 1",
                 (run_id,),
             ).fetchone()
             fuse = conn.execute(
-                "SELECT 1 FROM budget_events WHERE run_id = ? "
-                "AND event_kind = 'FUSE_TRIP' LIMIT 1",
+                "SELECT 1 FROM budget_events WHERE run_id = ? AND event_kind = 'FUSE_TRIP' LIMIT 1",
                 (run_id,),
             ).fetchone()
 
@@ -600,6 +607,8 @@ class SQLiteStorage:
             "bindings": ("external_session_ids_json",),
             "failures": ("applicability_json", "novelty_delta_json"),
             "evidence": ("scope_json", "provenance_json"),
+            "lean_feedback": ("diagnostic_json",),
+            "budget_events": ("provider_usage_json",),
         }
         collections: dict[str, list[dict[str, Any]]] = {
             "contracts": contracts,
@@ -618,6 +627,8 @@ class SQLiteStorage:
             "bindings": bindings,
             "failures": failures,
             "evidence": evidence,
+            "lean_feedback": lean_feedback,
+            "budget_events": budget_events,
         }
         for key, fields in json_fields.items():
             for record in collections[key]:
@@ -657,16 +668,12 @@ class SQLiteStorage:
             "contract": current_contract,
             **collections,
             "open_obligation_ids": [
-                str(item["obligation_id"])
-                for item in obligations
-                if item.get("status") == "OPEN"
+                str(item["obligation_id"]) for item in obligations if item.get("status") == "OPEN"
             ],
             "reviews": peer_reviews,
             "last_interrupt": json.loads(str(interrupt[0])) if interrupt is not None else {},
             "budget_fuse_tripped": fuse is not None,
-            "defect_proposals": [
-                item for item in contracts if item["status"] == "DEFECT_PROPOSED"
-            ],
+            "defect_proposals": [item for item in contracts if item["status"] == "DEFECT_PROPOSED"],
         }
         return {
             "run_id": str(run_row["run_id"]),
@@ -718,6 +725,11 @@ class SQLiteStorage:
                 "FROM budget_events WHERE run_id = ? GROUP BY resource_kind, event_kind",
                 (run_id,),
             ).fetchall()
+            component_rows = connection.execute(
+                "SELECT resource_kind,event_kind,amount_microunits,provider_usage_json "
+                "FROM budget_events WHERE run_id = ? ORDER BY budget_event_id",
+                (run_id,),
+            ).fetchall()
             artifact_rows = connection.execute(
                 "SELECT a.artifact_id,a.sha256,a.byte_count,a.media_type,ra.logical_name,ra.role "
                 "FROM run_artifacts ra JOIN artifacts a ON a.artifact_id = ra.artifact_id "
@@ -765,6 +777,28 @@ class SQLiteStorage:
                 "FROM literature_records WHERE run_id = ? ORDER BY literature_record_id",
                 (run_id,),
             ).fetchall()
+            bindings = [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM execution_bindings WHERE run_id = ? ORDER BY binding_id",
+                    (run_id,),
+                ).fetchall()
+            ]
+            lean_feedback = [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM lean_feedback_events WHERE run_id = ? "
+                    "ORDER BY lean_feedback_id",
+                    (run_id,),
+                ).fetchall()
+            ]
+            budget_events = [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM budget_events WHERE run_id = ? ORDER BY budget_event_id",
+                    (run_id,),
+                ).fetchall()
+            ]
             cursor_row = connection.execute(
                 "SELECT COALESCE(MAX(event_seq), 0) FROM events WHERE run_id = ?", (run_id,)
             ).fetchone()
@@ -793,6 +827,44 @@ class SQLiteStorage:
             if event_kind in key_by_kind:
                 item[key_by_kind[event_kind]] += int(row["amount"])
             item["unknown_count"] += int(row["unknown_count"])
+        component_usage: dict[str, dict[str, int]] = {}
+        for row in component_rows:
+            try:
+                usage = json.loads(str(row["provider_usage_json"]))
+            except (json.JSONDecodeError, TypeError):
+                continue
+            if not isinstance(usage, Mapping):
+                continue
+            component = usage.get("component")
+            if not isinstance(component, str) or not component:
+                continue
+            item = component_usage.setdefault(
+                component,
+                {
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "reasoning_tokens": 0,
+                    "cache_read_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "total_tokens": 0,
+                    "wall_time_ms": 0,
+                    "unknown_count": 0,
+                },
+            )
+            if str(row["event_kind"]) == "UNKNOWN_COST":
+                item["unknown_count"] += 1
+            for name in (
+                "input_tokens",
+                "output_tokens",
+                "reasoning_tokens",
+                "cache_read_tokens",
+                "cache_write_tokens",
+                "total_tokens",
+                "wall_time_ms",
+            ):
+                value = usage.get(name)
+                if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                    item[name] += value
         terminal_values = {"ROUTE_LOCAL", "ROUTE_PROVED", "REFUTED", "PREVIOUSLY_KNOWN"}
         return {
             "run_id": str(run["run_id"]),
@@ -815,7 +887,11 @@ class SQLiteStorage:
             "routes": [dict(row) for row in route_rows],
             "open_obligation_ids": [str(row[0]) for row in obligations],
             "active_attempts": [dict(row) for row in attempts],
+            "bindings": bindings,
+            "lean_feedback": lean_feedback,
+            "budget_events": budget_events,
             "budget_summary": budget,
+            "component_usage": component_usage,
             "terminal_claim_ids": [
                 item["claim_id"] for item in claims if item["route"] in terminal_values
             ],
@@ -828,9 +904,7 @@ class SQLiteStorage:
         if not 1 <= limit <= 500:
             raise ValueError("limit must be between 1 and 500")
         with self._reader(None) as connection:
-            exists = connection.execute(
-                "SELECT 1 FROM runs WHERE run_id = ?", (run_id,)
-            ).fetchone()
+            exists = connection.execute("SELECT 1 FROM runs WHERE run_id = ?", (run_id,)).fetchone()
             if exists is None:
                 raise RunNotFound("run not found")
             rows = connection.execute(

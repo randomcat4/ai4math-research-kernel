@@ -17,3 +17,14 @@ capability_key_id = "replace-with-host-key-id"
 [adapter_profiles]
 
 [verifier_profiles]
+
+# Hard enforcement policy. Values use the same microunit convention as RecordBudget.
+[budget_policy]
+budget_controller_capability_ids = []
+route_share_denominator = 5
+
+[budget_policy.global_budget_limits]
+INPUT_TOKEN = 100000000000000
+OUTPUT_TOKEN = 100000000000000
+CPU_SECOND = 36000000000000
+GPU_SECOND = 2592000000000

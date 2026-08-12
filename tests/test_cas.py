@@ -119,9 +119,7 @@ def test_replace_then_crash_leaves_discoverable_final_orphan(tmp_path: Path) -> 
     old = (NOW - timedelta(seconds=10)).timestamp()
     os.utime(finals[0], (old, old))
     candidates = store.scan_orphans((), now=NOW)
-    assert [(item.kind, item.eligible_for_collection) for item in candidates] == [
-        ("FINAL", True)
-    ]
+    assert [(item.kind, item.eligible_for_collection) for item in candidates] == [("FINAL", True)]
 
 
 def test_crash_before_replace_leaves_staged_orphan(tmp_path: Path) -> None:

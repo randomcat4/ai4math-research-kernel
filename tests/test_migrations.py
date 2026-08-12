@@ -17,7 +17,8 @@ SOURCE_MIGRATIONS = Path(__file__).parents[1] / "migrations"
 def _copy_migrations(target: Path) -> Path:
     destination = target / "migrations"
     destination.mkdir()
-    shutil.copy2(SOURCE_MIGRATIONS / "0001.sql", destination / "0001.sql")
+    for source in SOURCE_MIGRATIONS.glob("*.sql"):
+        shutil.copy2(source, destination / source.name)
     return destination
 
 
@@ -42,7 +43,7 @@ def test_empty_database_migrates_and_restart_is_idempotent(tmp_path: Path) -> No
     with sqlite3.connect(db_path) as connection:
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
-        assert connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone() == (1,)
+        assert connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone() == (3,)
 
 
 def test_applied_file_drift_is_refused(tmp_path: Path) -> None:
@@ -76,9 +77,7 @@ def test_crash_after_schema_commit_is_never_silently_adopted(tmp_path: Path) -> 
         ).migrate()
 
     with sqlite3.connect(db_path) as connection:
-        assert connection.execute(
-            "SELECT COUNT(*) FROM schema_migrations"
-        ).fetchone() == (0,)
+        assert connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone() == (0,)
         assert connection.execute(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='runs'"
         ).fetchone() == (1,)

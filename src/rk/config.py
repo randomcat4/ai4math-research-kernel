@@ -39,6 +39,7 @@ class KernelConfig:
     orphan_grace_seconds: int = 86_400
     adapter_profiles: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     verifier_profiles: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    budget_policy: Mapping[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_mapping(
@@ -79,6 +80,7 @@ class KernelConfig:
             ),
             adapter_profiles=dict(values.get("adapter_profiles", {})),
             verifier_profiles=dict(values.get("verifier_profiles", {})),
+            budget_policy=dict(values.get("budget_policy", {})),
         )
 
     @classmethod

@@ -97,9 +97,7 @@ class ProjectionWriter:
                         {
                             "evidence_refs": payload.get("evidence_refs", []),
                             "affected_claim_ids": payload.get("affected_claim_ids", []),
-                            "proposed_patch_artifact_id": payload.get(
-                                "proposed_patch_artifact_id"
-                            ),
+                            "proposed_patch_artifact_id": payload.get("proposed_patch_artifact_id"),
                         }
                     ),
                     context.run_id,
@@ -139,14 +137,26 @@ class ProjectionWriter:
         )
 
     @staticmethod
+    def _op_EXPIRE_ACTIVE_LEASES(
+        connection: sqlite3.Connection,
+        context: ProjectionContext,
+        mutation: Mapping[str, Any],
+    ) -> None:
+        del mutation
+        connection.execute(
+            "UPDATE leases SET status = 'EXPIRED', released_at = ? WHERE status = 'ACTIVE' "
+            "AND attempt_id IN (SELECT attempt_id FROM attempts WHERE run_id = ?)",
+            (context.recorded_at, context.run_id),
+        )
+
+    @staticmethod
     def _op_SUPERSEDE_CONTRACT(
         connection: sqlite3.Connection,
         context: ProjectionContext,
         mutation: Mapping[str, Any],
     ) -> None:
         connection.execute(
-            "UPDATE contract_versions SET status = 'SUPERSEDED' "
-            "WHERE run_id = ? AND version = ?",
+            "UPDATE contract_versions SET status = 'SUPERSEDED' WHERE run_id = ? AND version = ?",
             (context.run_id, int(mutation["version"])),
         )
 
@@ -356,10 +366,19 @@ class ProjectionWriter:
             "checklist_json,review_artifact_id,source_graph_json,created_by_event_id,created_at) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), context.run_id, p["claim_id"], p["contract_version"],
-                p["statement_hash"], p.get("selected_subgraph_digest"), context.capability_id,
-                _json(p["independence_profile"]), p["verdict"], _json(p["checklist"]),
-                p["review_artifact_id"], _json(p["source_graph"]), context.event_id,
+                self._ids.new(),
+                context.run_id,
+                p["claim_id"],
+                p["contract_version"],
+                p["statement_hash"],
+                p.get("selected_subgraph_digest"),
+                context.capability_id,
+                _json(p["independence_profile"]),
+                p["verdict"],
+                _json(p["checklist"]),
+                p["review_artifact_id"],
+                _json(p["source_graph"]),
+                context.event_id,
                 context.recorded_at,
             ),
         )
@@ -377,9 +396,16 @@ class ProjectionWriter:
             "reviewer_capability_id,verdict,dimensions_json,review_artifact_id,training_pool,"
             "created_by_event_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), context.run_id, p["claim_id"], p["contract_version"],
-                context.capability_id, p["verdict"], _json(p["dimensions"]),
-                p["review_artifact_id"], p["training_pool"], context.event_id,
+                self._ids.new(),
+                context.run_id,
+                p["claim_id"],
+                p["contract_version"],
+                context.capability_id,
+                p["verdict"],
+                _json(p["dimensions"]),
+                p["review_artifact_id"],
+                p["training_pool"],
+                context.event_id,
                 context.recorded_at,
             ),
         )
@@ -398,10 +424,19 @@ class ProjectionWriter:
             "reference_artifact_id,assessment_artifact_id,created_by_event_id,created_at) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), context.run_id, p["contract_version"], p.get("claim_id"),
-                p["status"], p.get("relation"), _json(p["scope"]), p["cutoff_date"],
-                _json(p["query_families"]), p["query_log_artifact_id"],
-                p.get("reference_artifact_id"), p["assessment_artifact_id"], context.event_id,
+                self._ids.new(),
+                context.run_id,
+                p["contract_version"],
+                p.get("claim_id"),
+                p["status"],
+                p.get("relation"),
+                _json(p["scope"]),
+                p["cutoff_date"],
+                _json(p["query_families"]),
+                p["query_log_artifact_id"],
+                p.get("reference_artifact_id"),
+                p["assessment_artifact_id"],
+                context.event_id,
                 context.recorded_at,
             ),
         )
@@ -421,12 +456,22 @@ class ProjectionWriter:
             "created_by_event_id,updated_by_event_id,created_at,updated_at) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                bridge_id, context.run_id, p["contract_version"], p["source_claim_id"],
-                p["target_claim_id"], mutation["directionality"], _json(p["term_mapping"]),
-                _json(p["forward_obligations"]), _json(p["reverse_obligations"]),
-                _json(p["loss_accounting"]), p.get("target_audit_review_id"),
-                p.get("backtranslation_artifact_id"), context.event_id, context.event_id,
-                context.recorded_at, context.recorded_at,
+                bridge_id,
+                context.run_id,
+                p["contract_version"],
+                p["source_claim_id"],
+                p["target_claim_id"],
+                mutation["directionality"],
+                _json(p["term_mapping"]),
+                _json(p["forward_obligations"]),
+                _json(p["reverse_obligations"]),
+                _json(p["loss_accounting"]),
+                p.get("target_audit_review_id"),
+                p.get("backtranslation_artifact_id"),
+                context.event_id,
+                context.event_id,
+                context.recorded_at,
+                context.recorded_at,
             ),
         )
 
@@ -438,17 +483,32 @@ class ProjectionWriter:
     ) -> None:
         del mutation
         p = context.command.payload
+        diagnostic = p["diagnostic"]
+        host_receipt = diagnostic.get("host_receipt", {})
+        receipt_payload = host_receipt.get("payload", {})
         connection.execute(
             "INSERT INTO lean_feedback_events(lean_feedback_id,run_id,claim_id,attempt_id,"
             "contract_version,environment_profile_id,toolchain,mathlib_commit,source_artifact_id,"
             "output_artifact_id,feedback_kind,first_failed_obligation_id,diagnostic_json,"
-            "created_by_event_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "created_by_event_id,created_at,receipt_nonce) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), context.run_id, p["claim_id"], p.get("attempt_id"),
-                p["contract_version"], p["environment_profile_id"], p["toolchain"],
-                p.get("mathlib_commit"), p["source_artifact_id"], p["output_artifact_id"],
-                p["feedback_kind"], p.get("first_failed_obligation_id"), _json(p["diagnostic"]),
-                context.event_id, context.recorded_at,
+                self._ids.new(),
+                context.run_id,
+                p["claim_id"],
+                p.get("attempt_id"),
+                p["contract_version"],
+                p["environment_profile_id"],
+                p["toolchain"],
+                p.get("mathlib_commit"),
+                p["source_artifact_id"],
+                p["output_artifact_id"],
+                p["feedback_kind"],
+                p.get("first_failed_obligation_id"),
+                _json(p["diagnostic"]),
+                context.event_id,
+                context.recorded_at,
+                receipt_payload.get("invocation_nonce"),
             ),
         )
 
@@ -482,10 +542,18 @@ class ProjectionWriter:
             "VALUES (?,?,?,?,?,1,?,?,?,'ACTIVE','UNASSESSED','UNVERIFIED','UNREVIEWED',"
             "'UNREVIEWED','UNREVIEWED',?,?,?,?)",
             (
-                claim_id, context.run_id, p["contract_version"], p["claim_kind"],
-                p["stable_label"], p["statement_artifact_id"], p["statement_hash"],
-                _json(p["normalized_statement"]), mutation["closure"], context.event_id,
-                context.recorded_at, context.recorded_at,
+                claim_id,
+                context.run_id,
+                p["contract_version"],
+                p["claim_kind"],
+                p["stable_label"],
+                p["statement_artifact_id"],
+                p["statement_hash"],
+                _json(p["normalized_statement"]),
+                mutation["closure"],
+                context.event_id,
+                context.recorded_at,
+                context.recorded_at,
             ),
         )
         if p["claim_kind"] == "ROOT":
@@ -507,9 +575,17 @@ class ProjectionWriter:
             "edge_kind,direction,justification_kind,justification_ref,status,created_by_event_id,"
             "created_at) VALUES (?,?,?,?,?,?,?,?,?,'ACTIVE',?,?)",
             (
-                self._ids.new(), context.run_id, p["contract_version"], p["from_claim_id"],
-                p["to_claim_id"], p["edge_kind"], p["direction"], p["justification_kind"],
-                p["justification_ref"], context.event_id, context.recorded_at,
+                self._ids.new(),
+                context.run_id,
+                p["contract_version"],
+                p["from_claim_id"],
+                p["to_claim_id"],
+                p["edge_kind"],
+                p["direction"],
+                p["justification_kind"],
+                p["justification_ref"],
+                context.event_id,
+                context.recorded_at,
             ),
         )
 
@@ -539,10 +615,15 @@ class ProjectionWriter:
             "origin_event_id,parent_root_ids_json,contact_epoch,contamination_json,created_at) "
             "VALUES (?,?,?,?,?,?,?,?,?)",
             (
-                root_id, context.run_id, root.get("label", p["label"]),
-                root.get("origin_artifact_id"), context.event_id,
-                _json(root.get("parent_root_ids", [])), int(root.get("contact_epoch", 0)),
-                _json(root.get("contamination", {})), context.recorded_at,
+                root_id,
+                context.run_id,
+                root.get("label", p["label"]),
+                root.get("origin_artifact_id"),
+                context.event_id,
+                _json(root.get("parent_root_ids", [])),
+                int(root.get("contact_epoch", 0)),
+                _json(root.get("contamination", {})),
+                context.recorded_at,
             ),
         )
         connection.execute(
@@ -550,9 +631,18 @@ class ProjectionWriter:
             "representation,tool_family,approach_root_id,budget_policy_json,created_by_event_id,"
             "created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), context.run_id, p["contract_version"], p["target_claim_id"],
-                p["label"], mutation["status"], p["representation"], p["tool_family"], root_id,
-                _json(p["budget_policy"]), context.event_id, context.recorded_at,
+                self._ids.new(),
+                context.run_id,
+                p["contract_version"],
+                p["target_claim_id"],
+                p["label"],
+                mutation["status"],
+                p["representation"],
+                p["tool_family"],
+                root_id,
+                _json(p["budget_policy"]),
+                context.event_id,
+                context.recorded_at,
                 context.recorded_at,
             ),
         )
@@ -567,7 +657,11 @@ class ProjectionWriter:
         p = context.command.payload
         parts: list[Any] = []
         for name in (
-            "coverage", "compatibility", "invariant", "progress", "boundary",
+            "coverage",
+            "compatibility",
+            "invariant",
+            "progress",
+            "boundary",
             "simultaneous_choice",
         ):
             item = p[name]
@@ -582,11 +676,22 @@ class ProjectionWriter:
             "updated_by_event_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
             "?,?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), context.run_id, p["contract_version"], p["parent_claim_id"],
-                _json(p["child_claim_ids"]), _json(p["local_domain"]), *parts,
-                p["composition_rule"], p["closure_theorem_ref"], _json(p["missing_conditions"]),
-                p["displacement_status"], "OPEN", context.event_id, context.event_id,
-                context.recorded_at, context.recorded_at,
+                self._ids.new(),
+                context.run_id,
+                p["contract_version"],
+                p["parent_claim_id"],
+                _json(p["child_claim_ids"]),
+                _json(p["local_domain"]),
+                *parts,
+                p["composition_rule"],
+                p["closure_theorem_ref"],
+                _json(p["missing_conditions"]),
+                p["displacement_status"],
+                "OPEN",
+                context.event_id,
+                context.event_id,
+                context.recorded_at,
+                context.recorded_at,
             ),
         )
 
@@ -620,12 +725,21 @@ class ProjectionWriter:
             "human_attestation_review_ids_json,status,created_by_event_id,accepted_by_event_id,"
             "created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'ACCEPTED',?,?,?)",
             (
-                witness_id, context.run_id, p["parent_claim_id"], p["contract_version"],
-                p["selected_subgraph_digest"], artifact_id,
-                _json(p["discharged_obligation_ids"]), _json(p["open_obligation_ids"]),
-                _json(p["edge_justifications"]), _json(p["bridge_dependency_ids"]),
-                p["composition_mode"], _json(p["verification_refs"]),
-                _json(p["human_attestation_review_ids"]), context.event_id, context.event_id,
+                witness_id,
+                context.run_id,
+                p["parent_claim_id"],
+                p["contract_version"],
+                p["selected_subgraph_digest"],
+                artifact_id,
+                _json(p["discharged_obligation_ids"]),
+                _json(p["open_obligation_ids"]),
+                _json(p["edge_justifications"]),
+                _json(p["bridge_dependency_ids"]),
+                p["composition_mode"],
+                _json(p["verification_refs"]),
+                _json(p["human_attestation_review_ids"]),
+                context.event_id,
+                context.event_id,
                 context.recorded_at,
             ),
         )
@@ -653,9 +767,12 @@ class ProjectionWriter:
         mutation: Mapping[str, Any],
     ) -> None:
         columns = {
-            "ROUTE": "route_result", "MACHINE": "machine_verdict",
-            "SEMANTIC": "semantic_verdict", "PEER": "peer_verdict",
-            "QUALITY": "quality_verdict", "CLOSURE": "closure_state",
+            "ROUTE": "route_result",
+            "MACHINE": "machine_verdict",
+            "SEMANTIC": "semantic_verdict",
+            "PEER": "peer_verdict",
+            "QUALITY": "quality_verdict",
+            "CLOSURE": "closure_state",
         }
         axis = str(mutation["axis"])
         column = columns.get(axis)
@@ -677,10 +794,19 @@ class ProjectionWriter:
             "axis,value_before,value_after,evidence_ids_json,closure_witness_id,capability_id,"
             "reason_code,recorded_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), context.run_id, mutation["claim_id"], context.command_id,
-                context.revision, axis, before[0], mutation["value"],
-                _json(p.get("evidence_ids", [])), p.get("closure_witness_id"),
-                context.capability_id, "PROMOTE_CLAIM", context.recorded_at,
+                self._ids.new(),
+                context.run_id,
+                mutation["claim_id"],
+                context.command_id,
+                context.revision,
+                axis,
+                before[0],
+                mutation["value"],
+                _json(p.get("evidence_ids", [])),
+                p.get("closure_witness_id"),
+                context.capability_id,
+                "PROMOTE_CLAIM",
+                context.recorded_at,
             ),
         )
 
@@ -696,9 +822,16 @@ class ProjectionWriter:
             "work_relpath,allowed_write_set_json,input_snapshot_digest,created_by_event_id) "
             "VALUES (?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), p["route_id"], context.run_id, p["ordinal"], mutation["status"],
-                p["isolation_epoch"], p["work_relpath"], _json(p["allowed_write_set"]),
-                p["input_snapshot_digest"], context.event_id,
+                self._ids.new(),
+                p["route_id"],
+                context.run_id,
+                p["ordinal"],
+                mutation["status"],
+                p["isolation_epoch"],
+                p["work_relpath"],
+                _json(p["allowed_write_set"]),
+                p["input_snapshot_digest"],
+                context.event_id,
             ),
         )
 
@@ -716,9 +849,26 @@ class ProjectionWriter:
             "INSERT INTO leases(lease_id,attempt_id,holder_id,status,acquired_at,heartbeat_at,"
             "expires_at,created_by_event_id) VALUES (?,?,?,'ACTIVE',?,?,?,?)",
             (
-                self._ids.new(), p["attempt_id"], p["holder_id"], context.recorded_at,
-                context.recorded_at, expires, context.event_id,
+                self._ids.new(),
+                p["attempt_id"],
+                p["holder_id"],
+                context.recorded_at,
+                context.recorded_at,
+                expires,
+                context.event_id,
             ),
+        )
+
+    @staticmethod
+    def _op_EXPIRE_STALE_LEASES(
+        connection: sqlite3.Connection,
+        context: ProjectionContext,
+        mutation: Mapping[str, Any],
+    ) -> None:
+        connection.execute(
+            "UPDATE leases SET status = 'EXPIRED', released_at = ? WHERE attempt_id = ? "
+            "AND status = 'ACTIVE' AND expires_at <= ?",
+            (context.recorded_at, mutation["attempt_id"], context.recorded_at),
         )
 
     @staticmethod
@@ -735,12 +885,17 @@ class ProjectionWriter:
             ).fetchone()
             attempt_id = row[0] if row else None
         status = str(mutation["status"])
-        started = context.recorded_at if status in {
-            "RUNNING", "PAUSED", "SUCCEEDED", "FAILED", "ABORTED", "ENVIRONMENT_ERROR"
-        } else None
-        ended = context.recorded_at if status in {
-            "SUCCEEDED", "FAILED", "ABORTED", "ENVIRONMENT_ERROR"
-        } else None
+        started = (
+            context.recorded_at
+            if status
+            in {"RUNNING", "PAUSED", "SUCCEEDED", "FAILED", "ABORTED", "ENVIRONMENT_ERROR"}
+            else None
+        )
+        ended = (
+            context.recorded_at
+            if status in {"SUCCEEDED", "FAILED", "ABORTED", "ENVIRONMENT_ERROR"}
+            else None
+        )
         connection.execute(
             "UPDATE attempts SET status = ?, started_at = COALESCE(started_at, ?), "
             "ended_at = COALESCE(?, ended_at) WHERE attempt_id = ?",
@@ -784,10 +939,19 @@ class ProjectionWriter:
             "revision,event_kind,resource_kind,amount_microunits,unit,currency,"
             "provider_usage_json,recorded_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), context.run_id, p.get("route_id"), p.get("attempt_id"),
-                context.command_id, context.revision, p["event_kind"], p["resource_kind"],
-                p.get("amount_microunits"), p["unit"], p.get("currency"),
-                _json(p["provider_usage"]), context.recorded_at,
+                self._ids.new(),
+                context.run_id,
+                p.get("route_id"),
+                p.get("attempt_id"),
+                context.command_id,
+                context.revision,
+                p["event_kind"],
+                p["resource_kind"],
+                p.get("amount_microunits"),
+                p["unit"],
+                p.get("currency"),
+                _json(p["provider_usage"]),
+                context.recorded_at,
             ),
         )
 
@@ -813,18 +977,30 @@ class ProjectionWriter:
         del mutation
         p = context.command.payload
         external = p["external_ids"]
+        binding_id = self._ids.new()
+        invocation_nonce = self._ids.new()
         connection.execute(
             "INSERT INTO execution_bindings(binding_id,run_id,route_id,attempt_id,adapter_name,"
             "adapter_version,source_commit,external_run_id,external_task_id,"
             "external_session_ids_json,workspace_commit,environment_profile_id,"
-            "invocation_artifact_id,created_by_event_id,created_at) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "invocation_artifact_id,created_by_event_id,created_at,invocation_nonce) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
-                self._ids.new(), context.run_id, p["route_id"], p["attempt_id"],
-                p["adapter_name"], p["adapter_version"], p.get("source_commit"),
-                external.get("run_id"), external.get("task_id"),
-                _json(external.get("session_ids", [])), external.get("workspace_commit"),
-                p["environment_profile_id"], p["invocation_artifact_id"], context.event_id,
+                binding_id,
+                context.run_id,
+                p["route_id"],
+                p["attempt_id"],
+                p["adapter_name"],
+                p["adapter_version"],
+                p.get("source_commit"),
+                external.get("run_id"),
+                external.get("task_id"),
+                _json(external.get("session_ids", [])),
+                external.get("workspace_commit"),
+                p["environment_profile_id"],
+                p["invocation_artifact_id"],
+                context.event_id,
                 context.recorded_at,
+                invocation_nonce,
             ),
         )

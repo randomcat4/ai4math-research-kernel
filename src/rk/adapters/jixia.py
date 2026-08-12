@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,7 @@ class JixiaAdapter:
     ) -> None:
         profile.require(
             "argv_prefix",
+            "preflight_argv_prefix",
             "repo_path",
             "workspace_root",
             "output_root",
@@ -104,7 +106,46 @@ class JixiaAdapter:
                 "toolchain_match": True,
                 "binary_match": False,
             }
-        output.mkdir(parents=True, exist_ok=True)
+        source_relative = source.relative_to(project_root)
+        # Jixia asks Lean's module resolver for the compiled object.  A sibling `.olean`
+        # sometimes works when a stale source-tree artifact exists, but a fresh Lake project
+        # resolves `Foo/Bar.lean` to `.lake/build/lib/lean/Foo/Bar.olean`.
+        object_path = (
+            project_root / ".lake" / "build" / "lib" / "lean" / source_relative
+        ).with_suffix(".olean")
+        if output.exists() or object_path.exists():
+            return {
+                **common,
+                "status": "OUTPUT_COLLISION",
+                "payload": None,
+            }
+        output.mkdir(parents=True, exist_ok=False)
+        object_path.parent.mkdir(parents=True, exist_ok=True)
+        preflight_started = time.monotonic_ns()
+        preflight = self.runner.run(
+            [
+                *self.profile.preflight_argv_prefix,
+                "-o",
+                str(object_path),
+                str(source_relative),
+            ],
+            cwd=project_root,
+            env=env,
+            timeout=self.profile.timeout_seconds,
+        )
+        preflight_wall_time_ms = (time.monotonic_ns() - preflight_started) // 1_000_000
+        preflight_execution = {
+            "preflight_stdout": preflight.stdout,
+            "preflight_stderr": preflight.stderr,
+        }
+        if preflight.returncode != 0 or not object_path.is_file():
+            return {
+                **common,
+                "status": "LEAN_FEEDBACK",
+                "exit_code": preflight.returncode,
+                "payload": None,
+                "transient_execution_output": preflight_execution,
+            }
         paths = {
             "declarations": output / "decl.json",
             "symbols": output / "sym.json",
@@ -124,16 +165,22 @@ class JixiaAdapter:
                 str(paths["elaboration"]),
                 "-l",
                 str(paths["lines"]),
-                str(source.relative_to(project_root)),
+                str(source_relative),
             )
         )
+        analysis_started = time.monotonic_ns()
         completed = self.runner.run(
             argv,
             cwd=project_root,
             env=env,
             timeout=self.profile.timeout_seconds,
         )
-        execution = {"stdout": completed.stdout, "stderr": completed.stderr}
+        analysis_wall_time_ms = (time.monotonic_ns() - analysis_started) // 1_000_000
+        execution = {
+            **preflight_execution,
+            "stdout": completed.stdout,
+            "stderr": completed.stderr,
+        }
         if completed.returncode != 0:
             drift_markers = ("invalid header", "missing constants", "version mismatch")
             diagnostic = f"{completed.stdout}\n{completed.stderr}".lower()
@@ -212,6 +259,10 @@ class JixiaAdapter:
             "output_summary_hash": canonical_json_sha256(parsed),
             "payload": parsed,
             "transient_execution_output": execution,
+            "phase_wall_time_ms": {
+                "preflight_compile": preflight_wall_time_ms,
+                "analysis": analysis_wall_time_ms,
+            },
         }
 
     @staticmethod

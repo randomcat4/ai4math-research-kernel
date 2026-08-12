@@ -212,8 +212,7 @@ class MigrationRunner:
         return {
             str(row[0])
             for row in connection.execute(
-                "SELECT name FROM sqlite_master "
-                "WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
             )
         }
 

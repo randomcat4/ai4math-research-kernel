@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -227,10 +228,12 @@ class _Context:
             self.projection.get("attempts", self.projection.get("active_attempts")), "attempt_id"
         )
         self.leases = _records(self.projection.get("leases"), "lease_id")
+        self.bindings = _records(self.projection.get("bindings"), "binding_id")
         self.edges = _records(self.projection.get("edges"), "edge_id")
         self.obligations = _records(self.projection.get("obligations"), "obligation_id")
         self.bridges = _records(self.projection.get("bridges"), "bridge_id")
         self.witnesses = _records(self.projection.get("closure_witnesses"), "witness_id")
+        self.budget_events = _records(self.projection.get("budget_events"), "budget_event_id")
         self.reviews = {
             **_records(self.projection.get("reviews"), "review_id"),
             **_records(self.projection.get("peer_reviews"), "review_id"),
@@ -411,8 +414,15 @@ class TransitionGuard:
                 RejectionCode.ARTIFACT_MISSING,
                 _condition("LITERATURE_PLAN", "/command/payload/literature_plan_artifact_id"),
             )
-        if not isinstance(payload.get("budget_policy"), Mapping) or not payload.get(
-            "budget_policy"
+        budget_policy = payload.get("budget_policy")
+        global_limits = budget_policy.get("global") if isinstance(budget_policy, Mapping) else None
+        if (
+            not isinstance(global_limits, Mapping)
+            or not global_limits
+            or any(
+                not isinstance(value, int) or isinstance(value, bool) or value <= 0
+                for value in global_limits.values()
+            )
         ):
             return _reject(
                 RejectionCode.BUDGET_DENIED,
@@ -482,7 +492,10 @@ class TransitionGuard:
                 _condition("CHECKPOINT", "/command/payload/checkpoint_artifact_id"),
             )
         return _accept(
-            command, {"op": "SET_RUN_STATUS", "status": "PAUSED"}, {"op": "PAUSE_ACTIVE_ATTEMPTS"}
+            command,
+            {"op": "EXPIRE_ACTIVE_LEASES"},
+            {"op": "SET_RUN_STATUS", "status": "PAUSED"},
+            {"op": "PAUSE_ACTIVE_ATTEMPTS"},
         )
 
     def _handle_Resume(self, context: _Context, command: TypedCommand) -> Decision | None:
@@ -656,9 +669,17 @@ class TransitionGuard:
             )
         root = payload.get("evidence_root")
         provenance = payload.get("provenance")
+        root_kinds = {
+            "LEAN_KERNEL",
+            "CHECKER",
+            "ENUMERATION",
+            "HUMAN",
+            "MODEL",
+            "EXTERNAL_SOURCE",
+        }
         if (
             not isinstance(root, Mapping)
-            or not root.get("root_kind")
+            or root.get("root_kind") not in root_kinds
             or not isinstance(provenance, Mapping)
             or not provenance.get("actor")
         ):
@@ -947,14 +968,145 @@ class TransitionGuard:
             if isinstance(profiles, Mapping)
             else None
         )
-        if not isinstance(profile, Mapping) or profile.get("toolchain") not in {
-            None,
-            payload.get("toolchain"),
-        }:
+        if (
+            not isinstance(profile, Mapping)
+            or profile.get("toolchain")
+            not in {
+                None,
+                payload.get("toolchain"),
+            }
+            or profile.get("mathlib_commit")
+            not in {
+                None,
+                payload.get("mathlib_commit"),
+            }
+        ):
             return _reject(
                 RejectionCode.ENVIRONMENT_DRIFT,
                 _condition("MACHINE_REPLAY", "/command/payload/environment_profile_id"),
             )
+        verifier_writers = profile.get("verifier_writer_capability_ids")
+        if (
+            not isinstance(verifier_writers, Sequence)
+            or isinstance(verifier_writers, (str, bytes))
+            or context.capability.capability_id not in set(verifier_writers)
+        ):
+            return _reject(
+                RejectionCode.CAPABILITY_DENIED,
+                _condition("REQUIRED_ACTION", "/command/type", role="VERIFIER_WRITER"),
+            )
+        if payload.get("feedback_kind") == "REPLAY_PASS":
+            if any(
+                not context.artifact_committed(payload.get(name))
+                for name in ("source_artifact_id", "output_artifact_id")
+            ):
+                return _reject(
+                    RejectionCode.ARTIFACT_MISSING,
+                    _condition("ARTIFACT_STATE", "/command/payload"),
+                )
+            attempt = context.attempts.get(str(payload.get("attempt_id")))
+            binding = next(
+                (
+                    item
+                    for item in context.bindings.values()
+                    if item.get("attempt_id") == payload.get("attempt_id")
+                ),
+                None,
+            )
+            required_adapter = profile.get("adapter_name", "lean-replay")
+            if (
+                not attempt
+                or _status(attempt) != "SUCCEEDED"
+                or not binding
+                or binding.get("adapter_name") != required_adapter
+                or binding.get("environment_profile_id")
+                != payload.get("environment_profile_id")
+                or binding.get("source_commit") != payload.get("mathlib_commit")
+            ):
+                return _reject(
+                    RejectionCode.REPLAY_FAILED,
+                    _condition("MACHINE_REPLAY", "/command/payload/attempt_id"),
+                )
+            diagnostic = payload.get("diagnostic")
+            required_fields = {
+                "request_hash",
+                "result_hash",
+                "source_sha256",
+                "output_sha256",
+                "binary_sha256",
+                "exit_code",
+                "host_receipt",
+            }
+            receipt = diagnostic.get("host_receipt") if isinstance(diagnostic, Mapping) else None
+            receipt_payload = receipt.get("payload") if isinstance(receipt, Mapping) else None
+            receipt_signature = (
+                receipt.get("signature") if isinstance(receipt, Mapping) else None
+            )
+            receipt_key = profile.get("receipt_hmac_key_hex")
+            receipt_valid = False
+            if (
+                isinstance(receipt_payload, Mapping)
+                and isinstance(receipt_signature, str)
+                and isinstance(receipt_key, str)
+            ):
+                try:
+                    key_bytes = bytes.fromhex(receipt_key)
+                except ValueError:
+                    key_bytes = b""
+                expected_signature = hmac.new(
+                    key_bytes,
+                    sha256(
+                        __import__("json").dumps(
+                            receipt_payload,
+                            ensure_ascii=False,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                            allow_nan=False,
+                        ).encode("utf-8")
+                    ).hexdigest().encode("ascii"),
+                    sha256,
+                ).hexdigest()
+                receipt_valid = len(key_bytes) >= 32 and hmac.compare_digest(
+                    expected_signature, receipt_signature
+                )
+            if (
+                not isinstance(diagnostic, Mapping)
+                or not isinstance(receipt_payload, Mapping)
+                or not required_fields.issubset(diagnostic)
+                or diagnostic.get("exit_code") != 0
+                or diagnostic.get("output_sha256")
+                != context.artifacts[str(payload.get("output_artifact_id"))].get("sha256")
+                or diagnostic.get("source_sha256")
+                != context.artifacts[str(payload.get("source_artifact_id"))].get("sha256")
+                or diagnostic.get("binary_sha256") != profile.get("binary_sha256")
+                or not receipt_valid
+                or receipt_payload.get("adapter_name") != required_adapter
+                or receipt_payload.get("adapter_version") != binding.get("adapter_version")
+                or receipt_payload.get("run_id") != context.run_id
+                or receipt_payload.get("attempt_id") != attempt.get("attempt_id")
+                or receipt_payload.get("binding_id") != binding.get("binding_id")
+                or receipt_payload.get("environment_profile_id")
+                != binding.get("environment_profile_id")
+                or receipt_payload.get("source_commit") != binding.get("source_commit")
+                or receipt_payload.get("invocation_nonce") != binding.get("invocation_nonce")
+                or any(
+                    item.get("receipt_nonce") == binding.get("invocation_nonce")
+                    for item in _records(
+                        context.projection.get("lean_feedback"), "lean_feedback_id"
+                    ).values()
+                )
+                or receipt_payload.get("request_hash") != diagnostic.get("request_hash")
+                or receipt_payload.get("result_hash") != diagnostic.get("result_hash")
+                or receipt_payload.get("source_sha256") != diagnostic.get("source_sha256")
+                or receipt_payload.get("output_sha256") != diagnostic.get("output_sha256")
+                or receipt_payload.get("binary_sha256") != diagnostic.get("binary_sha256")
+                or receipt_payload.get("exit_code") != 0
+                or receipt_payload.get("status") != "COMPLETED"
+            ):
+                return _reject(
+                    RejectionCode.REPLAY_FAILED,
+                    _condition("MACHINE_REPLAY", "/command/payload/diagnostic"),
+                )
         if any(
             not context.artifact_committed(payload.get(name))
             for name in ("source_artifact_id", "output_artifact_id")
@@ -1208,17 +1360,32 @@ class TransitionGuard:
             return _reject(
                 RejectionCode.CONTRACT_NOT_FROZEN, _condition("CONTRACT_STATE", "/contract")
             )
-        evidence = [context.evidence.get(str(item)) for item in payload.get("evidence_ids", ())]
-        if not evidence or any(
-            item is None or _status(item) not in {"ACTIVE", "COMMITTED", "ACCEPTED"}
-            for item in evidence
-        ):
-            return _reject(
-                RejectionCode.EVIDENCE_INSUFFICIENT,
-                _condition("EVIDENCE_TYPE", "/command/payload/evidence_ids"),
-            )
         axis, value = payload.get("target_axis"), payload.get("target_value")
-        if axis == "MACHINE" and not self._machine_promotion(value, evidence):
+        identifiers = tuple(str(item) for item in payload.get("evidence_ids", ()))
+        if axis == "PEER":
+            reviews = [context.reviews.get(item) for item in identifiers]
+            if not reviews or any(item is None for item in reviews):
+                return _reject(
+                    RejectionCode.EVIDENCE_INSUFFICIENT,
+                    _condition("INDEPENDENT_REVIEW", "/command/payload/evidence_ids"),
+                )
+            if not self._peer_promotion(reviews, context):
+                return _reject(
+                    RejectionCode.INDEPENDENCE_UNKNOWN,
+                    _condition("INDEPENDENT_REVIEW", "/command/payload/evidence_ids"),
+                )
+            evidence: list[Mapping[str, Any] | None] = []
+        else:
+            evidence = [context.evidence.get(item) for item in identifiers]
+            if not evidence or any(
+                item is None or _status(item) not in {"ACTIVE", "COMMITTED", "ACCEPTED"}
+                for item in evidence
+            ):
+                return _reject(
+                    RejectionCode.EVIDENCE_INSUFFICIENT,
+                    _condition("EVIDENCE_TYPE", "/command/payload/evidence_ids"),
+                )
+        if axis == "MACHINE" and not self._machine_promotion(value, evidence, context):
             return _reject(
                 RejectionCode.REPLAY_FAILED,
                 _condition("MACHINE_REPLAY", "/command/payload/evidence_ids"),
@@ -1245,11 +1412,6 @@ class TransitionGuard:
                 RejectionCode.EVIDENCE_INSUFFICIENT,
                 _condition("SEMANTIC_REVIEW", "/command/payload/evidence_ids"),
             )
-        if axis == "PEER" and not self._peer_promotion(evidence, context):
-            return _reject(
-                RejectionCode.INDEPENDENCE_UNKNOWN,
-                _condition("INDEPENDENT_REVIEW", "/command/payload/evidence_ids"),
-            )
         if axis == "QUALITY" and not all(
             item
             and item.get("evidence_type") in {"PEER_SIGNATURE", "NATURAL_LANGUAGE_PROOF"}
@@ -1260,7 +1422,11 @@ class TransitionGuard:
                 RejectionCode.EVIDENCE_INSUFFICIENT,
                 _condition("EVIDENCE_TYPE", "/command/payload/evidence_ids"),
             )
-        if axis == "ROUTE" and value == "ROUTE_PROVED" and not self._claim_proved(claim):
+        if (
+            axis == "ROUTE"
+            and value == "ROUTE_PROVED"
+            and not self._claim_ready_for_route_proved(claim)
+        ):
             return _reject(
                 RejectionCode.COMPOSITION_OPEN,
                 _condition("TERMINAL_SUPPORT", "/command/payload/target_value"),
@@ -1292,13 +1458,19 @@ class TransitionGuard:
         )
 
     @staticmethod
-    def _machine_promotion(value: Any, evidence: Sequence[Mapping[str, Any] | None]) -> bool:
+    def _machine_promotion(
+        value: Any,
+        evidence: Sequence[Mapping[str, Any] | None],
+        context: _Context,
+    ) -> bool:
         required_type = {
             "KERNEL_VERIFIED": "LEAN_REPLAY",
             "CERTIFICATE_VERIFIED": "CHECKER_CERTIFICATE",
         }.get(str(value))
         if required_type is None:
             return False
+        feedback = _records(context.projection.get("lean_feedback"), "lean_feedback_id")
+        profiles = context.policy.get("verifier_profiles", {})
         for item in evidence:
             if (
                 not item
@@ -1306,14 +1478,29 @@ class TransitionGuard:
                 or item.get("evidence_type") != required_type
             ):
                 return False
-            replay = item.get("replay", item)
+            profile_id = item.get("verifier_profile_id")
+            root_kind = item.get("root_kind")
+            expected_root = "LEAN_KERNEL" if required_type == "LEAN_REPLAY" else "CHECKER"
             if (
-                replay.get("passed", replay.get("replay_pass")) is not True
-                or replay.get("sorry_count", 0) != 0
-                or replay.get("axiom_violations", ())
-                or replay.get("native_decide", False)
-                or replay.get("environment_drift", False)
+                root_kind != expected_root
+                or not isinstance(profiles, Mapping)
+                or profile_id not in profiles
             ):
+                return False
+            matching = [
+                record
+                for record in feedback.values()
+                if record.get("claim_id") == item.get("claim_id")
+                and record.get("environment_profile_id") == profile_id
+                and record.get("output_artifact_id") == item.get("artifact_id")
+                and record.get("feedback_kind") == "REPLAY_PASS"
+            ]
+            if not matching:
+                return False
+            forbidden_subjects = set(
+                profiles.get(profile_id, {}).get("forbidden_submitter_subject_ids", ())
+            )
+            if item.get("submitter_subject_id") in forbidden_subjects:
                 return False
         return True
 
@@ -1322,7 +1509,14 @@ class TransitionGuard:
         value: Any, evidence: Sequence[Mapping[str, Any] | None], context: _Context
     ) -> bool:
         required = {"satisfying_witness", "negation_test", "mutation_test", "backtranslation"}
-        tests = context.evidence_summary.get("semantic_checks", {})
+        tests: dict[str, bool] = {}
+        for item in evidence:
+            provenance = item.get("provenance") if item else None
+            candidate = (
+                provenance.get("semantic_checks") if isinstance(provenance, Mapping) else None
+            )
+            if isinstance(candidate, Mapping):
+                tests.update({str(key): value is True for key, value in candidate.items()})
         if value == "TESTED":
             return isinstance(tests, Mapping) and required.issubset(
                 key for key, passed in tests.items() if passed is True
@@ -1340,18 +1534,29 @@ class TransitionGuard:
         )
 
     @staticmethod
-    def _peer_promotion(evidence: Sequence[Mapping[str, Any] | None], context: _Context) -> bool:
+    def _peer_promotion(reviews: Sequence[Mapping[str, Any] | None], context: _Context) -> bool:
         threshold = int(context.policy.get("peer_review_threshold", 1))
-        roots = {
-            str(item.get("evidence_root_id"))
-            for item in evidence
+        reviewers = {
+            str(item.get("reviewer_capability_id"))
+            for item in reviews
             if item
-            and item.get("evidence_type") == "PEER_SIGNATURE"
-            and item.get("evidence_strength") == "HUMAN_ATTESTED"
-            and item.get("verdict", "ACCEPT") == "ACCEPT"
-            and item.get("independent") is True
+            and item.get("verdict") == "ACCEPT"
+            and isinstance(item.get("independence_profile"), Mapping)
+            and item.get("independence_profile", {}).get("independent") is True
         }
-        return len(roots) >= threshold
+        return len(reviewers) >= threshold
+
+    @staticmethod
+    def _claim_ready_for_route_proved(claim: Mapping[str, Any]) -> bool:
+        return bool(
+            claim.get("semantic") == "HUMAN_ATTESTED"
+            and claim.get("closure")
+            in {"CLOSED_MACHINE", "CLOSED_HUMAN", "CLOSED_HYBRID", "NOT_REQUIRED"}
+            and (
+                claim.get("machine") in {"KERNEL_VERIFIED", "CERTIFICATE_VERIFIED"}
+                or claim.get("peer") == "ACCEPTED"
+            )
+        )
 
     def _handle_RegisterAttempt(self, context: _Context, command: TypedCommand) -> Decision | None:
         payload = command.payload
@@ -1371,6 +1576,24 @@ class TransitionGuard:
             if item.get("route_id") == payload.get("route_id")
             and isinstance(item.get("ordinal"), int)
         ]
+        route_budget = route.get("budget_policy")
+        attempt_limit = (
+            route_budget.get("attempts") if isinstance(route_budget, Mapping) else None
+        )
+        if (
+            not isinstance(attempt_limit, int)
+            or isinstance(attempt_limit, bool)
+            or attempt_limit <= 0
+            or len(ordinals) >= attempt_limit
+        ):
+            return _reject(
+                RejectionCode.BUDGET_DENIED,
+                _condition(
+                    "BUDGET_POLICY",
+                    "/command/payload/ordinal",
+                    attempt_limit=attempt_limit,
+                ),
+            )
         if payload.get("ordinal") != (max(ordinals, default=0) + 1):
             return _reject(
                 RejectionCode.INVALID_TRANSITION,
@@ -1441,6 +1664,7 @@ class TransitionGuard:
             )
         return _accept(
             command,
+            {"op": "EXPIRE_STALE_LEASES", "attempt_id": payload.get("attempt_id")},
             {"op": "ACQUIRE_LEASE", "attempt_id": payload.get("attempt_id")},
             {"op": "SET_ATTEMPT_STATUS", "status": "RUNNING"},
         )
@@ -1510,6 +1734,33 @@ class TransitionGuard:
                 _condition("REQUIRED_ACTION", "/command/type", role="BUDGET_CONTROLLER"),
             )
         amount = payload.get("amount_microunits")
+        usage = payload.get("provider_usage")
+        if (
+            not isinstance(usage, Mapping)
+            or not isinstance(usage.get("component"), str)
+            or not str(usage.get("component")).strip()
+        ):
+            return _reject(
+                RejectionCode.INGEST_SCHEMA_INVALID,
+                _condition("BUDGET_POLICY", "/command/payload/provider_usage/component"),
+            )
+        for name in (
+            "input_tokens",
+            "output_tokens",
+            "reasoning_tokens",
+            "cache_read_tokens",
+            "cache_write_tokens",
+            "total_tokens",
+            "wall_time_ms",
+        ):
+            value = usage.get(name)
+            if value is not None and (
+                not isinstance(value, int) or isinstance(value, bool) or value < 0
+            ):
+                return _reject(
+                    RejectionCode.INGEST_SCHEMA_INVALID,
+                    _condition("BUDGET_POLICY", f"/command/payload/provider_usage/{name}"),
+                )
         if payload.get("event_kind") != "UNKNOWN_COST" and (
             not isinstance(amount, int) or isinstance(amount, bool) or amount < 0
         ):
@@ -1518,14 +1769,66 @@ class TransitionGuard:
                 _condition("BUDGET_POLICY", "/command/payload/amount_microunits"),
             )
         if payload.get("event_kind") == "REFUND":
-            available = context.evidence_summary.get("refundable_microunits", {}).get(
-                payload.get("resource_kind"), -1
+            resource = payload.get("resource_kind")
+            attempt_id = payload.get("attempt_id")
+            available = sum(
+                int(item.get("amount_microunits", 0))
+                for item in context.budget_events.values()
+                if item.get("resource_kind") == resource
+                and item.get("attempt_id") == attempt_id
+                and item.get("event_kind") == "RESERVATION"
+                and isinstance(item.get("amount_microunits"), int)
+            ) - sum(
+                int(item.get("amount_microunits", 0))
+                for item in context.budget_events.values()
+                if item.get("resource_kind") == resource
+                and item.get("attempt_id") == attempt_id
+                and item.get("event_kind") == "REFUND"
+                and isinstance(item.get("amount_microunits"), int)
             )
             if not isinstance(amount, int) or amount > available:
                 return _reject(
                     RejectionCode.BUDGET_DENIED,
                     _condition(
                         "BUDGET_POLICY", "/command/payload/amount_microunits", available=available
+                    ),
+                )
+        limits = context.policy.get("global_budget_limits")
+        event_kind = payload.get("event_kind")
+        resource_kind = payload.get("resource_kind")
+        if event_kind in {"ACTUAL", "RESERVATION"}:
+            limit = limits.get(resource_kind) if isinstance(limits, Mapping) else None
+            if not isinstance(limit, int) or isinstance(limit, bool) or limit <= 0:
+                return _reject(
+                    RejectionCode.BUDGET_DENIED,
+                    _condition(
+                        "BUDGET_POLICY",
+                        "/command/payload/resource_kind",
+                        reason="hard_limit_missing",
+                    ),
+                )
+            consumed = sum(
+                int(item.get("amount_microunits", 0))
+                for item in context.budget_events.values()
+                if item.get("resource_kind") == resource_kind
+                and item.get("event_kind") in {"ACTUAL", "RESERVATION"}
+                and isinstance(item.get("amount_microunits"), int)
+            ) - sum(
+                int(item.get("amount_microunits", 0))
+                for item in context.budget_events.values()
+                if item.get("resource_kind") == resource_kind
+                and item.get("event_kind") == "REFUND"
+                and isinstance(item.get("amount_microunits"), int)
+            )
+            assert isinstance(amount, int)
+            if consumed + amount > limit:
+                return _reject(
+                    RejectionCode.BUDGET_DENIED,
+                    _condition(
+                        "BUDGET_POLICY",
+                        "/command/payload/amount_microunits",
+                        consumed=consumed,
+                        limit=limit,
                     ),
                 )
         mutations: list[Mapping[str, Any]] = [{"op": "APPEND_BUDGET_EVENT"}]

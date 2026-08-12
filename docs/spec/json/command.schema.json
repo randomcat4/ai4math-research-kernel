@@ -13,6 +13,18 @@
     "stringArray": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
     "idArray": {"type": "array", "items": {"$ref": "#/$defs/id"}, "uniqueItems": true},
     "jsonObject": {"type": "object"},
+    "evidenceRoot": {
+      "type": "object",
+      "required": ["root_kind"],
+      "properties": {
+        "root_kind": {"enum": ["LEAN_KERNEL","CHECKER","ENUMERATION","HUMAN","MODEL","EXTERNAL_SOURCE"]},
+        "origin_artifact_input_name": {"type": "string"},
+        "origin_artifact_id": {"$ref": "#/$defs/id"},
+        "verifier_profile_id": {"type": "string"},
+        "ancestor_root_ids": {"$ref": "#/$defs/idArray"},
+        "source_graph": {"$ref": "#/$defs/jsonObject"}
+      }
+    },
     "artifactInputs": {
       "type": "array",
       "maxItems": 64,
@@ -185,7 +197,7 @@
       "properties": {"type": {"const": "SubmitEvidence"}, "payload": {
         "type": "object", "additionalProperties": false,
         "required": ["claim_id","contract_version","statement_hash","evidence_type","evidence_strength","artifact_input_names","scope","provenance","evidence_root"],
-        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "statement_hash": {"$ref": "#/$defs/hash"}, "evidence_type": {"enum": ["LEAN_REPLAY","CHECKER_CERTIFICATE","EXACT_ENUMERATION","COUNTEREXAMPLE","NATURAL_LANGUAGE_PROOF","MODEL_JUDGE","PEER_SIGNATURE","SEMANTIC_AUDIT","LITERATURE_SOURCE","EXECUTION_LOG"]}, "evidence_strength": {"enum": ["HARD_MACHINE","HUMAN_ATTESTED","SOFT_MODEL","PROVENANCE_ONLY"]}, "artifact_input_names": {"$ref": "#/$defs/stringArray"}, "scope": {"$ref": "#/$defs/jsonObject"}, "provenance": {"$ref": "#/$defs/jsonObject"}, "evidence_root": {"$ref": "#/$defs/jsonObject"}}
+        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "statement_hash": {"$ref": "#/$defs/hash"}, "evidence_type": {"enum": ["LEAN_REPLAY","CHECKER_CERTIFICATE","EXACT_ENUMERATION","COUNTEREXAMPLE","NATURAL_LANGUAGE_PROOF","MODEL_JUDGE","PEER_SIGNATURE","SEMANTIC_AUDIT","LITERATURE_SOURCE","EXECUTION_LOG"]}, "evidence_strength": {"enum": ["HARD_MACHINE","HUMAN_ATTESTED","SOFT_MODEL","PROVENANCE_ONLY"]}, "artifact_input_names": {"$ref": "#/$defs/stringArray"}, "scope": {"$ref": "#/$defs/jsonObject"}, "provenance": {"$ref": "#/$defs/jsonObject"}, "evidence_root": {"$ref": "#/$defs/evidenceRoot"}}
       }}
     },
     "recordFailure": {
@@ -249,7 +261,8 @@
       "properties": {"type": {"const": "RecordLeanFeedback"}, "payload": {
         "type": "object", "additionalProperties": false,
         "required": ["claim_id","contract_version","environment_profile_id","toolchain","source_artifact_id","output_artifact_id","feedback_kind","diagnostic"],
-        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "attempt_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "environment_profile_id": {"type": "string"}, "toolchain": {"type": "string"}, "mathlib_commit": {"type": "string"}, "source_artifact_id": {"$ref": "#/$defs/id"}, "output_artifact_id": {"$ref": "#/$defs/id"}, "feedback_kind": {"enum": ["MISSING_PREMISE","TYPE_MISMATCH","FAILED_GOAL","SEMANTIC_DRIFT","ENVIRONMENT_ERROR","REPLAY_PASS","SORRY_FOUND","AXIOM_VIOLATION","NATIVE_DECIDE_VIOLATION"]}, "first_failed_obligation_id": {"$ref": "#/$defs/id"}, "diagnostic": {"$ref": "#/$defs/jsonObject"}}
+        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "attempt_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "environment_profile_id": {"type": "string"}, "toolchain": {"type": "string"}, "mathlib_commit": {"type": "string"}, "source_artifact_id": {"$ref": "#/$defs/id"}, "output_artifact_id": {"$ref": "#/$defs/id"}, "feedback_kind": {"enum": ["MISSING_PREMISE","TYPE_MISMATCH","FAILED_GOAL","SEMANTIC_DRIFT","ENVIRONMENT_ERROR","REPLAY_PASS","SORRY_FOUND","AXIOM_VIOLATION","NATIVE_DECIDE_VIOLATION"]}, "first_failed_obligation_id": {"$ref": "#/$defs/id"}, "diagnostic": {"$ref": "#/$defs/jsonObject"}},
+        "allOf": [{"if": {"properties": {"feedback_kind": {"const": "REPLAY_PASS"}}, "required": ["feedback_kind"]}, "then": {"required": ["attempt_id"]}}]
       }}
     },
     "registerClaim": {

@@ -105,6 +105,7 @@ def test_public_lifecycle_is_executable_and_idempotent(tmp_path: Path) -> None:
             "inbox_roots": [str(inbox)],
             "command_schema_path": str(ROOT / "docs/spec/json/command.schema.json"),
             "receipt_schema_path": str(ROOT / "docs/spec/json/receipt.schema.json"),
+            "budget_policy": {"global_budget_limits": {"INPUT_TOKEN": 20_000_000}},
         },
         base=ROOT,
     )
@@ -128,9 +129,7 @@ def test_public_lifecycle_is_executable_and_idempotent(tmp_path: Path) -> None:
     )
 
     normalized_statement = {"statement": "For every x, a witness exists.", "atomic": True}
-    statement_hash = hashlib.sha256(
-        composition_json_bytes(normalized_statement)
-    ).hexdigest()
+    statement_hash = hashlib.sha256(composition_json_bytes(normalized_statement)).hexdigest()
     register = _apply(
         kernel,
         capability,
@@ -285,3 +284,66 @@ def test_public_lifecycle_is_executable_and_idempotent(tmp_path: Path) -> None:
         "RUN_RESUMED",
         "RUN_FINALIZED",
     ]
+
+
+def test_component_usage_is_aggregated_in_inspect(tmp_path: Path) -> None:
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    support = inbox / "support.txt"
+    support.write_text("complete contract\nliterature plan\n", encoding="utf-8")
+    config = KernelConfig.from_mapping(
+        {
+            "workspace_root": str(tmp_path / "state"),
+            "inbox_roots": [str(inbox)],
+            "command_schema_path": str(ROOT / "docs/spec/json/command.schema.json"),
+            "receipt_schema_path": str(ROOT / "docs/spec/json/receipt.schema.json"),
+            "budget_policy": {"global_budget_limits": {"INPUT_TOKEN": 20_000_000}},
+        },
+        base=ROOT,
+    )
+    kernel = ResearchKernel.from_config(config, migrations_dir=ROOT / "migrations")
+    capability = _capability()
+    handle = kernel.create(
+        CreateRequest(
+            request_id=str(uuid.uuid4()),
+            contract=frozen_mapping(_contract()),
+            artifact_inputs=(_artifact(support, "support.txt"),),
+        ),
+        capability,
+    )
+    receipt = _apply(
+        kernel,
+        capability,
+        handle.run_id,
+        0,
+        "RecordBudget",
+        {
+            "event_kind": "ACTUAL",
+            "resource_kind": "INPUT_TOKEN",
+            "amount_microunits": 12_000_000,
+            "unit": "microtoken",
+            "provider_usage": {
+                "component": "deepseek-v4-pro",
+                "input_tokens": 12,
+                "output_tokens": 3,
+                "reasoning_tokens": 2,
+                "cache_read_tokens": 7,
+                "cache_write_tokens": 0,
+                "total_tokens": 24,
+                "wall_time_ms": 345,
+            },
+        },
+    )
+
+    assert receipt.accepted
+    usage = kernel.inspect(handle.run_id).projection["component_usage"]["deepseek-v4-pro"]
+    assert usage == {
+        "input_tokens": 12,
+        "output_tokens": 3,
+        "reasoning_tokens": 2,
+        "cache_read_tokens": 7,
+        "cache_write_tokens": 0,
+        "total_tokens": 24,
+        "wall_time_ms": 345,
+        "unknown_count": 0,
+    }

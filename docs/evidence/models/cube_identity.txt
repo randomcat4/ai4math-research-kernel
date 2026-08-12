@@ -1,0 +1,220 @@
+We need to prove that if a, b, c are real numbers with a+b+c=0, then a^3 + b^3 + c^3 = 3abc.
+
+This is a known algebraic identity. There are many ways to prove it.
+
+We can use the factorization: a^3 + b^3 + c^3 - 3abc = (a+b+c)(a^2 + b^2 + c^2 - ab - bc - ca). This is a standard identity. Since a+b+c = 0, the RHS becomes 0, thus a^3 + b^3 + c^3 - 3abc = 0, so a^3 + b^3 + c^3 = 3abc.
+
+Thus the proof is straightforward.
+
+But we need to generate a rigorous proof. We can present the identity and prove it. We can either prove the identity directly by expanding (a+b+c)^3 or by using symmetric sums.
+
+Let's produce a rigorous proof:
+
+1. Start with (a+b+c)^3 = a^3 + b^3 + c^3 + 3(a+b)(b+c)(c+a)? Actually (a+b+c)^3 = a^3 + b^3 + c^3 + 3(a+b)(b+c)(c+a) is not correct. Let's recall: (a+b+c)^3 = a^3 + b^3 + c^3 + 3(a+b)(b+c)(c+a) is false; the correct expansion is (a+b+c)^3 = a^3 + b^3 + c^3 + 3(a+b)(b+c)(c+a) - 3abc? Wait, I'm mixing. Let's derive: (a+b+c)^3 = a^3 + b^3 + c^3 + 3(a+b)(b+c)(c+a) - 3abc? Actually there is identity: a^3 + b^3 + c^3 - 3abc = (a+b+c)(a^2 + b^2 + c^2 - ab - bc - ca). That's the standard factorization.
+
+We can prove that identity by expanding (a+b+c)(a^2 + b^2 + c^2 - ab - bc - ca) and simplifying to a^3 + b^3 + c^3 - 3abc. Then we can use the condition a+b+c=0 to get the result.
+
+Alternatively, we can prove directly that a^3 + b^3 + c^3 - 3abc = (a+b+c)(a^2 + b^2 + c^2 - ab - bc - ca) by expanding RHS and simplifying.
+
+Let's do that:
+
+Compute (a+b+c)(a^2 + b^2 + c^2 - ab - bc - ca) = a*(a^2 + b^2 + c^2 - ab - bc - ca) + b*(a^2 + b^2 + c^2 - ab - bc - ca) + c*(a^2 + b^2 + c^2 - ab - bc - ca).
+
+Expand term by term:
+
+a*a^2 = a^3
+a*b^2 = a b^2
+a*c^2 = a c^2
+a*(-ab) = -a^2 b
+a*(-bc) = -a b c
+a*(-ca) = -a c^2? Wait careful: a * (-ca) = -a c a = -a^2 c? Actually ca is c*a, so a*(ca) = a*c*a = a^2 c, with a negative sign: -a*c*a = -a^2 c. But we need to be consistent: -ca is -c*a, so a * (-ca) = -a*c*a = -a^2 c.
+
+Similarly, b*a^2 = a^2 b
+b*b^2 = b^3
+b*c^2 = b c^2
+b*(-ab) = -a b^2
+b*(-bc) = -b^2 c
+b*(-ca) = -b c a = -a b c
+
+c*a^2 = a^2 c
+c*b^2 = b^2 c
+c*c^2 = c^3
+c*(-ab) = -a b c
+c*(-bc) = -b^2 c? Wait c*(-bc) = -b c^2? Actually bc is b*c, so c * (-bc) = -b c^2.
+c*(-ca) = -c*a*c = -a c^2? Actually ca is c*a, so c * (-ca) = -c*a*c = -a c^2.
+
+Now sum all terms:
+
+Collect a^3: a^3 from first term.
+b^3: b^3 from second.
+c^3: c^3 from third.
+
+Now collect terms like a^2 b: from a*(-ab) gave -a^2 b; from b*a^2 gave +a^2 b. So they cancel: -a^2 b + a^2 b = 0.
+
+Similarly a^2 c: from a*(-ca) gave -a^2 c; from c*a^2 gave +a^2 c. Cancel.
+
+b^2 a: from b*(-ab) gave -a b^2; from a*b^2 gave +a b^2. Cancel.
+
+b^2 c: from b*(-bc) gave -b^2 c; from c*b^2 gave +b^2 c. Cancel.
+
+c^2 a: from c*(-ca) gave -a c^2; from a*c^2 gave +a c^2. Cancel.
+
+c^2 b: from c*(-bc) gave -b c^2; from b*c^2 gave +b c^2. Cancel.
+
+Now collect abc terms: from a*(-bc) gave -abc; from b*(-ca) gave -abc; from c*(-ab) gave -abc. So total -3abc.
+
+Thus sum = a^3 + b^3 + c^3 - 3abc. So indeed (a+b+c)(a^2 + b^2 + c^2 - ab - bc - ca) = a^3 + b^3 + c^3 - 3abc.
+
+Thus if a+b+c = 0, then LHS = 0, so a^3 + b^3 + c^3 - 3abc = 0, i.e., a^3 + b^3 + c^3 = 3abc.
+
+That's a rigorous proof.
+
+We can also present a more elegant proof using symmetric sums: Since a+b+c=0, we can set c = -(a+b). Then compute a^3 + b^3 + c^3 and simplify to 3ab(-c) = 3abc? Actually if c = -(a+b), then c = -a - b. Then compute a^3 + b^3 + (-a-b)^3 = a^3 + b^3 - (a+b)^3. Expand (a+b)^3 = a^3 + 3a^2 b + 3 a b^2 + b^3. So a^3 + b^3 - (a^3 + 3a^2 b + 3 a b^2 + b^3) = -3a^2 b - 3 a b^2 = -3ab(a + b) = -3ab(-c) = 3abc. That's also a valid proof.
+
+But the factorization approach is simplest.
+
+Thus the solution: Show identity a^3+b^3+c^3-3abc = (a+b+c)(a^2+b^2+c^2-ab-bc-ca). Then given a+b+c=0, the product is zero, so equality holds.
+
+Now we need to produce a rigorous proof. We'll include steps: Expand (a+b+c)(a^2+b^2+c^2-ab-bc-ca) and simplify to a^3+b^3+c^3-3abc. Then note that if a+b+c=0, then LHS = 0, so a^3+b^3+c^3-3abc=0 => a^3+b^3+c^3=3abc.
+
+We should also note that the identity holds for all real numbers a,b,c (or even complex). So it's rigorous.
+
+Thus final answer: Provide the proof.
+
+Now the user says: "Let a, b, c be real numbers with a+b+c=0. Generate a rigorous proof that a^3+b^3+c^3=3abc."
+
+We need to output a rigorous proof. So we can produce a solution with clear steps.
+
+We'll produce a solution:
+
+**Proof**:
+
+We start with the identity:
+
+a^3 + b^3 + c^3 - 3abc = (a+b+c)(a^2 + b^2 + c^2 - ab - bc - ca).   (1)
+
+We can verify (1) by expanding the right-hand side:
+
+(a+b+c)(a^2 + b^2 + c^2 - ab - bc - ca) = a(a^2 + b^2 + c^2 - ab - bc - ca) + b(...) + c(...).
+
+Compute term by term:
+
+a·a^2 = a^3
+a·b^2 = a b^2
+a·c^2 = a c^2
+a·(-ab) = -a^2 b
+a·(-bc) = -a b c
+a·(-ca) = -a^2 c
+
+b·a^2 = a^2 b
+b·b^2 = b^3
+b·c^2 = b c^2
+b·(-ab) = -a b^2
+b·(-bc) = -b^2 c
+b·(-ca) = -a b c
+
+c·a^2 = a^2 c
+c·b^2 = b^2 c
+c·c^2 = c^3
+c·(-ab) = -a b c
+c·(-bc) = -b c^2
+c·(-ca) = -a c^2
+
+Now sum all contributions:
+
+- Cubes: a^3 + b^3 + c^3.
+- Terms a^2 b: -a^2 b + a^2 b = 0.
+- Terms a^2 c: -a^2 c + a^2 c = 0.
+- Terms a b^2: a b^2 - a b^2 = 0.
+- Terms b^2 c: -b^2 c + b^2 c = 0.
+- Terms a c^2: a c^2 - a c^2 = 0.
+- Terms b c^2: b c^2 - b c^2 = 0.
+- abc terms: -abc - abc - abc = -3abc.
+
+Thus the sum equals a^3 + b^3 + c^3 - 3abc, establishing (1).
+
+Now given that a+b+c = 0, the right-hand side of (1) becomes 0·(a^2 + b^2 + c^2 - ab - bc - ca) = 0. Hence
+
+a^3 + b^3 + c^3 - 3abc = 0 ⇒ a^3 + b^3 + c^3 = 3abc.
+
+∎
+
+That's a rigorous proof.
+
+We can also note that the identity holds for any real (or complex) numbers.
+
+Thus answer is done.
+</think>
+
+We prove the identity
+
+\[
+a^3+b^3+c^3-3abc=(a+b+c)(a^2+b^2+c^2-ab-bc-ca).
+\]
+
+Expanding the right‑hand side:
+
+\[
+\begin{aligned}
+(a+b+c)(a^2+b^2+c^2-ab-bc-ca)
+&=a(a^2+b^2+c^2-ab-bc-ca)\\
+&\quad+b(a^2+b^2+c^2-ab-bc-ca)\\
+&\quad+c(a^2+b^2+c^2-ab-bc-ca).
+\end{aligned}
+\]
+
+Now compute each product:
+
+\[
+\begin{array}{c}
+a\cdot a^2 = a^3,\\
+a\cdot b^2 = a b^2,\\
+a\cdot c^2 = a c^2,\\
+a\cdot(-ab) = -a^2 b,\\
+a\cdot(-bc) = -a b c,\\
+a\cdot(-ca) = -a^2 c,\\[4pt]
+b\cdot a^2 = a^2 b,\\
+b\cdot b^2 = b^3,\\
+b\cdot c^2 = b c^2,\\
+b\cdot(-ab) = -a b^2,\\
+b\cdot(-bc) = -b^2 c,\\
+b\cdot(-ca) = -a b c,\\[4pt]
+c\cdot a^2 = a^2 c,\\
+c\cdot b^2 = b^2 c,\\
+c\cdot c^2 = c^3,\\
+c\cdot(-ab) = -a b c,\\
+c\cdot(-bc) = -b c^2,\\
+c\cdot(-ca) = -a c^2.
+\end{array}
+\]
+
+Summing all these terms:
+
+- Cubes: \(a^3+b^3+c^3\).
+- Pairs \(a^2b\) cancel: \(-a^2b + a^2b = 0\).
+- Pairs \(a^2c\) cancel: \(-a^2c + a^2c = 0\).
+- Pairs \(ab^2\) cancel: \(ab^2 - ab^2 = 0\).
+- Pairs \(b^2c\) cancel: \(-b^2c + b^2c = 0\).
+- Pairs \(ac^2\) cancel: \(ac^2 - ac^2 = 0\).
+- Pairs \(bc^2\) cancel: \(bc^2 - bc^2 = 0\).
+- The three \(abc\) terms give \(-abc-abc-abc = -3abc\).
+
+Thus
+
+\[
+(a+b+c)(a^2+b^2+c^2-ab-bc-ca)=a^3+b^3+c^3-3abc.
+\]
+
+Now assume \(a+b+c=0\). Substituting into the identity yields
+
+\[
+0 = a^3+b^3+c^3-3abc,
+\]
+
+i.e.
+
+\[
+a^3+b^3+c^3 = 3abc.
+\]
+
+∎

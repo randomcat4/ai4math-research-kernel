@@ -58,8 +58,7 @@ def _stable(value: Any) -> Any:
         items = [_stable(item) for item in value]
         stable_keys = ("claim_id", "route_id", "obligation_id", "event_id")
         if all(
-            isinstance(item, Mapping) and any(key in item for key in stable_keys)
-            for item in items
+            isinstance(item, Mapping) and any(key in item for key in stable_keys) for item in items
         ):
 
             def stable_id(item: Mapping[str, Any]) -> str:
