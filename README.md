@@ -3,9 +3,10 @@
 An auditable local research kernel for typed mathematical evidence, explicit claim graphs,
 composition closure, resumable runs, and thin external-tool adapters.
 
-Status: executable milestone 1 of RK-PRD-2. The contract/claim/evidence lifecycle is connected
-end to end, but the full product is not complete. No adapter or mathematical result is verified
-merely because code exists. See `docs/implementation-status.md` for exact limits.
+Status: conservative v0.2 gate work on top of the v0.1 integration milestone. Research artifacts
+and soft candidates are executable, but authority-bearing machine/human promotion is currently
+fail closed until a DB-backed host receipt service is implemented. The honest reachable terminal
+outcome is `UNRESOLVED`. See `docs/implementation-status.md` for exact limits.
 
 ## Model and Lean roles
 
@@ -18,16 +19,17 @@ The components have deliberately different authority and workloads:
 - **DeepSeek-Prover-V2-7B** is an optional specialist that generates Lean 4 proof candidates.
   A generated file counts only after the independent pinned Lean replay accepts it.
 - **LeanSearch** supplies premise candidates; **jixia** extracts declarations, symbols, and
-  elaboration structure; **Lean replay** is the final machine-verification boundary.
+  elaboration structure; **Lean replay** produces verification data. It will regain machine
+  authority only after the host service binds the execution to the canonical claim scope.
 
-The current audited remote smoke path is:
+The historical v0.1 remote smoke path was:
 
 ```text
 LeanSearch -> OpenCode/DeepSeek candidate -> jixia structure -> independent Lean replay
 ```
 
-See `docs/rkmodelreport.md` for measured model and Lean-component results. The report separates
-model output, adapter completion, and kernel acceptance.
+See `docs/rkmodelreport.md` for measured model and Lean-component results. Those measurements are
+integration/performance evidence, not v0.2 mathematical authority.
 
 Reproducible remote benchmark entry points are also kept in the repository:
 

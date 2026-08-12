@@ -120,9 +120,243 @@ def test_freeze_contract_emits_declarative_intents() -> None:
     }
 
 
+def _peer_review_payload() -> dict[str, object]:
+    return {
+        "claim_id": "claim-1",
+        "contract_version": 1,
+        "statement_hash": "a" * 64,
+        "review_artifact_id": ARTIFACT_ID,
+        "verdict": "ACCEPT",
+        "checklist": {"proof_checked": True},
+        "source_graph": {"review_artifact_id": ARTIFACT_ID},
+    }
+
+
+def test_peer_review_rejects_caller_asserted_independent_boolean() -> None:
+    snapshot = _snapshot(
+        "RUNNING",
+        extra={"claims": [{"claim_id": "claim-1", "statement_hash": "a" * 64}]},
+    )
+
+    payload = _peer_review_payload()
+    payload["independence_profile"] = {"independent": True}
+    decision = _decide(snapshot, "RecordPeerReview", payload)
+
+    assert not decision.accepted
+    assert decision.rejection_code == "INDEPENDENCE_UNKNOWN"
+
+
+def test_peer_review_overwrites_unverified_dimensions_with_host_unknown() -> None:
+    snapshot = _snapshot(
+        "RUNNING",
+        extra={"claims": [{"claim_id": "claim-1", "statement_hash": "a" * 64}]},
+    )
+    decision = _decide(snapshot, "RecordPeerReview", _peer_review_payload())
+
+    assert decision.accepted
+    derived = decision.projection_mutations[0]["independence_profile"]
+    assert derived["idea_independence"] == "UNKNOWN"
+    assert derived["reasons"] == ["SOURCE_LINEAGE_NOT_HOST_VERIFIED"]
+
+
+def test_peer_promotion_ignores_ephemeral_summary_reviews() -> None:
+    claim = {
+        "claim_id": "claim-1",
+        "statement_hash": "a" * 64,
+        "status": "ACTIVE",
+        "run_id": RUN_ID,
+        "contract_version": 1,
+    }
+    injected = {
+        "review_id": "review-1",
+        "claim_id": "claim-1",
+        "contract_version": 1,
+        "statement_hash": "a" * 64,
+        "reviewer_capability_id": "cap-injected",
+        "verdict": "ACCEPT",
+        "independence_profile": {
+            "idea_independence": "INDEPENDENT",
+            "derivation_independence": "INDEPENDENT",
+            "verification_independence": "INDEPENDENT",
+            "implementation_independence": "INDEPENDENT",
+            "retrieval_independence": "INDEPENDENT",
+            "shared_ancestors": [],
+        },
+    }
+
+    decision = _decide(
+        _snapshot("RUNNING", extra={"claims": [claim]}),
+        "PromoteClaim",
+        {
+            "claim_id": "claim-1",
+            "target_axis": "PEER",
+            "target_value": "ACCEPTED",
+            "evidence_ids": ["review-1"],
+        },
+        evidence={"reviews": [injected], "peer_reviews": [injected]},
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "EVIDENCE_INSUFFICIENT"
+
+
+def test_legacy_human_states_cannot_support_proved_finalize() -> None:
+    claim = {
+        "claim_id": "claim-1",
+        "statement_hash": "a" * 64,
+        "route": "ROUTE_PROVED",
+        "machine": "UNVERIFIED",
+        "semantic": "HUMAN_ATTESTED",
+        "peer": "ACCEPTED",
+        "quality": "UNREVIEWED",
+        "closure": "CLOSED_HUMAN",
+        "status": "ACTIVE",
+    }
+    decision = _decide(
+        _snapshot("RUNNING", extra={"claims": [claim]}),
+        "Finalize",
+        {
+            "outcome": "PROVED",
+            "terminal_claim_ids": ["claim-1"],
+            "open_obligation_ids": [],
+            "dossier_spec": {"format": "JSON", "include_raw_artifacts": False},
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "TERMINAL_CLAIM_UNSUPPORTED"
+
+
+def test_self_reported_hard_counterexample_cannot_finalize_disproved() -> None:
+    claim = {
+        "claim_id": "claim-1",
+        "statement_hash": "a" * 64,
+        "status": "ACTIVE",
+        "run_id": RUN_ID,
+        "contract_version": 1,
+    }
+    evidence = {
+        "evidence_id": "fake-counterexample",
+        "claim_id": "claim-1",
+        "evidence_type": "COUNTEREXAMPLE",
+        "evidence_strength": "HARD_MACHINE",
+        "status": "ACTIVE",
+    }
+    decision = _decide(
+        _snapshot("RUNNING", extra={"claims": [claim], "evidence": [evidence]}),
+        "Finalize",
+        {
+            "outcome": "DISPROVED",
+            "terminal_claim_ids": ["claim-1"],
+            "open_obligation_ids": [],
+            "dossier_spec": {"format": "JSON", "include_raw_artifacts": False},
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "TERMINAL_CLAIM_UNSUPPORTED"
+
+
+def test_legacy_human_closure_witness_cannot_be_repromoted() -> None:
+    claim = {
+        "claim_id": "claim-1",
+        "statement_hash": "a" * 64,
+        "status": "ACTIVE",
+        "run_id": RUN_ID,
+        "contract_version": 1,
+    }
+    witness = {
+        "witness_id": "witness-1",
+        "parent_claim_id": "claim-1",
+        "composition_mode": "PEER",
+        "status": "ACCEPTED",
+    }
+    decision = _decide(
+        _snapshot(
+            "RUNNING",
+            extra={
+                "claims": [claim],
+                "closure_witnesses": [witness],
+                    "evidence": [{
+                        "evidence_id": "evidence-1", "status": "ACCEPTED",
+                        "claim_id": "claim-1", "contract_version": 1,
+                        "statement_hash": "a" * 64,
+                    }],
+            },
+        ),
+        "PromoteClaim",
+        {
+            "claim_id": "claim-1",
+            "target_axis": "CLOSURE",
+            "target_value": "CLOSED_HUMAN",
+            "evidence_ids": ["evidence-1"],
+            "closure_witness_id": "witness-1",
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "COMPOSITION_OPEN"
+
+
+def test_human_argument_edge_is_unavailable_without_managed_human_receipt() -> None:
+    claims = [
+        {
+            "claim_id": "a",
+            "statement_hash": "a" * 64,
+            "status": "ACTIVE",
+            "run_id": RUN_ID,
+            "contract_version": 1,
+        },
+        {
+            "claim_id": "b",
+            "statement_hash": "b" * 64,
+            "status": "ACTIVE",
+            "run_id": RUN_ID,
+            "contract_version": 1,
+        },
+    ]
+    review = {"review_id": "review-1", "verdict": "ACCEPT"}
+    decision = _decide(
+        _snapshot("RUNNING", extra={"claims": claims, "peer_reviews": [review]}),
+        "RegisterClaimEdge",
+        {
+            "contract_version": 1,
+            "from_claim_id": "a",
+            "to_claim_id": "b",
+            "edge_kind": "IMPLIES",
+            "direction": "FORWARD",
+            "justification_kind": "HUMAN_ARGUMENT",
+            "justification_ref": "review-1",
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "COMPOSITION_OPEN"
+
+
 def test_start_interrupt_resume_and_unresolved_finalize() -> None:
+    contract = {
+        "version": 1,
+        "status": "FROZEN",
+        "statement_hash": "a" * 64,
+        "contract_artifact_id": ARTIFACT_ID,
+        "contract": {"statement": "canonical"},
+    }
+    root = {
+        "claim_id": "root",
+        "run_id": RUN_ID,
+        "contract_version": 1,
+        "claim_kind": "ROOT",
+        "statement_hash": "a" * 64,
+        "statement_artifact_id": ARTIFACT_ID,
+        "normalized_statement": {"statement": "canonical"},
+        "status": "ACTIVE",
+    }
     started = _decide(
-        _snapshot("OPEN"),
+        _snapshot(
+            "OPEN",
+            extra={"contract": contract, "claims": [root], "root_claim_id": "root"},
+        ),
         "StartRun",
         {
             "contract_version": 1,
@@ -179,6 +413,21 @@ def test_start_interrupt_resume_and_unresolved_finalize() -> None:
     assert dict(finalized.projection_mutations[0])["status"] == "CLOSED"
 
 
+def test_start_run_requires_an_active_canonical_contract_root() -> None:
+    decision = _decide(
+        _snapshot("OPEN"),
+        "StartRun",
+        {
+            "contract_version": 1,
+            "literature_plan_artifact_id": ARTIFACT_ID,
+            "budget_policy": {"global": {"CPU_SECOND": 1000}},
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "EVIDENCE_SCOPE_MISMATCH"
+
+
 def test_stale_revision_has_no_mutation_or_event_intents() -> None:
     decision = _decide(
         _snapshot("OPEN", revision=4),
@@ -211,7 +460,9 @@ def test_soft_model_evidence_never_promotes_machine_axis(count: int) -> None:
             "evidence_id": f"model-{index}",
             "claim_id": "claim-1",
             "evidence_type": "MODEL_JUDGE",
-            "evidence_strength": "SOFT_MODEL",
+                "evidence_strength": "SOFT_MODEL",
+                "contract_version": 1,
+                "statement_hash": "1" * 64,
             "status": "ACTIVE",
             "replay_pass": True,
         }
@@ -233,6 +484,136 @@ def test_soft_model_evidence_never_promotes_machine_axis(count: int) -> None:
     assert decision.projection_mutations == ()
 
 
+def test_promote_unknown_claim_returns_stable_scope_error() -> None:
+    decision = _decide(
+        _snapshot("RUNNING"),
+        "PromoteClaim",
+        {
+            "claim_id": "missing-claim",
+            "target_axis": "MACHINE",
+            "target_value": "KERNEL_VERIFIED",
+            "evidence_ids": ["missing-evidence"],
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "EVIDENCE_SCOPE_MISMATCH"
+
+
+@pytest.mark.parametrize("value", ["LOCAL_LEMMAS_VERIFIED", "ROUTE_LOCAL"])
+def test_unscoped_local_route_promotion_is_unavailable(value: str) -> None:
+    claim = {
+        "claim_id": "claim-1",
+        "statement_hash": "a" * 64,
+        "status": "ACTIVE",
+        "run_id": RUN_ID,
+        "contract_version": 1,
+    }
+    evidence = {"evidence_id": "evidence-1", "status": "ACCEPTED"}
+    decision = _decide(
+        _snapshot("RUNNING", extra={"claims": [claim], "evidence": [evidence]}),
+        "PromoteClaim",
+        {
+            "claim_id": "claim-1",
+            "target_axis": "ROUTE",
+            "target_value": value,
+            "evidence_ids": ["evidence-1"],
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "COMPOSITION_OPEN"
+
+
+def test_illegal_axis_value_is_rejected_before_projection() -> None:
+    claim = {
+        "claim_id": "claim-1",
+        "statement_hash": "a" * 64,
+        "status": "ACTIVE",
+        "run_id": RUN_ID,
+        "contract_version": 1,
+    }
+    evidence = {"evidence_id": "evidence-1", "status": "ACCEPTED"}
+    decision = _decide(
+        _snapshot("RUNNING", extra={"claims": [claim], "evidence": [evidence]}),
+        "PromoteClaim",
+        {
+            "claim_id": "claim-1",
+            "target_axis": "ROUTE",
+            "target_value": "NOT_A_STATE",
+            "evidence_ids": ["evidence-1"],
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "INGEST_SCHEMA_INVALID"
+
+
+def test_route_local_finalize_is_unavailable_without_scoped_closure() -> None:
+    claim = {
+        "claim_id": "claim-1",
+        "statement_hash": "a" * 64,
+        "route": "ROUTE_LOCAL",
+        "status": "ACTIVE",
+    }
+    decision = _decide(
+        _snapshot("RUNNING", extra={"claims": [claim]}),
+        "Finalize",
+        {
+            "outcome": "ROUTE_LOCAL",
+            "terminal_claim_ids": ["claim-1"],
+            "open_obligation_ids": [],
+            "dossier_spec": {"format": "JSON", "include_raw_artifacts": False},
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "TERMINAL_CLAIM_UNSUPPORTED"
+
+
+def test_nonroot_proved_terminal_cannot_close_the_run() -> None:
+    root = {
+        "claim_id": "root",
+        "claim_kind": "ROOT",
+        "status": "ACTIVE",
+        "route": "UNASSESSED",
+        "run_id": RUN_ID,
+    }
+    side = {
+        "claim_id": "side",
+        "claim_kind": "SIDE_FINDING",
+        "status": "ACTIVE",
+        "route": "ROUTE_PROVED",
+        "machine": "KERNEL_VERIFIED",
+        "semantic": "HUMAN_ATTESTED",
+        "peer": "UNREVIEWED",
+        "closure": "NOT_REQUIRED",
+        "run_id": RUN_ID,
+    }
+    snapshot = _snapshot("RUNNING", extra={"claims": [root, side]})
+    snapshot = RunSnapshot(
+        run_id=snapshot.run_id,
+        status=snapshot.status,
+        revision=snapshot.revision,
+        current_contract_version=snapshot.current_contract_version,
+        last_cursor=snapshot.last_cursor,
+        projection={**snapshot.projection, "root_claim_id": "root"},
+    )
+    decision = _decide(
+        snapshot,
+        "Finalize",
+        {
+            "outcome": "PROVED",
+            "terminal_claim_ids": ["side"],
+            "open_obligation_ids": [],
+            "dossier_spec": {"format": "JSON", "include_raw_artifacts": False},
+        },
+    )
+
+    assert not decision.accepted
+    assert decision.rejection_code == "TERMINAL_CLAIM_UNSUPPORTED"
+
+
 def test_self_reported_replay_never_promotes_machine_axis() -> None:
     claim = {
         "claim_id": "claim-1",
@@ -248,7 +629,9 @@ def test_self_reported_replay_never_promotes_machine_axis() -> None:
         "evidence_type": "LEAN_REPLAY",
         "evidence_strength": "HARD_MACHINE",
         "root_kind": "LEAN_KERNEL",
-        "verifier_profile_id": "lean-clean",
+            "verifier_profile_id": "lean-clean",
+            "contract_version": 1,
+            "statement_hash": "1" * 64,
         "status": "ACTIVE",
         "replay": {"passed": True, "sorry_count": 0, "axiom_violations": []},
     }
@@ -286,6 +669,8 @@ def test_route_proved_checks_other_axes_without_circular_dependency() -> None:
         "claim_id": "claim-1",
         "evidence_type": "EXACT_ENUMERATION",
         "evidence_strength": "HARD_MACHINE",
+        "contract_version": 1,
+        "statement_hash": "1" * 64,
         "status": "ACTIVE",
     }
     decision = _decide(
@@ -491,6 +876,7 @@ def test_component_usage_requires_named_component_and_nonnegative_counters() -> 
             "unit": "microsecond",
             "provider_usage": {},
         },
+        policy={"budget_controller_capability_ids": ["cap-1"]},
     )
     invalid = _decide(
         _snapshot("RUNNING"),
@@ -502,10 +888,71 @@ def test_component_usage_requires_named_component_and_nonnegative_counters() -> 
             "unit": "microtoken",
             "provider_usage": {"component": "model", "input_tokens": -1},
         },
+        policy={"budget_controller_capability_ids": ["cap-1"]},
     )
 
     assert missing.rejection_code == "INGEST_SCHEMA_INVALID"
     assert invalid.rejection_code == "INGEST_SCHEMA_INVALID"
+
+
+def test_budget_provider_usage_rejects_reserved_host_trust_namespace() -> None:
+    decision = _decide(
+        _snapshot("RUNNING"),
+        "RecordBudget",
+        {
+            "event_kind": "RESERVATION",
+            "resource_kind": "INPUT_TOKEN",
+            "amount_microunits": 1,
+            "unit": "microtoken",
+            "provider_usage": {
+                "component": "model",
+                "_rk_trust": "HOST_VERIFIED",
+                "input_tokens": 99,
+            },
+        },
+        policy={
+            "global_budget_limits": {"INPUT_TOKEN": 10},
+            "budget_controller_capability_ids": ["cap-1"],
+        },
+    )
+
+    assert decision.rejection_code == "INGEST_SCHEMA_INVALID"
+
+
+def test_legacy_budget_generation_does_not_consume_new_reservation_limit() -> None:
+    decision = _decide(
+        _snapshot(
+            "RUNNING",
+            extra={
+                "budget_events": [
+                    {
+                        "budget_event_id": "legacy-reservation",
+                        "resource_kind": "INPUT_TOKEN",
+                        "event_kind": "RESERVATION",
+                        "amount_microunits": 10,
+                        "provider_usage": {
+                            "component": "legacy-model",
+                            "_rk_trust": "LEGACY_UNTRUSTED",
+                        },
+                    }
+                ]
+            },
+        ),
+        "RecordBudget",
+        {
+            "event_kind": "RESERVATION",
+            "resource_kind": "INPUT_TOKEN",
+            "amount_microunits": 1,
+            "unit": "microtoken",
+            "provider_usage": {"component": "new-model"},
+        },
+        policy={
+            "global_budget_limits": {"INPUT_TOKEN": 10},
+            "budget_controller_capability_ids": ["cap-1"],
+        },
+    )
+
+    assert decision.accepted
 
 
 def test_budget_actual_is_denied_when_hard_limit_is_missing_or_exceeded() -> None:
@@ -516,7 +963,12 @@ def test_budget_actual_is_denied_when_hard_limit_is_missing_or_exceeded() -> Non
         "unit": "microtoken",
         "provider_usage": {"component": "model", "input_tokens": 6},
     }
-    missing = _decide(_snapshot("RUNNING"), "RecordBudget", payload)
+    missing = _decide(
+        _snapshot("RUNNING"),
+        "RecordBudget",
+        payload,
+        policy={"budget_controller_capability_ids": ["cap-1"]},
+    )
     exceeded = _decide(
         _snapshot(
             "RUNNING",
@@ -533,11 +985,14 @@ def test_budget_actual_is_denied_when_hard_limit_is_missing_or_exceeded() -> Non
         ),
         "RecordBudget",
         payload,
-        policy={"global_budget_limits": {"INPUT_TOKEN": 10}},
+        policy={
+            "global_budget_limits": {"INPUT_TOKEN": 10},
+            "budget_controller_capability_ids": ["cap-1"],
+        },
     )
 
-    assert missing.rejection_code == "BUDGET_DENIED"
-    assert exceeded.rejection_code == "BUDGET_DENIED"
+    assert missing.rejection_code == "EVIDENCE_INSUFFICIENT"
+    assert exceeded.rejection_code == "EVIDENCE_INSUFFICIENT"
 
 
 def test_route_attempt_limit_is_enforced() -> None:

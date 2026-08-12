@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import sqlite3
 import uuid
 from pathlib import Path
+
+import pytest
 
 from rk.composition import canonical_json_bytes as composition_json_bytes
 from rk.config import KernelConfig
@@ -11,6 +15,7 @@ from rk.domain import (
     ArtifactInput,
     CreateRequest,
     ExportRequest,
+    RequestValidationError,
     RunSnapshot,
     TypedCommand,
     VerifiedCapability,
@@ -127,8 +132,11 @@ def test_public_lifecycle_is_executable_and_idempotent(tmp_path: Path) -> None:
     support_id = next(
         item["artifact_id"] for item in create_artifacts if item["logical_name"] == "support.txt"
     )
+    contract_id = next(
+        item["artifact_id"] for item in create_artifacts if item["role"] == "CONTRACT"
+    )
 
-    normalized_statement = {"statement": "For every x, a witness exists.", "atomic": True}
+    normalized_statement = _contract()
     statement_hash = hashlib.sha256(composition_json_bytes(normalized_statement)).hexdigest()
     register = _apply(
         kernel,
@@ -140,7 +148,7 @@ def test_public_lifecycle_is_executable_and_idempotent(tmp_path: Path) -> None:
             "contract_version": 1,
             "claim_kind": "ROOT",
             "stable_label": "root",
-            "statement_artifact_id": support_id,
+            "statement_artifact_id": contract_id,
             "statement_hash": statement_hash,
             "normalized_statement": normalized_statement,
         },
@@ -201,6 +209,9 @@ def test_public_lifecycle_is_executable_and_idempotent(tmp_path: Path) -> None:
     evidence_snapshot = kernel.inspect(handle.run_id)
     assert isinstance(evidence_snapshot, RunSnapshot)
     assert evidence_snapshot.projection["evidence"][0]["evidence_strength"] == "HUMAN_ATTESTED"
+    assert evidence_snapshot.projection["evidence"][0]["trust_class"] == "UNMANAGED_CANDIDATE"
+    assert evidence_snapshot.projection["evidence"][0]["authority_effect"] == "NONE"
+    assert evidence_snapshot.projection["evidence"][0]["promotion_eligible"] is False
 
     interrupt = _apply(
         kernel,
@@ -271,6 +282,7 @@ def test_public_lifecycle_is_executable_and_idempotent(tmp_path: Path) -> None:
         ),
         capability,
     )
+    assert exported.artifact_id in finalize.artifact_ids
     assert exported.sha256 == exported_again.sha256
     assert exported.artifact_id == exported_again.artifact_id
 
@@ -286,6 +298,182 @@ def test_public_lifecycle_is_executable_and_idempotent(tmp_path: Path) -> None:
     ]
 
 
+def test_public_peer_review_derives_unknown_and_rejects_caller_independence(
+    tmp_path: Path,
+) -> None:
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    support = inbox / "support.txt"
+    support.write_text("contract and review\n", encoding="utf-8")
+    config = KernelConfig.from_mapping(
+        {
+            "workspace_root": str(tmp_path / "state"),
+            "inbox_roots": [str(inbox)],
+            "command_schema_path": str(ROOT / "docs/spec/json/command.schema.json"),
+            "receipt_schema_path": str(ROOT / "docs/spec/json/receipt.schema.json"),
+        },
+        base=ROOT,
+    )
+    kernel = ResearchKernel.from_config(config, migrations_dir=ROOT / "migrations")
+    capability = _capability()
+    handle = kernel.create(
+        CreateRequest(
+            request_id=str(uuid.uuid4()),
+            contract=frozen_mapping(_contract()),
+            artifact_inputs=(_artifact(support, "support.txt"),),
+        ),
+        capability,
+    )
+    snapshot = kernel.inspect(handle.run_id)
+    assert isinstance(snapshot, RunSnapshot)
+    support_id = next(
+        item["artifact_id"]
+        for item in snapshot.projection["artifacts"]
+        if item["logical_name"] == "support.txt"
+    )
+    contract_id = next(
+        item["artifact_id"]
+        for item in snapshot.projection["artifacts"]
+        if item["role"] == "CONTRACT"
+    )
+    normalized = _contract()
+    statement_hash = hashlib.sha256(composition_json_bytes(normalized)).hexdigest()
+    registered = _apply(
+        kernel,
+        capability,
+        handle.run_id,
+        0,
+        "RegisterClaim",
+        {
+            "contract_version": 1,
+            "claim_kind": "ROOT",
+            "stable_label": "root",
+            "statement_artifact_id": contract_id,
+            "statement_hash": statement_hash,
+            "normalized_statement": normalized,
+        },
+    )
+    assert registered.accepted
+    snapshot = kernel.inspect(handle.run_id)
+    assert isinstance(snapshot, RunSnapshot)
+    claim_id = snapshot.projection["root_claim_id"]
+    payload = {
+        "claim_id": claim_id,
+        "contract_version": 1,
+        "statement_hash": statement_hash,
+        "review_artifact_id": support_id,
+        "verdict": "ACCEPT",
+        "checklist": {"proof_checked": True},
+        "source_graph": {"review_artifact_id": support_id},
+    }
+    recorded = _apply(
+        kernel, capability, handle.run_id, 1, "RecordPeerReview", payload
+    )
+    assert recorded.accepted
+    snapshot = kernel.inspect(handle.run_id)
+    assert isinstance(snapshot, RunSnapshot)
+    with sqlite3.connect(config.db_path) as connection:
+        raw_profile = connection.execute(
+            "SELECT independence_profile_json FROM peer_reviews WHERE run_id = ?",
+            (handle.run_id,),
+        ).fetchone()[0]
+    profile = json.loads(str(raw_profile))
+    assert profile["idea_independence"] == "UNKNOWN"
+    assert snapshot.projection["claims"][0]["peer"] == "UNREVIEWED"
+
+    payload["independence_profile"] = {"independent": True}
+    with pytest.raises(RequestValidationError):
+        _apply(kernel, capability, handle.run_id, 2, "RecordPeerReview", payload)
+
+
+def test_registering_a_rebuilt_canonical_root_replaces_an_invalidated_pointer(
+    tmp_path: Path,
+) -> None:
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    support = inbox / "support.txt"
+    support.write_text("contract support\n", encoding="utf-8")
+    config = KernelConfig.from_mapping(
+        {
+            "workspace_root": str(tmp_path / "state"),
+            "inbox_roots": [str(inbox)],
+            "command_schema_path": str(ROOT / "docs/spec/json/command.schema.json"),
+            "receipt_schema_path": str(ROOT / "docs/spec/json/receipt.schema.json"),
+        },
+        base=ROOT,
+    )
+    kernel = ResearchKernel.from_config(config, migrations_dir=ROOT / "migrations")
+    capability = _capability()
+    handle = kernel.create(
+        CreateRequest(
+            request_id=str(uuid.uuid4()),
+            contract=frozen_mapping(_contract()),
+            artifact_inputs=(_artifact(support, "support.txt"),),
+        ),
+        capability,
+    )
+    before = kernel.inspect(handle.run_id)
+    contract_id = next(
+        item["artifact_id"] for item in before.projection["artifacts"] if item["role"] == "CONTRACT"
+    )
+    normalized = _contract()
+    statement_hash = hashlib.sha256(composition_json_bytes(normalized)).hexdigest()
+    first = _apply(
+        kernel,
+        capability,
+        handle.run_id,
+        0,
+        "RegisterClaim",
+        {
+            "contract_version": 1,
+            "claim_kind": "ROOT",
+            "stable_label": "root-v1",
+            "statement_artifact_id": contract_id,
+            "statement_hash": statement_hash,
+            "normalized_statement": normalized,
+        },
+    )
+    assert first.accepted
+    frozen = _apply(
+        kernel,
+        capability,
+        handle.run_id,
+        1,
+        "FreezeContract",
+        {"contract_version": 1, "completeness_check_artifact_id": contract_id},
+    )
+    assert frozen.accepted
+    old_root = kernel.inspect(handle.run_id).projection["root_claim_id"]
+    with sqlite3.connect(config.db_path) as connection:
+        connection.execute(
+            "UPDATE claims SET lifecycle_status='INVALIDATED' WHERE claim_id=?", (old_root,)
+        )
+    second = _apply(
+        kernel,
+        capability,
+        handle.run_id,
+        2,
+        "RegisterClaim",
+        {
+            "contract_version": 1,
+            "claim_kind": "ROOT",
+            "stable_label": "root-v1",
+            "statement_artifact_id": contract_id,
+            "statement_hash": statement_hash,
+            "normalized_statement": normalized,
+        },
+    )
+
+    assert second.accepted
+    rebuilt = kernel.inspect(handle.run_id).projection
+    assert rebuilt["root_claim_id"] != old_root
+    new_root = next(
+        item for item in rebuilt["claims"] if item["claim_id"] == rebuilt["root_claim_id"]
+    )
+    assert new_root["stable_label"] == "root-v1"
+    assert new_root["statement_revision"] == 2
+
+
 def test_component_usage_is_aggregated_in_inspect(tmp_path: Path) -> None:
     inbox = tmp_path / "inbox"
     inbox.mkdir()
@@ -297,7 +485,10 @@ def test_component_usage_is_aggregated_in_inspect(tmp_path: Path) -> None:
             "inbox_roots": [str(inbox)],
             "command_schema_path": str(ROOT / "docs/spec/json/command.schema.json"),
             "receipt_schema_path": str(ROOT / "docs/spec/json/receipt.schema.json"),
-            "budget_policy": {"global_budget_limits": {"INPUT_TOKEN": 20_000_000}},
+            "budget_policy": {
+                "global_budget_limits": {"INPUT_TOKEN": 20_000_000},
+                "budget_controller_capability_ids": ["configured-after-capability"],
+            },
         },
         base=ROOT,
     )
@@ -335,15 +526,6 @@ def test_component_usage_is_aggregated_in_inspect(tmp_path: Path) -> None:
         },
     )
 
-    assert receipt.accepted
-    usage = kernel.inspect(handle.run_id).projection["component_usage"]["deepseek-v4-pro"]
-    assert usage == {
-        "input_tokens": 12,
-        "output_tokens": 3,
-        "reasoning_tokens": 2,
-        "cache_read_tokens": 7,
-        "cache_write_tokens": 0,
-        "total_tokens": 24,
-        "wall_time_ms": 345,
-        "unknown_count": 0,
-    }
+    assert not receipt.accepted
+    assert receipt.rejection_code == "CAPABILITY_DENIED"
+    assert "deepseek-v4-pro" not in kernel.inspect(handle.run_id).projection["component_usage"]

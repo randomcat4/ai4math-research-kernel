@@ -119,6 +119,16 @@ run 返回 PAUSED，直到明确 Resume/StartRun。
 运行态快照也具有严格顺序。若 heartbeat 频率造成写放大，只能批量降低频率，不得
 建立第二套无 revision 状态。
 
+唯一例外是改变既有权威投影的受信 schema migration：迁移必须为每个受影响 run
+原子写入一条 accepted system command 和对应 migration event，并恰好增加一次
+revision。它与普通 apply 共享同一审计账和并发令牌，不是静默的第二状态通道。
+v0.2 使用内部 `SystemRevalidateAuthority` 与 `AUTHORITY_REVALIDATED`；其 command、
+event、request ID 都是迁移事务内生成并持久化的 UUID，receipt 必须通过与公开命令
+相同的 receipt schema。迁移账本保证该事务不会作为同一版本重复执行。
+这些内部身份仍遵循 UUIDv7 形状；若进程在状态事务提交后、迁移 ledger 写入前退出，
+重试必须以已持久化的 `SystemRevalidateAuthority` command 为幂等标记，不得再次推进
+revision。
+
 ## 6. Contract 修订批准矩阵
 
 | 变更 | 必需批准 |

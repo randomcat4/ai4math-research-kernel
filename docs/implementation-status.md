@@ -1,57 +1,65 @@
 # Implementation status
 
-更新时间：2026-08-12。本文只描述可执行实现与实测，不声明完整 RK-PRD-2 已完成。
+更新时间：2026-08-12。本文区分“历史集成实测”和“当前 v0.2 权威状态”；历史成功日志
+不等于当前内核授予数学权威。
 
-## 已连通并实测
+## 当前 v0.2 可执行
 
-- 对外 `ResearchKernel.create/apply/inspect/export`、SQLite/CAS、幂等收据、能力校验、
-  27 个 v1 命令 guard 和投影已执行。
-- 远端 `leane2efinal9` 用当前工作树真实调用：公共 LeanSearch、OpenCode 1.18.16 +
-  DeepSeek V4-Pro 无工具生成、jixia 4.28、Lean 4.28.0-rc1 + Mathlib 固定 commit 的重放。
-- Lean 硬结果必须绑定成功 attempt、execution binding、源码/输出/二进制哈希和宿主
-  HMAC execution receipt；仅持 verifier writer capability 不能自报 `REPLAY_PASS`。
-- 预算 hard limit 和 route attempt limit 已从“只记账”变成 guard 执行；组件 token、
-  wall time、UNKNOWN_COST 与 API 费用未知均进入账本。
-- Z3 4.15.3、SymPy 1.14、精确枚举、固定代码执行已下载到远端并真实 smoke；这些
-  工具输出默认不改变数学轴，除非另有可信证书重放。
-- Crossref 文献检索 adapter 已实现并真实查询；空结果明确不是证明。人类同行审查通过
-  `RecordPeerReview` 命令接入，真实人类签名尚未发生。
-- QED-Nano 4B 和 DeepSeek-Prover-V2-7B 已按上游默认/官方参数下载到远端 AMD GPU
-  并完成五题 smoke；专用模型统一 adapter 永远标为 `SOFT_CANDIDATE_ONLY`。DeepSeek
-  候选另过 Lean 内核，其中 4/5 通过，1/5 因撞 8192-token 上限且含 `sorry` 被拒。
+- `ResearchKernel.create/apply/inspect/export`、SQLite/CAS、幂等收据、能力校验、27 个
+  命令的 guard 与投影可以执行。
+- 新 ROOT 必须使用合同的规范 JSON 工件、同一 SHA-256 和同一规范对象；同一运行只允许
+  一个 ACTIVE ROOT。v0.1 ROOT 在迁移时失效；旧 lease 被撤销，未完成 attempt 被终止，
+  旧 route 被退役，run 回到 OPEN。宿主必须按冻结合同重建 ROOT 并 StartRun，不能 Resume
+  或复用旧 binding/执行上下文。旧 route label 与 work path 是历史唯一键；新一代必须用
+  新 label/path，不能宣称原地续跑。若当前合同仍是 DEFECT_PROPOSED，则只能修订（尚未
+  实现）或诚实结束 UNRESOLVED，不能启动新执行。
+- dossier 的 JSON 与中文 Markdown 同源，包含题面、精确否定、规范化 claim、六轴状态、
+  最终 outcome 和开放义务。Finalize 与后续 export 对同一修订保持字节一致。
+- 普通证据只能记录候选。机器、同行、人类语义、质量、合同缺陷、局部路线、已知结论和
+  反例终态在缺少受信宿主回执时 fail closed；`UNRESOLVED` 是当前诚实可达的结案结果。
+  公开 JSON/中文卷宗把普通 evidence/review 标成 `UNMANAGED_CANDIDATE/REVIEW`、
+  `authority_effect=NONE`、`promotion_eligible=false`；原始 `ACCEPTED/ACCEPT` 只表示摄入
+  或意见内容，不表示内核认可数学结论。
+- 预算 reservation 和 route attempt 上限仍由 guard 执行。模型 token、wall time、
+  UNKNOWN_COST 等 ACTUAL 统计在接入宿主执行回执前不进入权威账本。v0.1 自报统计保留
+  为 `legacy_untrusted_component_usage`，不会计入 `component_usage` 或可信 budget totals。
 
-主证据：`docs/rkleane2e.json`、`docs/rktoolsmoke.json`、`docs/rkcomponents.md`。
+当前测试基线：187 项通过；Ruff 通过；变更核心模块的 strict mypy 通过。Windows 对
+OpenCode 的 POSIX-only 类型名仍有五个既存 mypy 报错，跨平台清理尚未完成。
 
-## 已修复的独立审计问题
+## 历史 v0.1 集成实测（不授予 v0.2 权威）
 
-- 旧 OpenCode 成功记录含 bash 调用，已作废。当前 adapter 用全局和 build agent 双层
-  deny-all permission/tool registry、非 root 用户和每次全新 XDG 目录；实测无工具调用。
-- OpenCode 1.18.16 偶发已经发出完整 `step_finish` 却不退出；JSONL runner 现在识别协议
-  的 `reason=stop` 完成、留清理宽限期，再终止残留进程组；`tool-calls` 中间 step 不会
-  被误当终态。
-- timeout/异常现在归一化，失败日志先入 CAS，并在 `finally` 终结 lease/attempt。
-- Lean/jixia 拒绝已有输出，避免复用陈旧 `.olean`/JSON。
-- OpenCode 空文本或无结束事件不再标成功；Lean 禁用词修复标点绕过。
-- jixia 抽取的声明名实际决定后续 Lean replay 输入，不再只是旁路 telemetry。
-- Mathlib HEAD、tracked dirty state、toolchain、二进制与依赖输入摘要进入实测结果。
-- replay receipt 使用远端 `0600 root:root` 的持久 HMAC 密钥，重启后仍可复核；密钥本身
-  不进入 SQLite、CAS 或导出结果。
-- 回执绑定内核预发的一次性 nonce、run、attempt、binding、profile、commit 和 adapter
-  version；重复消费或跨 attempt/run 重放由 guard 拒绝。
-- 每次外部调用前做 hard-budget reservation，返回后原始结果先入 CAS，再退款和记录
-  actual/UNKNOWN_COST；预算结算异常不再抹掉已经发生的调用结果。
+- 远端 `leane2efinal9` 曾真实调用公共 LeanSearch、OpenCode 1.18.16 + DeepSeek V4-Pro、
+  jixia 4.28、Lean 4.28.0-rc1 和固定 Mathlib。
+- Z3 4.15.3、SymPy 1.14、精确枚举、固定代码执行和 Crossref 做过 smoke。
+- QED-Nano 4B 与 DeepSeek-Prover-V2-7B 已在远端 AMD GPU 按上游配置跑过五题；前者是
+  自然语言候选生成器，后者是 Lean 候选生成器。DeepSeek-Prover 候选历史上 4/5 经
+  Lean 接受，1/5 因 token 上限与 `sorry` 被拒。
+- `docs/rkleane2e.json`、`docs/rktoolsmoke.json`、`docs/rkcomponents.md` 和
+  `docs/evidence/models/` 只作为历史性能/接线证据保存。迁移 0004 会撤销其中旧 ROOT、
+  machine、human、quality、closure 和终态的物化权威。
 
-## 明确限制
+## 当前明确不可用
 
-- 本次隔离不是 `ISOLATED_KERNEL_REPLAY`：Mathlib `.lake` cache 仍共享可写，Lean/jixia
-  运行网络与只读挂载未由 OS 探针强制，结果明确标为 `UNENFORCED`。
-- 公共 LeanSearch 响应没有服务端 commit/模型 hash attestation；本地仓库 commit 只是
-  客户端来源，不能冒充线上部署版本。远端双 8B 权重已完成 ROCm smoke，但本次公共
-  endpoint 没有使用它们的可验证证据。
-- Archon adapter/source contract 有测试，完整真实 Horizon 模型 run 尚未通过；Rethlas
-  health 曾通过，但 Codex 0.80 + DeepSeek full loop 仍失败。因此二者不是 E2E verified。
-- GPT-5.6 Pro、Codex 5.6 是闭源服务角色，不存在可下载的本地权重；当前 RK 未配置
-  它们的 provider adapter。QED-Nano/DeepSeek-Prover 已下载、基准运行并接入统一
-  soft-only adapter，但尚未成为主 E2E 的默认路由，也未复现论文完整 benchmark/RSA。
-- `AmendContract` 仍为 `TEMPORARILY_UNAVAILABLE`；旧 revision 的历史事件重放导出、
-  raw artifact 嵌入仍未实现。
+- 尚无 DB-backed `HostExecutionReceiptService`。v0.1 `StrategyRunner` 的 HMAC key 和
+  caller-supplied receipt context 在同一进程，不能证明 claim scope，故
+  `machine_evidence_is_trusted` 当前恒为 false。
+- 没有受管人类身份、盲审包和一次性签名，因此同行、HUMAN_ATTESTED、质量晋级不可用。
+- 没有受信的文献等价性、合同缺陷裁决或反例 checker 回执，因此
+  `PREVIOUSLY_KNOWN`、`CONTRACT_DEFECTIVE`、`DISPROVED` 不可作为终态。
+- `AmendContract` 仍为 `TEMPORARILY_UNAVAILABLE`；raw artifact 嵌入和旧 revision
+  dossier 导出仍未实现。
+- Mathlib `.lake` cache 仍共享可写，Lean/jixia 的断网和只读挂载尚未由 OS 探针强制，
+  因而不是 `ISOLATED_KERNEL_REPLAY`。
+- 公共 LeanSearch 没有服务端 commit/model/index attestation；单卡本地 LeanSearch-v2
+  还存在 reranker 静默退化风险，未完成等价验收前不得作为无损替代。
+
+## 下一验收门
+
+第一实现切片必须由独立宿主服务持有签名密钥。现有 `RegisterAttempt`/`BindExecution`
+字段也是普通调用者提交的，只能视为未受信提示，不能成为签名输入的信任根。宿主必须
+自己冻结或从实际 request、mount、进程和工具回执重新计算 input snapshot、adapter、
+environment、invocation artifact bytes 与 nonce，再核验 route 的目标正是当前 ACTIVE
+canonical ROOT/current claim，并装配 run、contract version、statement hash、profile、
+request/result 和 usage。调用者不能传 scope。只有该回执通过一次性消费与环境复验后，
+machine axis 和 ACTUAL budget 才能重新开放；跨 claim、伪 digest 和伪环境都必须有负测。

@@ -750,7 +750,7 @@ def main() -> int:
     snapshot = kernel.inspect(handle.run_id)
     assert isinstance(snapshot, RunSnapshot)
     problem_id = artifact_id_for_sha(snapshot, sha256_file(problem))
-    normalized = {"statement": contract()["statement"], "atomic": True}
+    normalized = contract()
     statement_hash = hashlib.sha256(composition_json_bytes(normalized)).hexdigest()
     apply(
         kernel,
@@ -761,7 +761,11 @@ def main() -> int:
             "contract_version": 1,
             "claim_kind": "ROOT",
             "stable_label": "rk-add-zero",
-            "statement_artifact_id": problem_id,
+            "statement_artifact_id": next(
+                str(item["artifact_id"])
+                for item in snapshot.projection["artifacts"]
+                if item["role"] == "CONTRACT"
+            ),
             "statement_hash": statement_hash,
             "normalized_statement": normalized,
         },

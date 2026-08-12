@@ -566,7 +566,9 @@ class SQLiteStorage:
                 (run_id,),
             ).fetchone()
             fuse = conn.execute(
-                "SELECT 1 FROM budget_events WHERE run_id = ? AND event_kind = 'FUSE_TRIP' LIMIT 1",
+                "SELECT 1 FROM budget_events WHERE run_id = ? AND event_kind = 'FUSE_TRIP' "
+                "AND COALESCE(json_extract(provider_usage_json,'$._rk_trust'),'CURRENT') "
+                "<> 'LEGACY_UNTRUSTED' LIMIT 1",
                 (run_id,),
             ).fetchone()
 
@@ -685,18 +687,23 @@ class SQLiteStorage:
             "projection": projection,
         }
 
-    def inspect_snapshot(self, run_id: str) -> dict[str, Any]:
-        with self._reader(None) as connection:
+    def inspect_snapshot(
+        self, run_id: str, *, connection: sqlite3.Connection | None = None
+    ) -> dict[str, Any]:
+        with self._reader(connection) as connection:
             run = connection.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
             if run is None:
                 raise RunNotFound("run not found")
             contract = connection.execute(
-                "SELECT statement_hash, status FROM contract_versions "
+                "SELECT version,status,contract_artifact_id,statement_hash,contract_json "
+                "FROM contract_versions "
                 "WHERE run_id = ? AND version = ?",
                 (run_id, run["current_contract_version"]),
             ).fetchone()
             claim_rows = connection.execute(
-                "SELECT claim_id, statement_hash, lifecycle_status, route_result, "
+                "SELECT claim_id,contract_version,claim_kind,stable_label,statement_revision,"
+                "statement_artifact_id,statement_hash,normalized_statement_json,"
+                "lifecycle_status,route_result, "
                 "machine_verdict, semantic_verdict, peer_verdict, quality_verdict, closure_state "
                 "FROM claims WHERE run_id = ? ORDER BY claim_id",
                 (run_id,),
@@ -722,7 +729,9 @@ class SQLiteStorage:
             budget_rows = connection.execute(
                 "SELECT resource_kind, event_kind, COALESCE(SUM(amount_microunits), 0) AS amount, "
                 "SUM(CASE WHEN event_kind='UNKNOWN_COST' THEN 1 ELSE 0 END) AS unknown_count "
-                "FROM budget_events WHERE run_id = ? GROUP BY resource_kind, event_kind",
+                "FROM budget_events WHERE run_id = ? "
+                "AND COALESCE(json_extract(provider_usage_json,'$._rk_trust'),'TRUSTED') "
+                "<> 'LEGACY_UNTRUSTED' GROUP BY resource_kind, event_kind",
                 (run_id,),
             ).fetchall()
             component_rows = connection.execute(
@@ -805,7 +814,13 @@ class SQLiteStorage:
         claims = [
             {
                 "claim_id": str(row["claim_id"]),
+                "contract_version": int(row["contract_version"]),
+                "claim_kind": str(row["claim_kind"]),
+                "stable_label": str(row["stable_label"]),
+                "statement_revision": int(row["statement_revision"]),
+                "statement_artifact_id": str(row["statement_artifact_id"]),
                 "statement_hash": str(row["statement_hash"]),
+                "normalized_statement": json.loads(str(row["normalized_statement_json"])),
                 "lifecycle": str(row["lifecycle_status"]),
                 "route": str(row["route_result"]),
                 "machine": str(row["machine_verdict"]),
@@ -815,6 +830,51 @@ class SQLiteStorage:
                 "closure": str(row["closure_state"]),
             }
             for row in claim_rows
+        ]
+        public_evidence = [
+            {
+                **dict(row),
+                "trust_class": "UNMANAGED_CANDIDATE",
+                "authority_effect": "NONE",
+                "promotion_eligible": False,
+            }
+            for row in evidence_rows
+        ]
+        public_peer_reviews = [
+            {
+                **dict(row),
+                "trust_class": "UNMANAGED_REVIEW",
+                "authority_effect": "NONE",
+                "promotion_eligible": False,
+            }
+            for row in review_rows
+        ]
+        public_quality_reviews = [
+            {
+                **dict(row),
+                "trust_class": "UNMANAGED_REVIEW",
+                "authority_effect": "NONE",
+                "promotion_eligible": False,
+            }
+            for row in quality_review_rows
+        ]
+        public_bindings = [
+            {
+                **row,
+                "trust_class": "UNMANAGED_BINDING",
+                "authority_effect": "NONE",
+                "promotion_eligible": False,
+            }
+            for row in bindings
+        ]
+        public_lean_feedback = [
+            {
+                **row,
+                "trust_class": "V01_UNSCOPED_FEEDBACK",
+                "authority_effect": "NONE",
+                "promotion_eligible": False,
+            }
+            for row in lean_feedback
         ]
         budget: dict[str, dict[str, int]] = {}
         key_by_kind = {"RESERVATION": "reserved", "ACTUAL": "actual", "REFUND": "refunded"}
@@ -828,7 +888,11 @@ class SQLiteStorage:
                 item[key_by_kind[event_kind]] += int(row["amount"])
             item["unknown_count"] += int(row["unknown_count"])
         component_usage: dict[str, dict[str, int]] = {}
+        legacy_untrusted_component_usage: dict[str, dict[str, int]] = {}
         for row in component_rows:
+            event_kind = str(row["event_kind"])
+            if event_kind not in {"ACTUAL", "UNKNOWN_COST"}:
+                continue
             try:
                 usage = json.loads(str(row["provider_usage_json"]))
             except (json.JSONDecodeError, TypeError):
@@ -838,7 +902,15 @@ class SQLiteStorage:
             component = usage.get("component")
             if not isinstance(component, str) or not component:
                 continue
-            item = component_usage.setdefault(
+            trust = usage.get("_rk_trust")
+            if trust == "LEGACY_UNTRUSTED":
+                target = legacy_untrusted_component_usage
+            else:
+                # No public command may manufacture host trust in provider JSON.  The
+                # authority-bearing total stays empty until a separate persisted host
+                # attestation column and internal write path exist.
+                continue
+            item = target.setdefault(
                 component,
                 {
                     "input_tokens": 0,
@@ -851,7 +923,7 @@ class SQLiteStorage:
                     "unknown_count": 0,
                 },
             )
-            if str(row["event_kind"]) == "UNKNOWN_COST":
+            if event_kind == "UNKNOWN_COST":
                 item["unknown_count"] += 1
             for name in (
                 "input_tokens",
@@ -870,14 +942,26 @@ class SQLiteStorage:
             "run_id": str(run["run_id"]),
             "stable_project_id": str(run["stable_project_id"]),
             "status": str(run["status"]),
+            "final_outcome": run["final_outcome"],
             "revision": int(run["revision"]),
             "current_contract_version": int(run["current_contract_version"]),
-            "contract": dict(contract) if contract is not None else None,
+            "contract": (
+                {
+                    **{
+                        key: value
+                        for key, value in dict(contract).items()
+                        if key != "contract_json"
+                    },
+                    "contract": json.loads(str(contract["contract_json"])),
+                }
+                if contract is not None
+                else None
+            ),
             "root_claim_id": run["root_claim_id"],
             "artifacts": [dict(row) for row in artifact_rows],
-            "evidence": [dict(row) for row in evidence_rows],
-            "peer_reviews": [dict(row) for row in review_rows],
-            "quality_reviews": [dict(row) for row in quality_review_rows],
+            "evidence": public_evidence,
+            "peer_reviews": public_peer_reviews,
+            "quality_reviews": public_quality_reviews,
             "closure_witnesses": [dict(row) for row in witness_rows],
             "edges": [dict(row) for row in edge_rows],
             "obligations": [dict(row) for row in obligation_rows],
@@ -887,11 +971,12 @@ class SQLiteStorage:
             "routes": [dict(row) for row in route_rows],
             "open_obligation_ids": [str(row[0]) for row in obligations],
             "active_attempts": [dict(row) for row in attempts],
-            "bindings": bindings,
-            "lean_feedback": lean_feedback,
+            "bindings": public_bindings,
+            "lean_feedback": public_lean_feedback,
             "budget_events": budget_events,
             "budget_summary": budget,
             "component_usage": component_usage,
+            "legacy_untrusted_component_usage": legacy_untrusted_component_usage,
             "terminal_claim_ids": [
                 item["claim_id"] for item in claims if item["route"] in terminal_values
             ],

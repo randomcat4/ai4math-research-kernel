@@ -79,6 +79,37 @@ def _export_wire(request: ExportRequest) -> dict[str, Any]:
     }
 
 
+def _public_run_snapshot(
+    value: Mapping[str, Any],
+    *,
+    status: str | None = None,
+    revision: int | None = None,
+    final_outcome: str | None = None,
+) -> RunSnapshot:
+    projection = {
+        key: item
+        for key, item in value.items()
+        if key
+        not in {
+            "run_id",
+            "status",
+            "revision",
+            "current_contract_version",
+            "last_cursor",
+        }
+    }
+    if final_outcome is not None:
+        projection["final_outcome"] = final_outcome
+    return RunSnapshot(
+        run_id=str(value["run_id"]),
+        status=status or str(value["status"]),
+        revision=int(value["revision"]) if revision is None else revision,
+        current_contract_version=int(value["current_contract_version"]),
+        last_cursor=int(value["last_cursor"]),
+        projection=frozen_mapping(projection),
+    )
+
+
 def _receipt(value: Mapping[str, Any]) -> CommandReceipt:
     return CommandReceipt(
         request_id=str(value["request_id"]),
@@ -382,13 +413,18 @@ class ResearchKernel:
                     )
                     committed.append(graph)
                 if request.command.type == "Finalize":
-                    final_snapshot = RunSnapshot(
-                        run_id=request.run_id,
+                    # Finalization and later export must use exactly the same public
+                    # projection.  The transaction already contains this command's
+                    # input artifacts; the generated dossier is deliberately absent
+                    # here and excluded from later exports to avoid self-reference.
+                    public_value = self._storage.inspect_snapshot(
+                        request.run_id, connection=connection
+                    )
+                    final_snapshot = _public_run_snapshot(
+                        public_value,
                         status="CLOSED",
                         revision=revision_after,
-                        current_contract_version=int(snapshot["current_contract_version"]),
-                        last_cursor=0,
-                        projection=frozen_mapping(snapshot["projection"]),
+                        final_outcome=str(request.command.payload["outcome"]),
                     )
                     data, media_type = self._dossier.build(
                         final_snapshot, request.command.payload["dossier_spec"]
@@ -516,27 +552,7 @@ class ResearchKernel:
                 next_cursor=page["next_cursor"],
                 has_more=page["has_more"],
             )
-        value = self._storage.inspect_snapshot(run_id)
-        projection = {
-            key: item
-            for key, item in value.items()
-            if key
-            not in {
-                "run_id",
-                "status",
-                "revision",
-                "current_contract_version",
-                "last_cursor",
-            }
-        }
-        return RunSnapshot(
-            run_id=str(value["run_id"]),
-            status=str(value["status"]),
-            revision=int(value["revision"]),
-            current_contract_version=int(value["current_contract_version"]),
-            last_cursor=int(value["last_cursor"]),
-            projection=frozen_mapping(projection),
-        )
+        return _public_run_snapshot(self._storage.inspect_snapshot(run_id))
 
     def export(self, request: ExportRequest, capability: VerifiedCapability) -> ArtifactRef:
         if not capability.allows("export", request.run_id):

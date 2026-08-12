@@ -228,8 +228,8 @@
       "type": "object", "additionalProperties": false, "required": ["type", "payload"],
       "properties": {"type": {"const": "RecordPeerReview"}, "payload": {
         "type": "object", "additionalProperties": false,
-        "required": ["claim_id","contract_version","statement_hash","review_artifact_id","verdict","checklist","source_graph","independence_profile"],
-        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "statement_hash": {"$ref": "#/$defs/hash"}, "selected_subgraph_digest": {"$ref": "#/$defs/hash"}, "review_artifact_id": {"$ref": "#/$defs/id"}, "verdict": {"enum": ["ACCEPT","REJECT","NEEDS_REVISION"]}, "checklist": {"$ref": "#/$defs/jsonObject"}, "source_graph": {"$ref": "#/$defs/jsonObject"}, "independence_profile": {"$ref": "#/$defs/jsonObject"}}
+        "required": ["claim_id","contract_version","statement_hash","review_artifact_id","verdict","checklist","source_graph"],
+        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "statement_hash": {"$ref": "#/$defs/hash"}, "selected_subgraph_digest": {"$ref": "#/$defs/hash"}, "review_artifact_id": {"$ref": "#/$defs/id"}, "verdict": {"enum": ["ACCEPT","REJECT","NEEDS_REVISION"]}, "checklist": {"$ref": "#/$defs/jsonObject"}, "source_graph": {"$ref": "#/$defs/jsonObject"}}
       }}
     },
     "recordQualityReview": {
@@ -314,7 +314,7 @@
       "properties": {"type": {"const": "PromoteClaim"}, "payload": {
         "type": "object", "additionalProperties": false,
         "required": ["claim_id","target_axis","target_value","evidence_ids"],
-        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "target_axis": {"enum": ["ROUTE","MACHINE","SEMANTIC","PEER","QUALITY","CLOSURE"]}, "target_value": {"type": "string"}, "evidence_ids": {"$ref": "#/$defs/idArray"}, "closure_witness_id": {"$ref": "#/$defs/id"}}
+        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "target_axis": {"enum": ["ROUTE","MACHINE","SEMANTIC","PEER","QUALITY","CLOSURE"]}, "target_value": {"enum": ["UNASSESSED","CANDIDATE","LOCAL_LEMMAS_VERIFIED","ROUTE_LOCAL","ROUTE_PROVED","REFUTED","PREVIOUSLY_KNOWN","UNVERIFIED","KERNEL_VERIFIED","CERTIFICATE_VERIFIED","REPLAY_FAILED","UNREVIEWED","TESTED","HUMAN_ATTESTED","ACCEPTED","REJECTED","NEEDS_REVISION","NOT_REQUIRED","OPEN","CLOSED_MACHINE","CLOSED_HUMAN","CLOSED_HYBRID","INVALIDATED"]}, "evidence_ids": {"$ref": "#/$defs/idArray"}, "closure_witness_id": {"$ref": "#/$defs/id"}}
       }}
     },
     "registerAttempt": {

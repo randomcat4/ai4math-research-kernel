@@ -180,7 +180,15 @@ def _case(
                 "contract_version": 1,
                 "selected_subgraph_digest": digest,
                 "verdict": "ACCEPT",
-                "independent": True,
+                "independence_profile": {
+                    "idea_independence": "INDEPENDENT",
+                    "derivation_independence": "INDEPENDENT",
+                    "verification_independence": "INDEPENDENT",
+                    "implementation_independence": "INDEPENDENT",
+                    "retrieval_independence": "INDEPENDENT",
+                    "reasons": ["host-derived test fixture"],
+                    "shared_ancestors": [],
+                },
             }
         ],
     }
@@ -200,24 +208,46 @@ def _case(
     return snapshot, payload, evidence, {"peer_review_threshold": 1}
 
 
-def test_machine_witness_closes_only_as_machine() -> None:
+def test_machine_composition_is_unavailable_until_every_bearing_ref_is_bound() -> None:
     snapshot, payload, evidence, policy = _case()
 
     result = validate_closure_witness(snapshot, payload, evidence, policy)
 
-    assert result.accepted
-    assert result.closure_state == "CLOSED_MACHINE"
+    assert not result.accepted
+    assert result.closure_state is None
+    assert result.rejection_code == "REPLAY_FAILED"
 
 
-def test_human_witness_closes_only_as_human() -> None:
+def test_legacy_independence_profile_cannot_close_as_human() -> None:
+    snapshot, payload, evidence, policy = _case(
+        part_status="HUMAN_ATTESTED", rule="HUMAN_ARGUMENT", mode="PEER"
+    )
+    snapshot = RunSnapshot(
+        run_id=snapshot.run_id,
+        status=snapshot.status,
+        revision=snapshot.revision,
+        current_contract_version=snapshot.current_contract_version,
+        last_cursor=snapshot.last_cursor,
+        projection={**dict(snapshot.projection), "peer_reviews": evidence["reviews"]},
+    )
+    persisted_only = {"evidence": evidence["evidence"]}
+
+    result = validate_closure_witness(snapshot, payload, persisted_only, policy)
+
+    assert not result.accepted
+    assert result.closure_state is None
+    assert result.rejection_code == "INDEPENDENCE_UNKNOWN"
+
+
+def test_ephemeral_summary_review_cannot_close_as_human() -> None:
     snapshot, payload, evidence, policy = _case(
         part_status="HUMAN_ATTESTED", rule="HUMAN_ARGUMENT", mode="PEER"
     )
 
     result = validate_closure_witness(snapshot, payload, evidence, policy)
 
-    assert result.accepted
-    assert result.closure_state == "CLOSED_HUMAN"
+    assert not result.accepted
+    assert result.rejection_code == "INDEPENDENCE_UNKNOWN"
 
 
 def test_human_parts_cannot_be_submitted_as_machine() -> None:

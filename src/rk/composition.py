@@ -306,16 +306,36 @@ def _review_is_acceptable(
     review: Mapping[str, Any], *, parent_id: str, version: int, digest: str
 ) -> bool:
     profile = review.get("independence_profile", {})
-    independent = review.get("independent") is True or (
-        isinstance(profile, Mapping) and profile.get("independent") is True
-    )
     return bool(
         review.get("verdict") == "ACCEPT"
         and review.get("claim_id") == parent_id
         and review.get("contract_version") == version
         and review.get("selected_subgraph_digest") == digest
-        and independent
+        and independence_profile_is_independent(profile)
     )
+
+
+_INDEPENDENCE_DIMENSIONS = (
+    "idea_independence",
+    "derivation_independence",
+    "verification_independence",
+    "implementation_independence",
+    "retrieval_independence",
+)
+
+
+def independence_profile_is_independent(value: Any) -> bool:
+    """Fail closed until a managed *human* review receipt exists.
+
+    v0.1 records legacy profiles and v0.2 can preserve reviews as soft human-authored
+    artifacts, but neither version has a host-managed human identity and blind-review
+    receipt.  Merely spelling all five dimensions ``INDEPENDENT`` must never grant peer
+    authority.  A future receipt verifier will replace this closed gate; managed model
+    reviews will remain soft and will not use the human peer axis.
+    """
+
+    del value
+    return False
 
 
 def _verification_id(value: Any) -> str | None:
@@ -328,12 +348,24 @@ def _verification_id(value: Any) -> str | None:
     return None
 
 
-def _all_machine_refs_valid(refs: Sequence[Any], evidence: Mapping[str, Mapping[str, Any]]) -> bool:
-    identifiers = [_verification_id(value) for value in refs]
-    return bool(identifiers) and all(
-        identifier is not None and identifier in evidence and _is_hard_machine(evidence[identifier])
-        for identifier in identifiers
-    )
+def _all_machine_refs_valid(
+    refs: Sequence[Any],
+    evidence: Mapping[str, Mapping[str, Any]],
+    *,
+    claims: Mapping[str, Mapping[str, Any]],
+    selected_claim_ids: set[str],
+    run_id: str,
+    contract_version: int,
+    projection: Mapping[str, Any],
+    policy: Mapping[str, Any],
+) -> bool:
+    # v0.2 supports trusted replay for an atomic claim, but not authority-bearing
+    # composition.  A composition receipt must bind every logical edge, every
+    # MACHINE_CHECKED obligation part, each closure theorem and each cut to an exact
+    # verifier scope.  Until that manifest exists, one real leaf replay must not close
+    # an arbitrary larger graph.
+    del refs, evidence, claims, selected_claim_ids, run_id, contract_version, projection, policy
+    return False
 
 
 def _obligation_parts(
@@ -674,13 +706,10 @@ def validate_closure_witness(
             _condition("OPEN_OBLIGATION", "/command/payload/selected_subgraph/obligations"),
         )
 
-    evidence = {
-        **_records(evidence_summary.get("evidence"), "evidence_id"),
-        **_records(projection.get("evidence"), "evidence_id"),
-    }
+    evidence = _records(projection.get("evidence"), "evidence_id")
+    # Reviews are authority-bearing persisted state.  Ephemeral evidence summaries are
+    # permitted for staged evidence, never for peer promotion or human closure.
     reviews = {
-        **_records(evidence_summary.get("reviews"), "review_id"),
-        **_records(evidence_summary.get("peer_reviews"), "review_id"),
         **_records(projection.get("reviews"), "review_id"),
         **_records(projection.get("peer_reviews"), "review_id"),
     }
@@ -702,7 +731,16 @@ def validate_closure_witness(
                 RejectionCode.EVIDENCE_INSUFFICIENT,
                 _condition("MACHINE_REPLAY", "/command/payload/composition_mode"),
             )
-        if review_ids or not _all_machine_refs_valid(verification_refs, evidence):
+        if review_ids or not _all_machine_refs_valid(
+            verification_refs,
+            evidence,
+            claims=claims,
+            selected_claim_ids=set(selected_claims),
+            run_id=str(_snapshot_value(snapshot, "run_id")),
+            contract_version=int(version),
+            projection=projection,
+            policy=policy_snapshot,
+        ):
             return _failure(
                 RejectionCode.REPLAY_FAILED,
                 _condition("MACHINE_REPLAY", "/command/payload/verification_refs"),
@@ -784,7 +822,14 @@ def validate_closure_witness(
             )
         if kind == "MACHINE_CHECKED":
             if cut.get("rule") not in _MACHINE_RULES or not _all_machine_refs_valid(
-                cut.get("verification_refs", ()), evidence
+                cut.get("verification_refs", ()),
+                evidence,
+                claims=claims,
+                selected_claim_ids=set(selected_claims),
+                run_id=str(_snapshot_value(snapshot, "run_id")),
+                contract_version=int(version),
+                projection=projection,
+                policy=policy_snapshot,
             ):
                 return _failure(
                     RejectionCode.REPLAY_FAILED,
@@ -818,7 +863,16 @@ def validate_closure_witness(
                     "CLOSURE_WITNESS", f"/command/payload/selected_subgraph/cuts/{index}/kind"
                 ),
             )
-    if not _all_machine_refs_valid(verification_refs, evidence) or not reviews_satisfy:
+    if not _all_machine_refs_valid(
+        verification_refs,
+        evidence,
+        claims=claims,
+        selected_claim_ids=set(selected_claims),
+        run_id=str(_snapshot_value(snapshot, "run_id")),
+        contract_version=int(version),
+        projection=projection,
+        policy=policy_snapshot,
+    ) or not reviews_satisfy:
         return _failure(
             RejectionCode.EVIDENCE_INSUFFICIENT,
             (

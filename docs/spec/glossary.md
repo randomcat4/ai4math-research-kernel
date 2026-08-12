@@ -16,6 +16,10 @@
 一个命令产生多个事件也只增加一次。它不是 claim revision、contract version
 或全局事件序号。
 
+权威规则迁移若会改变既有数学投影，也必须为每个受影响 run 写入一个受信的
+系统命令与事件，并恰好增加一次 revision。该合成修订使用独立迁移 capability，
+目的是使迁移前的并发令牌与卷宗身份立即失效；不得只在数据库中静默改状态。
+
 ### `event_cursor`
 
 `events.event_seq` 的数据库级单调整数，仅用于分页；不能替代 run revision。

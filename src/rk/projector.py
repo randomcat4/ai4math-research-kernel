@@ -358,8 +358,10 @@ class ProjectionWriter:
         context: ProjectionContext,
         mutation: Mapping[str, Any],
     ) -> None:
-        del mutation
         p = context.command.payload
+        profile = mutation.get("independence_profile")
+        if not isinstance(profile, Mapping):
+            raise ProjectionError("peer review requires a host-derived independence profile")
         connection.execute(
             "INSERT INTO peer_reviews(review_id,run_id,claim_id,contract_version,statement_hash,"
             "selected_subgraph_digest,reviewer_capability_id,independence_profile_json,verdict,"
@@ -373,7 +375,7 @@ class ProjectionWriter:
                 p["statement_hash"],
                 p.get("selected_subgraph_digest"),
                 context.capability_id,
-                _json(p["independence_profile"]),
+                _json(profile),
                 p["verdict"],
                 _json(p["checklist"]),
                 p["review_artifact_id"],
@@ -534,12 +536,18 @@ class ProjectionWriter:
     ) -> None:
         p = context.command.payload
         claim_id = self._ids.new()
+        previous = connection.execute(
+            "SELECT COALESCE(MAX(statement_revision), 0) FROM claims "
+            "WHERE run_id = ? AND stable_label = ?",
+            (context.run_id, p["stable_label"]),
+        ).fetchone()
+        statement_revision = int(previous[0]) + 1 if previous is not None else 1
         connection.execute(
             "INSERT INTO claims(claim_id,run_id,contract_version,claim_kind,stable_label,"
             "statement_revision,statement_artifact_id,statement_hash,normalized_statement_json,"
             "lifecycle_status,route_result,machine_verdict,semantic_verdict,peer_verdict,"
             "quality_verdict,closure_state,created_by_event_id,created_at,updated_at) "
-            "VALUES (?,?,?,?,?,1,?,?,?,'ACTIVE','UNASSESSED','UNVERIFIED','UNREVIEWED',"
+            "VALUES (?,?,?,?,?,?,?, ?,?,'ACTIVE','UNASSESSED','UNVERIFIED','UNREVIEWED',"
             "'UNREVIEWED','UNREVIEWED',?,?,?,?)",
             (
                 claim_id,
@@ -547,6 +555,7 @@ class ProjectionWriter:
                 p["contract_version"],
                 p["claim_kind"],
                 p["stable_label"],
+                statement_revision,
                 p["statement_artifact_id"],
                 p["statement_hash"],
                 _json(p["normalized_statement"]),
@@ -558,7 +567,7 @@ class ProjectionWriter:
         )
         if p["claim_kind"] == "ROOT":
             connection.execute(
-                "UPDATE runs SET root_claim_id = COALESCE(root_claim_id, ?) WHERE run_id = ?",
+                "UPDATE runs SET root_claim_id = ? WHERE run_id = ?",
                 (claim_id, context.run_id),
             )
 

@@ -11,14 +11,14 @@
   },
   "manifest_self_excluded": true,
   "file_count": 22,
-  "total_bytes_excluding_manifest": 183085,
+  "total_bytes_excluding_manifest": 185229,
   "files": [
     {"path":"ac5.md","byte_count":5853,"sha256":"db5432aa3225ea25f101cba94b79df6d5e0294261d8f99c4365ab361adf690ea"},
     {"path":"adapters/archon.md","byte_count":3541,"sha256":"4294c312fa2d5628dc44a8f02cb8de5e9d418f5240aa9ff24e35a32c4d070ec5"},
     {"path":"adapters/jixia.md","byte_count":2773,"sha256":"91b64bce903042992a9bcc3263b0530089ded0cafd9416fd0fc40aa3b8ae859b"},
     {"path":"adapters/leansearch.md","byte_count":2801,"sha256":"82c4681fac47110aaebb883349e1ec62db9e033a3ae867a8e511533a2649f2ba"},
     {"path":"adapters/rethlas.md","byte_count":3459,"sha256":"a01ef5ec9f8a6084497143b1b1bdf9e5d557f635e21196126d215be8e87d4aec"},
-    {"path":"api.md","byte_count":13197,"sha256":"965d852ff448f0e1eb3e240fa41a17216ebe6cecb1288eeb2b4fa94c9d625179"},
+    {"path":"api.md","byte_count":13289,"sha256":"79641382a3aa701799d914e259518cca1313ddee2cd99eeee8f6a1ebdd2dff92"},
     {"path":"composition.md","byte_count":10478,"sha256":"21fe5bf3ec737f5a072b51dc37cdd9a7ef4702fd069fd6147be3a0ae4b10b4a1"},
     {"path":"fixtures/ac5_cases.json","byte_count":12422,"sha256":"36beb93ee61e2e97d4b5e532b4b92641e7608000f0410a8751363a143506f38f"},
     {"path":"fixtures/archon_run_dry.json","byte_count":721,"sha256":"1b9cacf6123ed000855a3649ee297b42801d45bc9d8549ac2967b341a99abb42"},
@@ -28,12 +28,12 @@
     {"path":"fixtures/method_cards/mc_parity_invariant.json","byte_count":3238,"sha256":"b36dd32b38d904eaa6f059c6ff24f954c8aa55ed5bb5d3765ce951780fa4b9d0"},
     {"path":"fixtures/method_cards/mc_symmetry_orbit.json","byte_count":3589,"sha256":"55155a257d9a9ccd13d7ece8c4457785db8ee7845b083e70b4bd412471ddf512"},
     {"path":"fixtures/n2slice.json","byte_count":6002,"sha256":"02069b6e02f9c3a81c4e95400fd6dd2ce1b4a667f8055f7e848117f6a934fe80"},
-    {"path":"glossary.md","byte_count":9231,"sha256":"85e5f0ba12e63d881cf621fa9cfa29ee97384bb66bb3a8ec048cadc0db31cd6b"},
-    {"path":"json/command.schema.json","byte_count":27073,"sha256":"10730d527af0bb376e181942bdf42b86a432e97c8e9d76b92e0563835de40637"},
+    {"path":"glossary.md","byte_count":9551,"sha256":"bbfc647440004daa37377c7d86c854918fc16536450d88981eb46070527ee694"},
+    {"path":"json/command.schema.json","byte_count":27983,"sha256":"eb1704cd84e229bde34eee640026be69612a907f8bc7151d00632804f2b023ed"},
     {"path":"json/receipt.schema.json","byte_count":1914,"sha256":"3bb7171390cad220b44e66fb2cadf9f23ffd91c49a0fd6fc255888d500706c18"},
     {"path":"README.md","byte_count":7017,"sha256":"987edeaa8d332f7972ea9b4a9a3f5a09e7379b8d0c7e6ce72c72b015583beff4"},
     {"path":"schema.sql","byte_count":39016,"sha256":"25fab500f705d54128fcb5ff914a7b3870bf66561d1ed33705a6432a98bf65c1"},
-    {"path":"transitions.md","byte_count":14867,"sha256":"49166a50b0dbe948c8b25cb0a3f53dff246572b16a0347184305158013afe2e2"},
+    {"path":"transitions.md","byte_count":15689,"sha256":"fc913588dc2d7f41337cc7e6c35a7248e63cd1a2e123cf701d4fdb347c0080c9"},
     {"path":"validation.md","byte_count":4264,"sha256":"c0fde9aeaba4a4013754a06728e0ef45832625559a2bd70dbcf004882cdb6222"}
   ]
 }

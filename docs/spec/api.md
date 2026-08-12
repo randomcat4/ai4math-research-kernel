@@ -154,7 +154,7 @@ rename 必须是原子操作。
 | `RecordFailure` | `route_id?`, `claim_id?`, `failure_kind`, `normalized_fingerprint`, `equivalence_key`, `first_failed_obligation_id?`, `evidence_artifact_id?`, `applicability`, `novelty_delta` |
 | `RequestExpansion` | `route_id`, `batch_kind`, `reservation`, `novelty_delta`, `expected_information_gain`, `decision_ids[]` |
 | `ProposeContractDefect` | `contract_version`, `defect_type`, `evidence_refs[]`, `affected_claim_ids[]`, `proposed_patch_artifact_id` |
-| `RecordPeerReview` | `claim_id`, `contract_version`, `statement_hash`, `review_artifact_id`, `verdict`, `checklist`, `source_graph`, `independence_profile` |
+| `RecordPeerReview` | `claim_id`, `contract_version`, `statement_hash`, `review_artifact_id`, `verdict`, `checklist`, `source_graph`；五维 `independence_profile` 由宿主从来源谱系派生，调用者不得自报 |
 | `RecordQualityReview` | `claim_id`, `contract_version`, `review_artifact_id`, `verdict`, `dimensions`, `training_pool` |
 | `RecordLiterature` | `contract_version`, `claim_id?`, `status`, `relation?`, `scope`, `cutoff_date`, `query_families[]`, `query_log_artifact_id`, `reference_artifact_id?`, `assessment_artifact_id` |
 | `RegisterBridge` | `bridge_id?`, `contract_version`, `source_claim_id`, `target_claim_id`, `directionality`, `term_mapping`, `forward_obligations[]`, `reverse_obligations[]`, `loss_accounting`, `target_audit_review_id?`, `backtranslation_artifact_id?` |
