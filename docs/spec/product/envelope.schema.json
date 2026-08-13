@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.ai4math/rk/product/envelope.schema.json",
+  "title": "RK Product transport envelopes v1",
+  "oneOf": [
+    {"$ref": "#/$defs/productCommand"},
+    {"$ref": "#/$defs/querySpec"},
+    {"$ref": "#/$defs/subscriptionSpec"},
+    {"$ref": "#/$defs/artifactOperation"},
+    {"$ref": "#/$defs/productReceipt"}
+  ],
+  "$defs": {
+    "uuid": {"type": "string", "format": "uuid"},
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "safeInteger": {"type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991},
+    "safeNatural": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+    "payloadValue": {
+      "oneOf": [
+        {"type": ["null", "boolean", "string"]},
+        {"$ref": "#/$defs/safeInteger"},
+        {"type": "array", "items": {"$ref": "#/$defs/payloadValue"}},
+        {"$ref": "#/$defs/payloadObject"}
+      ]
+    },
+    "payloadObject": {
+      "type": "object",
+      "propertyNames": {
+        "not": {"enum": ["actor", "role", "capability", "capability_id", "principal_subject_id"]}
+      },
+      "additionalProperties": {"$ref": "#/$defs/payloadValue"}
+    },
+    "globalScope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "deployment_id"],
+      "properties": {"kind": {"const": "GLOBAL"}, "deployment_id": {"$ref": "#/$defs/uuid"}}
+    },
+    "runScope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "run_id", "expected_revision", "expected_contract_version"],
+      "properties": {
+        "kind": {"const": "RUN"}, "run_id": {"$ref": "#/$defs/uuid"},
+        "expected_revision": {"type": "integer", "minimum": 0},
+        "expected_contract_version": {"type": "integer", "minimum": 1}
+      }
+    },
+    "deploymentScope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "deployment_id", "expected_deployment_revision"],
+      "properties": {
+        "kind": {"const": "DEPLOYMENT"}, "deployment_id": {"$ref": "#/$defs/uuid"},
+        "expected_deployment_revision": {"type": "integer", "minimum": 0}
+      }
+    },
+    "scope": {"oneOf": [
+      {"$ref": "#/$defs/globalScope"}, {"$ref": "#/$defs/runScope"},
+      {"$ref": "#/$defs/deploymentScope"}
+    ]},
+    "artifactRef": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifact_id", "sha256", "byte_count", "media_type"],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/uuid"}, "sha256": {"$ref": "#/$defs/hash"},
+        "byte_count": {"type": "integer", "minimum": 0}, "media_type": {"type": "string", "minLength": 1},
+        "logical_name": {"type": "string", "minLength": 1}
+      }
+    },
+    "commandPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "payload"],
+      "properties": {
+        "type": {"enum": [
+          "CREATE_RESEARCH", "CONFIRM_CONTRACT", "AMEND_CONTRACT", "APPLY_ROUTE_PLAN",
+          "START_RESEARCH", "PAUSE_RESEARCH", "RESUME_RESEARCH", "CANCEL_RESEARCH",
+          "SUBMIT_GUIDANCE", "WITHDRAW_GUIDANCE", "SUBMIT_CLAIM", "IMPORT_VERIFICATION",
+          "CONFIRM_REVOKE", "REGISTER_BRIDGE_SPEC", "SUBMIT_CLOSURE_WITNESS",
+          "CREATE_REVIEW_TASK", "CLAIM_REVIEW_TASK", "SUBMIT_REVIEW", "GENERATE_CANDIDATE_TEX",
+          "SUBMIT_PAPER_REVIEW", "FINALIZE_RESEARCH", "COMPILE_FINAL_PDF",
+          "CONFIRM_MATERIAL_EXTRACTION", "RUN_LITERATURE_QUERY", "REPLAY_SOURCE_SNAPSHOT",
+          "REVIEW_THEOREM_APPLICABILITY", "FREEZE_PROBLEM_POOL", "BATCH_CREATE_RESEARCH",
+          "REGISTER_BRIDGE_OPPORTUNITY", "ASSIGN_ABLATION", "IMPORT_RESEARCH_LINEAGE",
+          "CREATE_COMPUTE_TASK", "RUN_TOOL", "CANCEL_JOB", "RETRY_UNKNOWN_OUTCOME",
+          "DEPLOYMENT_OPERATION"
+        ]},
+        "payload": {"$ref": "#/$defs/payloadObject"}
+      }
+    },
+    "queryPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "payload"],
+      "properties": {
+        "type": {"enum": [
+          "LIST_RESEARCH", "RESEARCH_OVERVIEW", "CONTRACT", "CONTRACT_IMPACT",
+          "MATERIAL", "MATERIAL_EXTRACTION", "CITATION_ANCHOR", "EXTRACTION_DIFF",
+          "LITERATURE_QUERY", "SOURCE_SNAPSHOT", "LITERATURE_SOURCE", "LITERATURE_GRAPH",
+          "THEOREM_APPLICABILITY", "PRIOR_ART_COMPARISON", "NOVELTY_REVIEW", "PROBLEM_POOL",
+          "PROBLEM_CANDIDATE", "SOURCE_VERSION_HISTORY", "BATCH_RESEARCH_JOB", "ROUTE_PLAN",
+          "BRIDGE_OPPORTUNITIES", "ABLATION_PLAN", "ABLATION_RESULTS", "WORKFLOW", "WORK_ITEM",
+          "WORKER_RUN", "CHECKPOINT", "CLAIM", "CLAIM_HISTORY", "AVAILABLE_ACTIONS", "GRAPH_SLICE",
+          "GRAPH_SEARCH", "DEPENDENCY_CLOSURE", "REVERSE_CLOSURE", "REVOKE_PREVIEW", "COMPUTE_TASK",
+          "TOOL_CATALOG", "TOOL_RUN", "GUIDANCE_INBOX", "HINT", "REVIEW_INBOX", "REVIEW_TASK",
+          "DOSSIER", "PUBLICATION_STATUS", "ARTIFACT_INDEX", "RESEARCH_CASE_LINEAGE",
+          "CLEAN_ROOM_INPUT_MANIFEST", "CERTIFICATE_IMPORT_REPORT", "ACTION_ITEMS", "PRODUCT_RECEIPT",
+          "JOB", "DEPLOYMENT_STATUS", "DEPLOYMENT_JOB", "BACKUP_STATUS", "ADMIN_HEALTH", "USAGE"
+        ]},
+        "payload": {"$ref": "#/$defs/payloadObject"}
+      }
+    },
+    "artifactPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "payload"],
+      "properties": {
+        "type": {"enum": ["BEGIN_UPLOAD", "APPEND_CHUNK", "COMMIT_UPLOAD", "READ_RANGE", "TAIL_LOG", "DESCRIBE"]},
+        "payload": {"$ref": "#/$defs/payloadObject"}
+      }
+    },
+    "productCommand": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "request_id", "scope", "command", "artifact_inputs"],
+      "properties": {
+        "schema_version": {"const": "rk.product.command.v1"}, "request_id": {"$ref": "#/$defs/uuid"},
+        "scope": {"$ref": "#/$defs/scope"}, "command": {"$ref": "#/$defs/commandPayload"},
+        "artifact_inputs": {"type": "array", "items": {"$ref": "#/$defs/artifactRef"}, "uniqueItems": true}
+      }
+    },
+    "querySpec": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "scope", "query"],
+      "properties": {
+        "schema_version": {"const": "rk.product.query.v1"}, "scope": {"$ref": "#/$defs/scope"},
+        "query": {"$ref": "#/$defs/queryPayload"}
+      }
+    },
+    "subscriptionSpec": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "run_id", "after_cursor"],
+      "properties": {
+        "schema_version": {"const": "rk.product.subscription.v1"}, "run_id": {"$ref": "#/$defs/uuid"},
+        "after_cursor": {"type": "integer", "minimum": 0},
+        "event_types": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "artifactOperation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "request_id", "operation"],
+      "properties": {
+        "schema_version": {"const": "rk.product.artifact.v1"}, "request_id": {"$ref": "#/$defs/uuid"},
+        "operation": {"$ref": "#/$defs/artifactPayload"}
+      }
+    },
+    "missingCondition": {
+      "type": "object", "additionalProperties": false, "required": ["code", "path", "params"],
+      "properties": {"code": {"type": "string"}, "path": {"type": "string"}, "params": {"type": "object"}}
+    },
+    "decision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["accepted", "revision_before", "revision_after", "contract_version", "event_cursor_after", "affected_entity_ids", "created_artifact_refs", "kernel_receipts", "available_actions"],
+      "properties": {
+        "accepted": {"type": "boolean"}, "rejection_code": {"type": ["string", "null"]},
+        "missing_conditions": {"type": "array", "items": {"$ref": "#/$defs/missingCondition"}},
+        "revision_before": {"type": "integer", "minimum": 0}, "revision_after": {"type": "integer", "minimum": 0},
+        "contract_version": {"type": "integer", "minimum": 1}, "event_cursor_after": {"type": "integer", "minimum": 0},
+        "affected_entity_ids": {"type": "array", "items": {"$ref": "#/$defs/uuid"}, "uniqueItems": true},
+        "created_artifact_refs": {"type": "array", "items": {"$ref": "#/$defs/artifactRef"}},
+        "created_run_id": {"$ref": "#/$defs/uuid"}, "kernel_receipts": {"type": "array", "items": {"type": "object"}},
+        "available_actions": {"type": "array", "items": {"type": "object"}}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"accepted": {"const": true}}, "required": ["accepted"]},
+          "then": {
+            "properties": {
+              "rejection_code": {"type": "null"},
+              "missing_conditions": {"maxItems": 0}
+            }
+          },
+          "else": {
+            "required": ["rejection_code", "missing_conditions"],
+            "properties": {
+              "rejection_code": {"type": "string", "minLength": 1},
+              "missing_conditions": {"minItems": 1}
+            }
+          }
+        }
+      ]
+    },
+    "productReceipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "receipt_id", "receipt_version", "request_id", "scope", "updated_at", "state"],
+      "properties": {
+        "schema_version": {"const": "rk.product.receipt.v1"}, "receipt_id": {"$ref": "#/$defs/uuid"},
+        "receipt_version": {"type": "integer", "minimum": 1}, "request_id": {"$ref": "#/$defs/uuid"},
+        "command_id": {"$ref": "#/$defs/uuid"}, "scope": {"$ref": "#/$defs/scope"},
+        "run_id": {"$ref": "#/$defs/uuid"}, "deployment_id": {"$ref": "#/$defs/uuid"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "state": {"enum": ["PENDING", "DECIDED", "OUTCOME_UNKNOWN"]}, "job_id": {"$ref": "#/$defs/uuid"},
+        "decision": {"$ref": "#/$defs/decision"}, "unknown_external_call_ref": {"type": "string"},
+        "supersedes_or_resolves_receipt_id": {"$ref": "#/$defs/uuid"}, "decided_at": {"type": "string", "format": "date-time"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"const": "PENDING"}}, "required": ["state"]},
+          "then": {
+            "required": ["job_id"],
+            "not": {"anyOf": [
+              {"required": ["decision"]}, {"required": ["decided_at"]},
+              {"required": ["unknown_external_call_ref"]}
+            ]}
+          }
+        },
+        {
+          "if": {"properties": {"state": {"const": "DECIDED"}}, "required": ["state"]},
+          "then": {
+            "required": ["decision", "decided_at"],
+            "not": {"required": ["unknown_external_call_ref"]}
+          }
+        },
+        {
+          "if": {"properties": {"state": {"const": "OUTCOME_UNKNOWN"}}, "required": ["state"]},
+          "then": {
+            "required": ["unknown_external_call_ref"],
+            "not": {"anyOf": [{"required": ["decision"]}, {"required": ["decided_at"]}]}
+          }
+        }
+      ]
+    }
+  }
+}

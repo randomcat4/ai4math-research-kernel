@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.ai4math/rk/product/review.schema.json",
+  "title": "RK independent verifier artifacts v1",
+  "oneOf": [
+    {"$ref": "#/$defs/atomic"}, {"$ref": "#/$defs/composition"}, {"$ref": "#/$defs/paper"}
+  ],
+  "$defs": {
+    "uuid": {"type": "string", "format": "uuid"},
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "base": {
+      "type": "object",
+      "required": ["schema_version", "review_type", "review_task_id", "reviewer_subject_id", "author_subject_ids", "run_id", "contract_version", "research_revision", "target_digest", "verdict", "signed_at"],
+      "properties": {
+        "schema_version": {"const": "rk.product.review.v1"}, "review_type": {"enum": ["ATOMIC", "COMPOSITION", "PAPER"]},
+        "review_task_id": {"$ref": "#/$defs/uuid"}, "reviewer_subject_id": {"type": "string", "minLength": 1},
+        "author_subject_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "run_id": {"$ref": "#/$defs/uuid"}, "contract_version": {"type": "integer", "minimum": 1},
+        "research_revision": {"type": "integer", "minimum": 0}, "target_digest": {"$ref": "#/$defs/hash"},
+        "verdict": {"enum": ["ACCEPT", "REJECT", "NEEDS_REVISION"]},
+        "signed_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "atomic": {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {"type": "object", "additionalProperties": false,
+         "required": ["schema_version", "review_type", "review_task_id", "reviewer_subject_id", "author_subject_ids", "run_id", "contract_version", "research_revision", "target_digest", "verdict", "signed_at", "claim_id", "statement_correct", "proof_valid", "dependency_scope_valid", "evidence_sufficient"],
+         "properties": {
+           "schema_version": {}, "review_type": {"const": "ATOMIC"}, "review_task_id": {}, "reviewer_subject_id": {}, "author_subject_ids": {}, "run_id": {}, "contract_version": {}, "research_revision": {}, "target_digest": {}, "verdict": {}, "signed_at": {},
+           "claim_id": {"$ref": "#/$defs/uuid"}, "statement_correct": {"type": "boolean"}, "proof_valid": {"type": "boolean"},
+           "dependency_scope_valid": {"type": "boolean"}, "evidence_sufficient": {"type": "boolean"}
+         }}
+      ]
+    },
+    "composition": {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {"type": "object", "additionalProperties": false,
+         "required": ["schema_version", "review_type", "review_task_id", "reviewer_subject_id", "author_subject_ids", "run_id", "contract_version", "research_revision", "target_digest", "verdict", "signed_at", "closure_witness_id", "proof_scope_valid", "coverage", "compatibility", "invariant", "progress", "boundary", "simultaneous_choice"],
+         "properties": {
+           "schema_version": {}, "review_type": {"const": "COMPOSITION"}, "review_task_id": {}, "reviewer_subject_id": {}, "author_subject_ids": {}, "run_id": {}, "contract_version": {}, "research_revision": {}, "target_digest": {}, "verdict": {}, "signed_at": {},
+           "closure_witness_id": {"$ref": "#/$defs/uuid"}, "proof_scope_valid": {"type": "boolean"},
+           "coverage": {"type": "boolean"}, "compatibility": {"type": "boolean"}, "invariant": {"type": "boolean"},
+           "progress": {"type": "boolean"}, "boundary": {"type": "boolean"}, "simultaneous_choice": {"type": "boolean"}
+         }}
+      ]
+    },
+    "paper": {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {"type": "object", "additionalProperties": false,
+         "required": ["schema_version", "review_type", "review_task_id", "reviewer_subject_id", "author_subject_ids", "run_id", "contract_version", "research_revision", "target_digest", "verdict", "signed_at", "candidate_tex_artifact_id", "terminal_root_digest", "dependency_closure_digest", "statement_alignment", "proof_completeness", "citation_accuracy", "novelty_boundary", "artifact_binding", "outcome_alignment"],
+         "properties": {
+           "schema_version": {}, "review_type": {"const": "PAPER"}, "review_task_id": {}, "reviewer_subject_id": {}, "author_subject_ids": {}, "run_id": {}, "contract_version": {}, "research_revision": {}, "target_digest": {}, "verdict": {}, "signed_at": {},
+           "candidate_tex_artifact_id": {"$ref": "#/$defs/uuid"}, "terminal_root_digest": {"$ref": "#/$defs/hash"},
+           "dependency_closure_digest": {"$ref": "#/$defs/hash"}, "statement_alignment": {"type": "boolean"},
+           "proof_completeness": {"type": "boolean"}, "citation_accuracy": {"type": "boolean"},
+           "novelty_boundary": {"type": "boolean"}, "artifact_binding": {"type": "boolean"}, "outcome_alignment": {"type": "boolean"}
+         }}
+      ]
+    }
+  }
+}

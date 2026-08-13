@@ -7,6 +7,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+node_modules/
 .coverage
 htmlcov/
 .rk/

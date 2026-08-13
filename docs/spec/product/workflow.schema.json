@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.ai4math/rk/product/workflow.schema.json",
+  "title": "RK non-authoritative research workflow objects v1",
+  "oneOf": [
+    {"$ref": "#/$defs/materialExtraction"}, {"$ref": "#/$defs/sourceSnapshot"},
+    {"$ref": "#/$defs/literatureGraph"}, {"$ref": "#/$defs/theoremApplicability"},
+    {"$ref": "#/$defs/problemPool"}, {"$ref": "#/$defs/problemCandidate"},
+    {"$ref": "#/$defs/bridgeOpportunity"}, {"$ref": "#/$defs/ablationPlan"},
+    {"$ref": "#/$defs/researchCaseLineage"}
+  ],
+  "$defs": {
+    "uuid": {"type": "string", "format": "uuid"}, "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "artifactRef": {
+      "type": "object", "additionalProperties": false, "required": ["artifact_id", "sha256", "byte_count", "media_type"],
+      "properties": {"artifact_id": {"$ref": "#/$defs/uuid"}, "sha256": {"$ref": "#/$defs/hash"}, "byte_count": {"type": "integer", "minimum": 0}, "media_type": {"type": "string", "minLength": 1}}
+    },
+    "binding": {
+      "type": "object",
+      "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "evidence_class", "authority_effect"],
+      "properties": {
+        "schema_version": {"type": "string", "pattern": "^rk\\.product\\.[a-z_]+\\.v1$"}, "object_id": {"$ref": "#/$defs/uuid"},
+        "created_by_subject_id": {"type": "string", "minLength": 1}, "scope": {"type": "object", "minProperties": 1},
+        "created_cursor": {"type": "integer", "minimum": 1}, "created_at": {"type": "string", "format": "date-time"},
+        "evidence_class": {"enum": ["REUSABLE_BASELINE", "ENGINEERING_REQUIRED", "EXTERNAL_DEPENDENCY", "RESEARCH_HYPOTHESIS"]},
+        "authority_effect": {"const": "NO_FACT_GRAPH_WRITE"}
+      }
+    },
+    "materialExtraction": {
+      "unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/binding"}, {"type": "object",
+        "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "evidence_class", "authority_effect", "source_artifact", "extracted_text_artifact", "layout_artifact", "formula_artifact", "parser_name", "parser_build", "anchors", "status"],
+        "properties": {"schema_version": {"const": "rk.product.material_extraction.v1"}, "object_id": {}, "created_by_subject_id": {}, "scope": {}, "created_cursor": {}, "created_at": {}, "evidence_class": {}, "authority_effect": {}, "source_artifact": {"$ref": "#/$defs/artifactRef"}, "extracted_text_artifact": {"$ref": "#/$defs/artifactRef"}, "layout_artifact": {"$ref": "#/$defs/artifactRef"}, "formula_artifact": {"$ref": "#/$defs/artifactRef"}, "parser_name": {"type": "string", "minLength": 1}, "parser_build": {"type": "string", "minLength": 1}, "anchors": {"type": "array", "items": {"type": "object", "minProperties": 1}}, "status": {"enum": ["EXTRACTED", "REVIEW_REQUIRED", "CONFIRMED", "FAILED"]}}}]},
+    "sourceSnapshot": {
+      "unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/binding"}, {"type": "object",
+        "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "connector", "endpoint", "request_digest", "response_artifact", "response_digest", "queried_at", "visible_service_version", "coverage", "mode", "status"],
+        "properties": {"schema_version": {"const": "rk.product.source_snapshot.v1"}, "object_id": {}, "created_by_subject_id": {}, "scope": {}, "created_cursor": {}, "created_at": {}, "connector": {"enum": ["MATLAS", "OPENALEX", "CROSSREF", "ARXIV"]}, "endpoint": {"type": "string", "format": "uri"}, "request_digest": {"$ref": "#/$defs/hash"}, "response_artifact": {"$ref": "#/$defs/artifactRef"}, "response_digest": {"$ref": "#/$defs/hash"}, "queried_at": {"type": "string", "format": "date-time"}, "visible_service_version": {"type": "string", "minLength": 1}, "coverage": {"type": "object", "minProperties": 1}, "mode": {"enum": ["LIVE_QUERY", "REPLAYED_SNAPSHOT"]}, "status": {"enum": ["SUCCEEDED", "NO_HIT", "FAILED", "SCHEMA_DRIFT"]}}}]},
+    "literatureGraph": {
+      "unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/binding"}, {"type": "object",
+        "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "nodes", "edges"],
+        "properties": {
+          "schema_version": {"const": "rk.product.literature_graph.v1"},
+          "object_id": {}, "created_by_subject_id": {}, "scope": {}, "created_cursor": {}, "created_at": {},
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["node_id", "kind", "label"],
+              "properties": {
+                "node_id": {"type": "string"},
+                "kind": {"enum": ["AUTHOR", "PAPER", "THEOREM", "CITATION"]},
+                "label": {"type": "string"}
+              }
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["from", "to", "kind", "source_connector", "source_snapshot_id"],
+              "properties": {
+                "from": {"type": "string"}, "to": {"type": "string"}, "kind": {"type": "string"},
+                "source_connector": {"enum": ["MATLAS", "OPENALEX", "CROSSREF", "ARXIV", "RK_COMPOSED"]},
+                "source_snapshot_id": {"$ref": "#/$defs/uuid"}
+              }
+            }
+          }
+        }}]},
+    "theoremApplicability": {
+      "unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/binding"}, {"type": "object",
+        "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "theorem_node_id", "target_claim_id", "source_snapshot_id", "quantifiers_checked", "assumptions_checked", "symbols_checked", "verdict"],
+        "properties": {"schema_version": {"const": "rk.product.theorem_applicability.v1"}, "object_id": {}, "created_by_subject_id": {}, "scope": {}, "created_cursor": {}, "created_at": {}, "theorem_node_id": {"type": "string"}, "target_claim_id": {"$ref": "#/$defs/uuid"}, "source_snapshot_id": {"$ref": "#/$defs/uuid"}, "quantifiers_checked": {"type": "boolean"}, "assumptions_checked": {"type": "boolean"}, "symbols_checked": {"type": "boolean"}, "verdict": {"enum": ["APPLICABLE", "NOT_APPLICABLE", "UNCERTAIN"]}}}]},
+    "problemPool": {
+      "unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/binding"}, {"type": "object",
+        "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "cutoff_date", "subjects", "version_rule", "inclusion_rule", "exclusion_rule", "source_snapshot_ids", "candidate_ids", "denominator"],
+        "properties": {"schema_version": {"const": "rk.product.problem_pool.v1"}, "object_id": {}, "created_by_subject_id": {}, "scope": {}, "created_cursor": {}, "created_at": {}, "cutoff_date": {"type": "string", "format": "date"}, "subjects": {"type": "array", "minItems": 1, "items": {"type": "string"}}, "version_rule": {"type": "object", "minProperties": 1}, "inclusion_rule": {"type": "object", "minProperties": 1}, "exclusion_rule": {"type": "object", "minProperties": 1}, "source_snapshot_ids": {"type": "array", "items": {"$ref": "#/$defs/uuid"}}, "candidate_ids": {"type": "array", "items": {"$ref": "#/$defs/uuid"}}, "denominator": {"type": "integer", "minimum": 0}}}]},
+    "problemCandidate": {
+      "unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/binding"}, {"type": "object",
+        "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "pool_id", "source_version", "statement_artifact", "semantic_status", "selection_status"],
+        "properties": {"schema_version": {"const": "rk.product.problem_candidate.v1"}, "object_id": {}, "created_by_subject_id": {}, "scope": {}, "created_cursor": {}, "created_at": {}, "pool_id": {"$ref": "#/$defs/uuid"}, "source_version": {"type": "string", "minLength": 1}, "statement_artifact": {"$ref": "#/$defs/artifactRef"}, "semantic_status": {"enum": ["UNREVIEWED", "HUMAN_CHECKED", "AMBIGUOUS", "REJECTED"]}, "selection_status": {"enum": ["INCLUDED", "EXCLUDED", "BLOCKED"]}}}]},
+    "bridgeOpportunity": {
+      "unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/binding"}, {"type": "object",
+        "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "source_problem", "target_domain", "domain_distance", "source_maturity", "target_absence", "native_verifier_advantage", "certificate_compression", "mapping_loss", "backtranslation_cost", "death_test", "selection_reason", "status"],
+        "properties": {"schema_version": {"const": "rk.product.bridge_opportunity.v1"}, "object_id": {}, "created_by_subject_id": {}, "scope": {}, "created_cursor": {}, "created_at": {}, "source_problem": {"type": "object", "minProperties": 1}, "target_domain": {"type": "string", "minLength": 1}, "domain_distance": {"type": "integer", "minimum": 0}, "source_maturity": {"type": "integer", "minimum": 0}, "target_absence": {"type": "integer", "minimum": 0}, "native_verifier_advantage": {"type": "integer", "minimum": 0}, "certificate_compression": {"type": "integer", "minimum": 0}, "mapping_loss": {"type": "integer", "minimum": 0}, "backtranslation_cost": {"type": "integer", "minimum": 0}, "death_test": {"type": "object", "minProperties": 1}, "selection_reason": {"type": "string", "minLength": 1}, "status": {"enum": ["CANDIDATE", "DEATH_TEST_PASSED", "REJECTED", "PROMOTED_TO_ROUTE_PROPOSAL"]}}}]},
+    "ablationPlan": {
+      "unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/binding"}, {"type": "object",
+        "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "problem_pool_id", "model_profile", "tool_profile", "candidate_count", "budget", "final_verifier", "groups"],
+        "properties": {"schema_version": {"const": "rk.product.ablation_plan.v1"}, "object_id": {}, "created_by_subject_id": {}, "scope": {}, "created_cursor": {}, "created_at": {}, "problem_pool_id": {"$ref": "#/$defs/uuid"}, "model_profile": {"type": "object", "minProperties": 1}, "tool_profile": {"type": "object", "minProperties": 1}, "candidate_count": {"type": "integer", "minimum": 1}, "budget": {"type": "object", "minProperties": 1}, "final_verifier": {"type": "object", "minProperties": 1}, "groups": {"type": "array", "uniqueItems": true, "minItems": 5, "maxItems": 5, "items": {"enum": ["direct", "near", "far-random", "far-retrieval", "full-RK"]}}}}]},
+    "researchCaseLineage": {
+      "unevaluatedProperties": false, "allOf": [{"$ref": "#/$defs/binding"}, {"type": "object",
+        "required": ["schema_version", "object_id", "created_by_subject_id", "scope", "created_cursor", "created_at", "stable_project_id", "mode", "source_artifacts", "input_manifest_artifact", "candidate_claim_ids", "verifier_receipt_ids"],
+        "properties": {"schema_version": {"const": "rk.product.research_case_lineage.v1"}, "object_id": {}, "created_by_subject_id": {}, "scope": {}, "created_cursor": {}, "created_at": {}, "stable_project_id": {"enum": ["ZHAO_C61", "N2_AJT5"]}, "mode": {"enum": ["CLEAN_ROOM_REDISCOVERY", "IMPORTED_CERTIFICATE_VERIFICATION", "HISTORICAL_CANDIDATE_MIGRATION"]}, "source_artifacts": {"type": "array", "items": {"$ref": "#/$defs/artifactRef"}}, "input_manifest_artifact": {"$ref": "#/$defs/artifactRef"}, "candidate_claim_ids": {"type": "array", "items": {"$ref": "#/$defs/uuid"}}, "verifier_receipt_ids": {"type": "array", "items": {"$ref": "#/$defs/uuid"}}}}]}
+  }
+}

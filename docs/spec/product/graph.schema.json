@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.ai4math/rk/product/graph.schema.json",
+  "title": "RK GraphSlice v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "at_revision", "contract_version", "mode", "nodes", "edges", "groups", "cross_route_boundary", "total_matches", "returned_nodes", "returned_edges", "truncated"],
+  "properties": {
+    "schema_version": {"const": "rk.product.graph_slice.v1"},
+    "run_id": {"type": "string", "format": "uuid"}, "at_revision": {"type": "integer", "minimum": 0},
+    "contract_version": {"type": "integer", "minimum": 1}, "mode": {"enum": ["VERIFIED", "RESEARCH_HISTORY"]},
+    "nodes": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/node"}},
+    "edges": {"type": "array", "items": {"$ref": "#/$defs/edge"}},
+    "groups": {"type": "array", "items": {"$ref": "#/$defs/group"}},
+    "cross_route_boundary": {"type": "array", "items": {"$ref": "#/$defs/boundary"}},
+    "total_matches": {"type": "integer", "minimum": 0}, "returned_nodes": {"type": "integer", "minimum": 0, "maximum": 200},
+    "returned_edges": {"type": "integer", "minimum": 0}, "continuation_cursor": {"type": "string", "minLength": 1},
+    "truncated": {"type": "boolean"}
+  },
+  "$defs": {
+    "uuid": {"type": "string", "format": "uuid"},
+    "node": {
+      "type": "object", "additionalProperties": false,
+      "required": ["claim_id", "stable_label", "statement", "lifecycle", "dependable", "claim_type", "authority_axes", "contract_version", "verification_method"],
+      "properties": {
+        "claim_id": {"$ref": "#/$defs/uuid"}, "stable_label": {"type": "string", "minLength": 1},
+        "statement": {"type": "string", "minLength": 1}, "lifecycle": {"type": "string", "minLength": 1},
+        "dependable": {"type": "boolean"}, "claim_type": {"type": "string", "minLength": 1},
+        "authority_axes": {"type": "object", "minProperties": 1}, "source_worker_run_id": {"$ref": "#/$defs/uuid"},
+        "route_id": {"$ref": "#/$defs/uuid"}, "contract_version": {"type": "integer", "minimum": 1},
+        "verification_method": {"type": "string", "minLength": 1}
+      }
+    },
+    "edge": {
+      "type": "object", "additionalProperties": false,
+      "required": ["edge_id", "from_claim_id", "to_claim_id", "logical_direction", "obligation_status"],
+      "properties": {
+        "edge_id": {"$ref": "#/$defs/uuid"}, "from_claim_id": {"$ref": "#/$defs/uuid"},
+        "to_claim_id": {"$ref": "#/$defs/uuid"}, "logical_direction": {"enum": ["FORWARD", "REVERSE", "BIDIRECTIONAL"]},
+        "bridge_spec_id": {"$ref": "#/$defs/uuid"}, "obligation_status": {"type": "string", "minLength": 1}
+      }
+    },
+    "group": {
+      "type": "object", "additionalProperties": false,
+      "required": ["group_id", "group_kind", "membership_rule", "total", "status_counts"],
+      "properties": {
+        "group_id": {"type": "string", "minLength": 1}, "group_kind": {"enum": ["ROUTE", "MILESTONE", "TOPOLOGY_BAND", "BOUNDARY"]},
+        "parent_group_id": {"type": "string", "minLength": 1}, "membership_rule": {"type": "object", "minProperties": 1},
+        "total": {"type": "integer", "minimum": 0}, "status_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}}
+      }
+    },
+    "boundary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["claim_id", "source_route_id", "direction", "dependable", "folded_count", "path_to_target"],
+      "properties": {
+        "claim_id": {"$ref": "#/$defs/uuid"}, "source_route_id": {"$ref": "#/$defs/uuid"},
+        "direction": {"enum": ["PREDECESSOR", "SUCCESSOR"]}, "dependable": {"type": "boolean"},
+        "folded_count": {"type": "integer", "minimum": 1},
+        "path_to_target": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/uuid"}}
+      }
+    }
+  }
+}
