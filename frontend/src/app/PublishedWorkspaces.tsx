@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { AdminCenter } from "../features/admin";
 import { ClaimWorkbench } from "../features/claim";
 import { ComputeWorkspace } from "../features/compute";
 import { GraphWorkspace } from "../features/graph";
@@ -8,7 +9,7 @@ import { PublicationWorkspace } from "../features/publication";
 import { ReviewWorkbench } from "../features/review";
 import { RevocationWorkbench } from "../features/revocation";
 import { WorkWorkspace } from "../features/work";
-import type { ProductSession, ResearchSummary } from "./api";
+import { productApi, type ProductSession, type ResearchSummary } from "./api";
 
 interface Props {
   activeNav: string;
@@ -37,12 +38,31 @@ function reviewSession(session: ProductSession | null): SessionView | undefined 
 
 export function PublishedWorkspaces({ activeNav, research, session }: Props) {
   const [factsView, setFactsView] = useState<"graph" | "claim" | "revocation">("graph");
+  const [deploymentId, setDeploymentId] = useState<string>();
+  useEffect(() => {
+    if (activeNav !== "admin") return;
+    let active = true;
+    productApi.meta()
+      .then((meta) => {
+        if (active) setDeploymentId(meta.deployment_id);
+      })
+      .catch(() => {
+        if (active) setDeploymentId(undefined);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeNav]);
   if (!["routes", "facts", "tools", "review", "dossier", "admin"].includes(activeNav)) return null;
 
   if (activeNav === "review") return <div className="feature-mount feature-stack">
     <IdentitySwitcher />
     <ReviewWorkbench session={reviewSession(session)} />
   </div>;
+
+  if (activeNav === "admin") return deploymentId
+    ? <div className="feature-mount"><AdminCenter deploymentId={deploymentId} /></div>
+    : unavailable("正在读取真实 deployment identity；尚未构造管理命令。");
 
   if (!research) return unavailable("选择真实研究后才能读取此页的服务端投影。");
 
@@ -78,5 +98,5 @@ export function PublishedWorkspaces({ activeNav, research, session }: Props) {
     <PublicationWorkspace runId={run.runId} researchRevision={run.revision} contractVersion={run.contractVersion} sessionRole={session?.role ?? "NO_SESSION"} subjectId={session?.principal_subject_id ?? ""} />
   </div>;
 
-  return unavailable("管理聚合投影尚未发布；浏览器不持有管理员 capability。");
+  return null;
 }
