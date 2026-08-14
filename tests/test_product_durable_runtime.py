@@ -268,6 +268,8 @@ def test_production_daemon_login_create_list_and_overview_journey(tmp_path: Path
             base, "POST", "/v1/research", command, cookie=cookie
         )
         assert create_status == 200, created
+        create_decision = created["decision"]
+        assert isinstance(create_decision, dict) and create_decision["accepted"] is True
         list_status, listed, _ = _http(
             base,
             "GET",

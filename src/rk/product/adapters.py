@@ -16,6 +16,7 @@ from rk.product.api import (
     ProductSession,
     RunScope,
 )
+from rk.product.command_service import decision_value
 
 
 class CommandProduct(Protocol):
@@ -84,6 +85,8 @@ def receipt_to_json(receipt: ProductReceipt) -> dict[str, JsonValue]:
         result["job_id"] = receipt.job_id
     if receipt.decided_at is not None:
         result["decided_at"] = receipt.decided_at
+    if receipt.decision is not None:
+        result["decision"] = cast(JsonValue, decision_value(receipt.decision))
     if receipt.unknown_external_call_ref is not None:
         result["unknown_external_call_ref"] = receipt.unknown_external_call_ref
     return result

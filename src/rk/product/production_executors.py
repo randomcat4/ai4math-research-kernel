@@ -20,6 +20,7 @@ from rk.product.durable_executors import (
     domain_success,
     kernel_execution,
     rejected_execution,
+    unknown_external_outcome,
 )
 from rk.product.durable_runtime import DurableExecutor, TypedExecution
 from rk.product.jobs import DurableJob
@@ -502,6 +503,56 @@ class _Rejected:
     def __call__(self, job: DurableJob, request: Mapping[str, Any]) -> TypedExecution:
         del job
         return rejected_execution(request=request, code=self.code)
+
+
+@dataclass(frozen=True, slots=True)
+class ProductionUnknownUpstreamReconciler:
+    """Execute the four formal UNKNOWN dispositions without inventing an outcome."""
+
+    def __call__(self, job: DurableJob, request: Mapping[str, Any]) -> TypedExecution:
+        del job
+        payload = _payload(request)
+        strategy = _text(payload, "resolution_strategy")
+        receipt_id = _text(payload, "outcome_unknown_receipt_id")
+        external_ref = _text(payload, "unknown_external_call_ref")
+        evidence = _strings(payload, "evidence_artifact_ids")
+        record = frozen_json(
+            {
+                "outcome_unknown_receipt_id": receipt_id,
+                "unknown_external_call_ref": external_ref,
+                "resolution_strategy": strategy,
+                "evidence_artifact_ids": list(evidence),
+                "authority_effect": "NO_IMPLICIT_MATH_DECISION",
+            }
+        )
+        if strategy == "MARK_ABANDONED":
+            return domain_success(
+                request=request,
+                affected_entity_ids=(receipt_id,),
+                result_refs=(record,),
+            )
+        if strategy == "QUERY_REMOTE":
+            return unknown_external_outcome(
+                external_call_ref=external_ref,
+                result_refs=(record,),
+            )
+        if strategy == "ACCEPT_RECEIPT":
+            return rejected_execution(
+                request=request,
+                code="UPSTREAM_RECEIPT_VERIFIER_NOT_DEPLOYED",
+                result_refs=(record,),
+            )
+        if strategy == "RETRY":
+            return rejected_execution(
+                request=request,
+                code="UPSTREAM_RETRY_ADAPTER_NOT_DEPLOYED",
+                result_refs=(record,),
+            )
+        return rejected_execution(
+            request=request,
+            code="UNKNOWN_RESOLUTION_STRATEGY_INVALID",
+            result_refs=(record,),
+        )
 
 
 @dataclass(frozen=True, slots=True)

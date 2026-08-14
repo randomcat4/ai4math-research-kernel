@@ -91,6 +91,7 @@ from rk.product.operations import OperationStore
 from rk.product.problem_pool import ProblemPoolStore
 from rk.product.production_executors import (
     ProductionExecutorDependencies,
+    ProductionUnknownUpstreamReconciler,
     build_production_executor_ports,
 )
 from rk.product.publication import PublicationArtifactService
@@ -730,6 +731,7 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
                 configuration_files={},
                 finalized_snapshot=_finalized_snapshot(kernel),
                 abstract_resolver=_publication_abstract(db_path),
+                unknown_upstream_resolver=ProductionUnknownUpstreamReconciler(),
             )
         )
     )
