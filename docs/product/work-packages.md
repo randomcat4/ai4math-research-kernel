@@ -610,11 +610,15 @@ verifier→拒绝修复→回图/检索复用→组合义务/ClosureWitness read
 | B05b | `BACKEND_ONLY` | 三类签名审查、精确binding、review routes | inbox/claim/Signed ArtifactRef submit与逐项否决已验收 |
 | B06a | `BACKEND_ONLY` | `graph_index.py`；`schema_fragments/B06a/` | 可重建 FTS/邻接索引、cursor/revision watermark、追赶与 PROJECTION_LAG 已验收；不构成第二事实真值 |
 | B06b | `BACKEND_ONLY` | `graph_query.py`；真实 10k/30k/深60工程基准 | 双图硬分区、search/slice/closures、stale cursor与跨路线承重前驱已验收 |
+| B08a | `BACKEND_ONLY` | Matlas/OpenAlex/Crossref/arXiv connectors、SourceSnapshot与真实CAS响应 | 六类当前端点调用、exact版本上下文/PDF、断网重放及Apache-2.0归属已验收 |
 | B09a | `BACKEND_ONLY` | `work_activity.py`、orchestrator activity adapter | WorkerRun/attempt完整历史、重启恢复、单活动cursor与公开白名单已验收 |
 | B09b | `BACKEND_ONLY` | `route_plan.py`、route-control adapter | 三路线正式控制、STOP派生闸门、CAS/幂等与hint负链已验收 |
 | B10 | `BACKEND_ONLY` | `claims.py`、validation gateway、S00 handlers | 原子Claim、拒绝修复、必要子图及仅ResearchKernel晋级已验收 |
+| B11a | `BACKEND_ONLY` | 单一invalidation ledger/watermark | 强杀重启、projection lag、七类绑定追平与sibling保留已验收 |
+| B11b | `BACKEND_ONLY` | VERIFIED撤销预览与kernel事务重算 | 新下游/target/合同stale、完整级联与replacement恢复已验收 |
 | B12a | `BACKEND_ONLY` | ToolCatalog/ToolRun、`schema_fragments/B12a/` | SUCCEEDED/VALIDATION分栏、B03绑定、取消/重跑/比较与无图写已验收 |
 | B12b | `BACKEND_ONLY` | `managed_python.py`、固定环境profile | 真实受管进程、资源/超时/取消、只读输入/正式输出与SOFT权限已验收 |
+| B12c | `BACKEND_ONLY` | 统一tool/model adapter接缝与状态证据 | Z3/SymPy/枚举复测；未匹配profile/probe与外部阻塞保持不着绿 |
 | 其余 D/P/B/F/I/R | `NOT_STARTED` | 无新产品完成证据 | 依本文拓扑推进 |
 
 `SPEC_ONLY` 只表示冻结契约或接缝已有可执行校验，不表示 ResearchProduct、后端、前端或产品 E2E 已完成。
