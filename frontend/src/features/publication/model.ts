@@ -1,0 +1,3 @@
+export interface ExactArtifact{artifact_id:string;sha256:string;byte_count:number;media_type:string}
+export interface PaperReviewTask{reviewTaskId:string;reviewType:"PAPER";assigneeSubjectId:string;taskBindingDigest:string;candidateTexDigest:string;finalizedRevision:number;terminalRootId:string;closureDigest:string;state:string}
+export interface PublicationView{state:string;finalizedRevision:number;terminalRootId:string;closureDigest:string;candidateTex?:ExactArtifact;generationCommandDigest?:string;paperReview?:{paperReviewId:string;reviewTaskId:string;candidateTexDigest:string;verdict:string;signedArtifact:ExactArtifact};pdf?:ExactArtifact;compileLogId?:string;compileState?:string;abstractDigest?:string;reviewedAbstractDigest?:string}

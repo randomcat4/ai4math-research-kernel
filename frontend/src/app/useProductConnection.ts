@@ -19,6 +19,7 @@ export type ConnectionModel = {
   login: (identityId: string, secret: string) => Promise<void>;
   logout: () => Promise<void>;
   retry: () => Promise<void>;
+  refreshResearch: () => Promise<void>;
 };
 
 function readableError(error: unknown): string {
@@ -77,28 +78,25 @@ export function useProductConnection(): ConnectionModel {
     void load();
   }, [load]);
 
-  useEffect(() => {
+  const refreshResearch = useCallback(async () => {
     if (!session) {
       setResearch([]);
       return;
     }
-    let active = true;
     setResearchLoading(true);
-    void productApi
-      .research()
-      .then((items) => {
-        if (active) setResearch(items);
-      })
-      .catch((reason: unknown) => {
-        if (active) setError(readableError(reason));
-      })
-      .finally(() => {
-        if (active) setResearchLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+    try {
+      setResearch(await productApi.research());
+    } catch (reason) {
+      setError(readableError(reason));
+      throw reason;
+    } finally {
+      setResearchLoading(false);
+    }
   }, [session]);
+
+  useEffect(() => {
+    void refreshResearch().catch(() => undefined);
+  }, [refreshResearch]);
 
   const login = useCallback(async (identityId: string, secret: string) => {
     setError(null);
@@ -130,5 +128,6 @@ export function useProductConnection(): ConnectionModel {
     login,
     logout,
     retry: load,
+    refreshResearch,
   };
 }

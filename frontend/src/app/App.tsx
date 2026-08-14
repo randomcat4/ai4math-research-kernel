@@ -4,6 +4,8 @@ import { Icon } from "../design/Icon";
 import { MonospaceValue, StatusMark } from "../design/StatusMark";
 import { LiteratureWorkspace } from "../features/literature/LiteratureWorkspace";
 import { ResearchWorkspace } from "../features/research/ResearchWorkspace";
+import { RuntimeStatusBar } from "../features/runtime";
+import { PublishedWorkspaces } from "./PublishedWorkspaces";
 import type { ResearchSummary } from "./api";
 import { useProductConnection } from "./useProductConnection";
 
@@ -296,6 +298,12 @@ export function App() {
           </div>
         ) : null}
 
+        <RuntimeStatusBar
+          runId={selectedResearch?.run_id}
+          snapshotCursor={selectedResearch?.last_cursor ?? 0}
+          onReloadProjections={connection.refreshResearch}
+        />
+
         <section className="round-header">
           <div>
             <div className="section-kicker">CURRENT EVIDENCE ROUND</div>
@@ -369,12 +377,13 @@ export function App() {
           )
         ) : null}
 
+        <PublishedWorkspaces activeNav={activeNav} research={selectedResearch ?? undefined} session={connection.session} />
+
         <div
           className={
-            activeNav === "literature" ||
-            (activeNav === "research" && researchView === "setup")
-              ? "workspace-grid feature-hidden"
-              : "workspace-grid"
+            activeNav === "research" && researchView === "evidence"
+              ? "workspace-grid"
+              : "workspace-grid feature-hidden"
           }
         >
           <section className="evidence-workspace">
@@ -456,12 +465,11 @@ export function App() {
 
         <section
           className={
-            activeNav === "literature" ||
-            (activeNav === "research" && researchView === "setup")
-              ? "work-drawer feature-hidden"
-              : drawerOpen
+            activeNav === "research" && researchView === "evidence"
+              ? drawerOpen
                 ? "work-drawer open"
                 : "work-drawer"
+              : "work-drawer feature-hidden"
           }
         >
           <button

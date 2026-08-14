@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@viz-js/viz": "3.28.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

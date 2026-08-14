@@ -1,0 +1,2 @@
+import type {ExactArtifact} from "../problem-pool/model.js";export interface LineageCase{lineageId:string;projectId:"ZHAO_C61"|"N2_AJT5"|"TOTAL_22"|string;runId:string;mode:"CLEAN_ROOM_REDISCOVERY"|"CERTIFICATE_IMPORT"|"HISTORICAL_MIGRATION";manifestId:string;manifestDigest:string;state:string;candidateArtifacts:ExactArtifact[];conclusionState:"CANDIDATE"|"PENDING_VERIFICATION"|"VERIFIED";noRediscovery?:boolean;reportId?:string}
+export interface ConfirmationItem{id:string;kind:"EXPERT"|"AUTHOR";candidateId:string;state:"PENDING"|"CONFIRMED"|"REJECTED";question:string}

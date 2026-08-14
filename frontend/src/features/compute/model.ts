@@ -1,0 +1,4 @@
+export type Engine="PYTHON"|"LEAN"|"Z3"|"CAS"|"ENUMERATION";export type CapabilityState="AVAILABLE"|"UNAVAILABLE"|"SMOKE_ONLY"|"EXTERNAL_BLOCKED";
+export interface ArtifactRef{artifact_id:string;sha256:string;byte_count:number;media_type:string}
+export interface Capability{engine:Engine;state:CapabilityState;version:string;placement:string;limits:Record<string,number>;detail:string}
+export interface RunView{computeTaskId:string;jobId:string;engine:Engine;state:string;placement:string;parameters:Record<string,unknown>;resources:Record<string,number>;logId?:string;artifacts:Array<ArtifactRef&{name:string;view:"TABLE"|"CHART"|"JSON"|"BINARY"}>;receiptId?:string;externalCallRef?:string;validationState:"NOT_REVIEWED"|"VALIDATION_ACCEPTED"|"VALIDATION_REJECTED";authorityState:"NO_FACT_GRAPH_WRITE"|"PROMOTED_BY_KERNEL"}
