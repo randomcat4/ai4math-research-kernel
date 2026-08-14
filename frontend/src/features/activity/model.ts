@@ -1,0 +1,1 @@
+export interface PublicActivity{cursor:number;type:string;occurredAt:string;source:string;entityLabel:string;summary:string}

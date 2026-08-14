@@ -1,0 +1,3 @@
+export type AblationGroup="FULL"|"NO_LITERATURE"|"NO_TOOLS"|"NO_BRIDGE"|"SINGLE_WORKER";
+export interface AblationRow{group:AblationGroup;assigned:number;started:number;completed:number;verified:number;failed:number;blocked:number;denominator:number;cost:number;quality:number|null}
+export interface AblationView{planId:string;candidateIds:string[];groups:AblationRow[];modelProfile:string;toolProfile:string;verifierProfile:string;budget:Record<string,number>}
