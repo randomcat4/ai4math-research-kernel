@@ -34,6 +34,11 @@ def test_project_baseline_has_stable_identity_and_owned_objects() -> None:
         (8, "B05a/identity"),
         (9, "B05b/reviews"),
         (10, "B06a/graph_index"),
+        (11, "B09a/work_activity"),
+        (12, "B09b/route_plan"),
+        (13, "B10/claims"),
+        (14, "B12a/tool_runs"),
+        (15, "B12b/environments"),
     ]
     assert {(item.kind, item.name) for item in plan[0].fragment.objects} == {
         ("TABLE", "product_activity_events"),
@@ -132,7 +137,7 @@ def test_real_sqlite_empty_database_assembly_is_atomic_and_idempotent(tmp_path: 
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute("SELECT COUNT(*) FROM product_schema_fragments").fetchone() == (
-            10,
+            15,
         )
 
         connection.execute(
