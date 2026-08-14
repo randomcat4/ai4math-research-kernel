@@ -440,10 +440,16 @@ def test_frozen_problem_pool_complete_denominator_and_formal_batch_restart(
             actor_kind="USER",
             now=NOW,
         )
+    semantic_ref = publisher.publish(
+        data=b'{"audit":"human-reviewed"}',
+        logical_name="semantic-audit.json",
+        media_type="application/json",
+    )
     pools.freeze(
         "pool-2025-math",
         frozen_by="expert-auditor",
         actor_kind="USER",
+        semantic_audit_artifact=semantic_ref,
         now=NOW,
     )
     scored = tuple(
@@ -481,6 +487,19 @@ def test_frozen_problem_pool_complete_denominator_and_formal_batch_restart(
         logical_name="contract-template.json",
         media_type="application/json",
     )
+    pools.bind_artifact(
+        "pool-2025-math",
+        binding_kind="CONTRACT_TEMPLATE",
+        artifact=template_ref,
+        bound_by="researcher-1",
+        now=NOW,
+    )
+    bindings = pools.artifact_bindings("pool-2025-math")
+    assert {item.binding_kind for item in bindings} == {
+        "SEMANTIC_AUDIT",
+        "CONTRACT_TEMPLATE",
+    }
+    assert all(item.authority_effect == "NO_FACT" for item in bindings)
     session = ProductSession("session-1", "researcher-1", ("cap-create",))
     candidate_ids = tuple(candidate.problem_candidate_id for candidate in scored)
     receipt = pipeline.dispatch_batch(

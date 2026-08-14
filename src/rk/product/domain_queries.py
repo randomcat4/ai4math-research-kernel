@@ -299,8 +299,19 @@ class DomainQueries:
         if pool.deployment_id != deployment_id:
             raise DomainQueryScopeMismatch(entity_id)
         data = _value(pool)
+        bindings = {
+            binding.binding_kind: binding
+            for binding in self._problem_pools.artifact_bindings(entity_id)
+        }
+        if "SEMANTIC_AUDIT" in bindings:
+            data["semantic_audit_artifact"] = _value(bindings["SEMANTIC_AUDIT"].artifact)
+        if "CONTRACT_TEMPLATE" in bindings:
+            data["contract_template_artifact"] = _value(
+                bindings["CONTRACT_TEMPLATE"].artifact
+            )
         data["denominator"] = _value(self._problem_pools.denominator(entity_id))
         data["candidates"] = [_value(item) for item in self._problem_pools.candidates(entity_id)]
+        data["authority_effect"] = "NO_FACT"
         return self._deployment_result(spec.query_type, entity_id, deployment_id, data)
 
     def _problem_candidate(self, spec: QuerySpec) -> QueryResult:

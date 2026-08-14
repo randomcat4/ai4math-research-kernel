@@ -8,6 +8,9 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Literal, cast
+
+from rk.product.artifact_read import ExactArtifactRef
 
 
 class ProblemPoolError(RuntimeError):
@@ -84,6 +87,20 @@ class PoolDenominator:
     @property
     def total(self) -> int:
         return self.included + self.excluded + self.failed + self.blocked
+
+
+ArtifactBindingKind = Literal["SEMANTIC_AUDIT", "CONTRACT_TEMPLATE"]
+
+
+@dataclass(frozen=True, slots=True)
+class ProblemPoolArtifactBinding:
+    problem_pool_id: str
+    binding_kind: ArtifactBindingKind
+    artifact: ExactArtifactRef
+    bound_by: str
+    binding_digest: str
+    authority_effect: str
+    created_at: str
 
 
 class ProblemPoolStore:
@@ -288,12 +305,21 @@ class ProblemPoolStore:
         *,
         frozen_by: str,
         actor_kind: str,
+        semantic_audit_artifact: ExactArtifactRef,
         now: str,
     ) -> ProblemPool:
         if actor_kind != "USER" or not frozen_by:
             raise ProblemPoolError("only a human can freeze the audited problem pool")
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            self._bind_artifact(
+                connection,
+                problem_pool_id=problem_pool_id,
+                binding_kind="SEMANTIC_AUDIT",
+                artifact=semantic_audit_artifact,
+                bound_by=frozen_by,
+                now=now,
+            )
             pending = connection.execute(
                 "SELECT COUNT(*) FROM product_problem_candidates WHERE problem_pool_id=? "
                 "AND audit_status='HUMAN_AUDIT_PENDING'",
@@ -390,6 +416,117 @@ class ProblemPoolStore:
             counts["FAILED"],
             counts["BLOCKED"],
             tuple(reasons),
+        )
+
+    def bind_artifact(
+        self,
+        problem_pool_id: str,
+        *,
+        binding_kind: ArtifactBindingKind,
+        artifact: ExactArtifactRef,
+        bound_by: str,
+        now: str,
+    ) -> ProblemPoolArtifactBinding:
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            binding = self._bind_artifact(
+                connection,
+                problem_pool_id=problem_pool_id,
+                binding_kind=binding_kind,
+                artifact=artifact,
+                bound_by=bound_by,
+                now=now,
+            )
+            connection.commit()
+        return binding
+
+    def artifact_bindings(
+        self, problem_pool_id: str
+    ) -> tuple[ProblemPoolArtifactBinding, ...]:
+        self.get(problem_pool_id)
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT problem_pool_id,binding_kind,artifact_id,artifact_sha256,"
+                "artifact_byte_count,artifact_media_type,artifact_at_revision,bound_by,"
+                "binding_digest,authority_effect,created_at FROM "
+                "product_problem_pool_artifact_bindings WHERE problem_pool_id=? "
+                "ORDER BY binding_kind",
+                (problem_pool_id,),
+            ).fetchall()
+        return tuple(_artifact_binding(row) for row in rows)
+
+    @staticmethod
+    def _bind_artifact(
+        connection: sqlite3.Connection,
+        *,
+        problem_pool_id: str,
+        binding_kind: ArtifactBindingKind,
+        artifact: ExactArtifactRef,
+        bound_by: str,
+        now: str,
+    ) -> ProblemPoolArtifactBinding:
+        if (
+            binding_kind not in {"SEMANTIC_AUDIT", "CONTRACT_TEMPLATE"}
+            or not artifact.artifact_id
+            or len(artifact.sha256) != 64
+            or any(character not in "0123456789abcdef" for character in artifact.sha256)
+            or isinstance(artifact.byte_count, bool)
+            or artifact.byte_count < 0
+            or not artifact.media_type
+            or isinstance(artifact.at_revision, bool)
+            or artifact.at_revision < 0
+            or not bound_by
+        ):
+            raise ValueError("problem pool ArtifactRef is invalid")
+        identity = {
+            "problem_pool_id": problem_pool_id,
+            "binding_kind": binding_kind,
+            "artifact": {
+                "artifact_id": artifact.artifact_id,
+                "sha256": artifact.sha256,
+                "byte_count": artifact.byte_count,
+                "media_type": artifact.media_type,
+                "at_revision": artifact.at_revision,
+            },
+            "bound_by": bound_by,
+            "authority_effect": "NO_FACT",
+        }
+        digest = hashlib.sha256(_json(identity).encode()).hexdigest()
+        values = (
+            artifact.artifact_id,
+            artifact.sha256,
+            artifact.byte_count,
+            artifact.media_type,
+            artifact.at_revision,
+            bound_by,
+            digest,
+            "NO_FACT",
+        )
+        row = connection.execute(
+            "SELECT artifact_id,artifact_sha256,artifact_byte_count,artifact_media_type,"
+            "artifact_at_revision,bound_by,binding_digest,authority_effect,created_at FROM "
+            "product_problem_pool_artifact_bindings WHERE problem_pool_id=? AND binding_kind=?",
+            (problem_pool_id, binding_kind),
+        ).fetchone()
+        if row is None:
+            connection.execute(
+                "INSERT INTO product_problem_pool_artifact_bindings("
+                "problem_pool_id,binding_kind,artifact_id,artifact_sha256,"
+                "artifact_byte_count,artifact_media_type,artifact_at_revision,bound_by,"
+                "binding_digest,authority_effect,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (problem_pool_id, binding_kind, *values, now),
+            )
+        elif tuple(row[:8]) != values:
+            raise ProblemPoolConflict("problem pool artifact binding differs")
+        created_at = now if row is None else str(row[8])
+        return ProblemPoolArtifactBinding(
+            problem_pool_id,
+            binding_kind,
+            artifact,
+            bound_by,
+            digest,
+            "NO_FACT",
+            created_at,
         )
 
     def get(self, problem_pool_id: str) -> ProblemPool:
@@ -612,6 +749,24 @@ def _candidate(row: tuple[object, ...]) -> ProblemCandidate:
     )
 
 
+def _artifact_binding(row: tuple[object, ...]) -> ProblemPoolArtifactBinding:
+    return ProblemPoolArtifactBinding(
+        str(row[0]),
+        cast(ArtifactBindingKind, str(row[1])),
+        ExactArtifactRef(
+            str(row[2]),
+            str(row[3]),
+            int(str(row[4])),
+            str(row[5]),
+            int(str(row[6])),
+        ),
+        str(row[7]),
+        str(row[8]),
+        str(row[9]),
+        str(row[10]),
+    )
+
+
 def _strings(value: object) -> tuple[str, ...]:
     decoded = json.loads(str(value))
     if not isinstance(decoded, list) or any(not isinstance(item, str) for item in decoded):
@@ -624,9 +779,11 @@ def _json(value: object) -> str:
 
 
 __all__ = [
+    "ArtifactBindingKind",
     "PoolDenominator",
     "ProblemCandidate",
     "ProblemPool",
+    "ProblemPoolArtifactBinding",
     "ProblemPoolConflict",
     "ProblemPoolError",
     "ProblemPoolStore",
