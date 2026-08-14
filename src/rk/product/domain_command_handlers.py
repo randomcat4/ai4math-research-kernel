@@ -15,7 +15,7 @@ from typing import Any, Protocol, cast
 
 from rk.product.api import ProductCommand, ProductDecision, RunScope, frozen_json
 from rk.product.artifact_read import ArtifactReadService, ExactArtifactRef
-from rk.product.attestation_import import ReviewAttestationImporter
+from rk.product.attestation_import import ImportedReview, ReviewAttestationImporter
 from rk.product.authority import CapabilitySource, ProductAuthority
 from rk.product.bridge_opportunities import BridgeOpportunityStore, OpportunityMetrics
 from rk.product.contract_materials import ContractMaterialService
@@ -155,15 +155,17 @@ class _Handlers:
         amendment = _json_artifact(self.s.artifacts, _object(payload, "amendment_artifact"))
         if _integer(payload, "base_contract_version") != i.fence.contract_version:
             raise DomainCommandRejected("CONTRACT_VERSION_MISMATCH")
+        amendment_binding = _object(payload, "amendment_artifact")
         decision = self._kernel(
             i,
             "AMEND_CONTRACT",
             {
                 "contract_version": i.fence.contract_version,
-                "amendment_artifact_id": _text(
-                    _object(payload, "amendment_artifact"), "artifact_id"
-                ),
+                "amendment_artifact_id": _text(amendment_binding, "artifact_id"),
                 "impact_acknowledgement": _text(payload, "impact_acknowledgement"),
+                "replacement_contract": _object(amendment, "replacement_contract"),
+                "impact_analysis_artifact_id": _text(amendment, "impact_analysis_artifact_id"),
+                "approvals": list(_strings(amendment, "approvals")),
             },
         )
         if decision.accepted:
@@ -290,10 +292,26 @@ class _Handlers:
         return decision
 
     def register_bridge_spec(self, i: DomainInvocation) -> ProductDecision:
-        return self._kernel(i, "REGISTER_BRIDGE_SPEC", dict(i.request.payload))
+        payload = i.request.payload
+        document = _json_artifact(self.s.artifacts, _object(payload, "mapping_artifact"))
+        kernel_payload = _object(document, "kernel_payload")
+        for name in ("source_domain", "target_domain"):
+            if _object(kernel_payload, "bridge_spec").get(name) != payload.get(name):
+                raise DomainCommandRejected("BRIDGE_ARTIFACT_BINDING_MISMATCH")
+        return self._kernel(i, "REGISTER_BRIDGE_SPEC", kernel_payload)
 
     def submit_closure_witness(self, i: DomainInvocation) -> ProductDecision:
-        return self._kernel(i, "SUBMIT_CLOSURE_WITNESS", dict(i.request.payload))
+        payload = i.request.payload
+        artifacts = payload.get("edge_justification_artifacts")
+        if not isinstance(artifacts, list) or not artifacts:
+            raise DomainCommandRejected("CLOSURE_WITNESS_ARTIFACT_MISSING")
+        document = _json_artifact(self.s.artifacts, cast(dict[str, object], artifacts[0]))
+        kernel_payload = _object(document, "kernel_payload")
+        if kernel_payload.get("selected_subgraph_digest") != payload.get(
+            "selected_subgraph_digest"
+        ):
+            raise DomainCommandRejected("CLOSURE_WITNESS_BINDING_MISMATCH")
+        return self._kernel(i, "SUBMIT_CLOSURE_WITNESS", kernel_payload)
 
     def create_review_task(self, i: DomainInvocation) -> ProductDecision:
         p = i.request.payload
@@ -343,7 +361,11 @@ class _Handlers:
             artifact_ref=ref,
             submitted_at=self.s.clock(),
         )
-        decision = self._kernel(i, "SUBMIT_PAPER_REVIEW", dict(payload))
+        decision = self._kernel(
+            i,
+            "SUBMIT_PAPER_REVIEW",
+            _paper_kernel_payload(self.s.db_path, _run(i), payload, imported),
+        )
         if not decision.accepted:
             raise RuntimeError(
                 "signed paper review passed B05b but kernel rejected; "
@@ -512,6 +534,50 @@ def _identity(path: Path, subject_id: str) -> str:
     if len(rows) != 1:
         raise DomainCommandRejected("IDENTITY_BINDING_MISSING")
     return str(rows[0][0])
+
+
+def _paper_kernel_payload(
+    path: Path,
+    run_id: str,
+    payload: Mapping[str, object],
+    imported: ImportedReview,
+) -> dict[str, object]:
+    candidate = _object(payload, "candidate_tex_artifact")
+    with sqlite3.connect(path) as connection:
+        rows = connection.execute(
+            "SELECT generation_command_id,finalized_revision,terminal_root_id,"
+            "terminal_root_digest,closure_witness_id,dependency_closure_digest "
+            "FROM product_publication_candidates WHERE run_id=? "
+            "AND candidate_tex_artifact_id=? AND candidate_tex_sha256=?",
+            (
+                run_id,
+                _text(candidate, "artifact_id"),
+                _text(candidate, "sha256"),
+            ),
+        ).fetchall()
+    if len(rows) != 1:
+        raise DomainCommandRejected("PUBLICATION_CANDIDATE_BINDING_MISSING")
+    row = rows[0]
+    review = imported.review
+    if not isinstance(review, Mapping):
+        raise ValueError("imported paper review content is unavailable")
+    verdict = review.get("verdict")
+    if verdict not in {"ACCEPT", "REJECT"}:
+        raise DomainCommandRejected("PAPER_REVIEW_NEEDS_REVISION")
+    return {
+        "finalized_revision": int(row[1]),
+        "terminal_root_id": str(row[2]),
+        "terminal_root_digest": str(row[3]),
+        "closure_witness_id": str(row[4]),
+        "dependency_closure_digest": str(row[5]),
+        "candidate_tex_artifact": dict(candidate),
+        "generation_command_id": str(row[0]),
+        "paper_review_id": str(imported.review_id),
+        "signed_review_artifact": dict(_object(payload, "signed_paper_review_artifact")),
+        "paper_review_schema_version": _text(payload, "paper_review_schema_version"),
+        "reviewer_subject_id": str(imported.task.assignee_subject_id),
+        "verdict": str(verdict),
+    }
 
 
 def _json_artifact(

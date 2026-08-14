@@ -259,13 +259,17 @@ def _bridge_payload(payload: JsonObject) -> Mapping[str, object]:
 
 def _closure_payload(payload: JsonObject) -> Mapping[str, object]:
     required = {
-        "parent_claim_id",
         "selected_subgraph",
         "selected_subgraph_digest",
-        "obligations",
-        "closure_theorem_ref",
-        "review_task_id",
-        "signed_review_artifact",
+        "parent_claim_id",
+        "contract_version",
+        "edge_justifications",
+        "bridge_dependency_ids",
+        "discharged_obligation_ids",
+        "open_obligation_ids",
+        "verification_refs",
+        "human_attestation_review_ids",
+        "composition_mode",
     }
     if set(payload) != required:
         raise ValueError("SUBMIT_CLOSURE_WITNESS kernel payload fields are not exact")
@@ -274,24 +278,22 @@ def _closure_payload(payload: JsonObject) -> Mapping[str, object]:
 
 def _paper_review_payload(payload: JsonObject) -> Mapping[str, object]:
     required = {
-        "candidate_tex_artifact",
-        "paper_review_schema_version",
-        "review_task_id",
-        "signed_paper_review_artifact",
-        "reviewer_subject_id",
-        "generation_command_id",
-        "paper_review_id",
-        "verdict",
+        "finalized_revision",
         "terminal_root_id",
         "terminal_root_digest",
-        "dependency_closure_digest",
         "closure_witness_id",
+        "dependency_closure_digest",
+        "candidate_tex_artifact",
+        "generation_command_id",
+        "paper_review_id",
+        "signed_review_artifact",
+        "paper_review_schema_version",
+        "reviewer_subject_id",
+        "verdict",
     }
     if set(payload) != required:
         raise ValueError("SUBMIT_PAPER_REVIEW kernel payload fields are not exact")
-    result = dict(payload)
-    result["signed_review_artifact"] = result.pop("signed_paper_review_artifact")
-    return result
+    return dict(payload)
 
 
 def _finalize_payload(payload: JsonObject) -> Mapping[str, object]:
