@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 import time
 from collections.abc import Mapping, Sequence
@@ -16,6 +17,7 @@ from rk.adapters import (
     AdapterProfile,
     AdapterRequestError,
     ArchonAdapter,
+    DeepSeekResponsesControllerAdapter,
     HttpResponse,
     JixiaAdapter,
     LeanReplayAdapter,
@@ -42,6 +44,11 @@ def profile_mapping(**overrides: Any) -> dict[str, Any]:
     }
     result.update(overrides)
     return result
+
+
+def test_adapter_profile_can_mark_an_external_service_version_unattested() -> None:
+    profile = AdapterProfile.from_mapping(profile_mapping(source_commit="UNATTESTED"))
+    assert profile.source_commit == "UNATTESTED"
 
 
 class FakeRunner:
@@ -225,6 +232,40 @@ def test_registered_json_tool_does_not_promote_truth(tmp_path: Path) -> None:
     assert result["machine_axis_effect"] == "UNCHANGED"
 
 
+def test_registered_json_tool_materializes_structured_input(tmp_path: Path) -> None:
+    binary = tmp_path / "tool"
+    binary.write_bytes(b"fixture binary")
+    runner = FakeRunner(ProcessResult((), 0, '{"expanded":"x + 1"}', ""))
+    adapter = RegisteredFileToolAdapter(
+        AdapterProfile.from_mapping(
+            profile_mapping(
+                name="sympy-cas",
+                argv_prefix=[str(binary)],
+                workspace_root=str(tmp_path),
+                binary_path=str(binary),
+                binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
+            )
+        ),
+        capability_kind="CAS",
+        trust_limit="HEURISTIC_EMPIRICAL",
+        output_mode="json",
+        runner=runner,
+    )
+
+    result = adapter.run(
+        {
+            "input": {"operation": "expand", "expression": "x+1", "symbol": "x"},
+            "expected": {"expanded": "x + 1"},
+            "environment": {},
+        }
+    )
+
+    assert result["status"] == "COMPLETED"
+    relative = runner.calls[0]["argv"][-1]
+    assert Path(relative).parts[0] == ".rktool" and relative.endswith(".json")
+    assert json.loads((tmp_path / relative).read_text(encoding="utf-8"))["symbol"] == "x"
+
+
 def test_archon_parses_pure_json_and_exit_three_is_pause(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     workspaces = tmp_path / "workspaces"
@@ -379,8 +420,305 @@ def test_openai_compatible_model_adapter_has_no_tool_surface() -> None:
     assert result["status"] == "COMPLETED"
     assert result["tool_surface"] == "NONE"
     assert result["provider_request"]["tools"] == []
+    assert client.calls[0]["payload"]["thinking"] == {"type": "disabled"}
+    assert client.calls[0]["payload"]["response_format"] == {"type": "json_object"}
     assert result["usage"]["reasoning_tokens"] == 3
     assert client.calls[0]["payload"]["_rk_authorization_bearer"] == "secret"
+
+
+def test_deepseek_responses_returns_unexecuted_registered_function_intent() -> None:
+    response = {
+        "id": "resp_fixture",
+        "status": "completed",
+        "output": [
+            {
+                "type": "function_call",
+                "status": "completed",
+                "call_id": "call_fixture",
+                "name": "lookup_premise",
+                "arguments": '{"query":"addition"}',
+            }
+        ],
+        "usage": {
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "total_tokens": 27,
+            "output_tokens_details": {"reasoning_tokens": 3},
+        },
+    }
+    client = FakeHttpClient([HttpResponse(200, json.dumps(response).encode())])
+    adapter = DeepSeekResponsesControllerAdapter(
+        AdapterProfile.from_mapping(
+            profile_mapping(
+                name="deepseek-responses-controller",
+                endpoint="https://registered.invalid/v1/responses",
+                env_whitelist=["DEEPSEEK_API_KEY"],
+            )
+        ),
+        functions={
+            "lookup_premise": {
+                "description": "Search registered mathematical premises.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"query": {"type": "string"}},
+                    "required": ["query"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        client=client,
+    )
+
+    result = adapter.run(
+        {
+            "prompt": "Find a premise",
+            "model": "deepseek-v4-pro",
+            "max_output_tokens": 100,
+            "environment": {"DEEPSEEK_API_KEY": "secret"},
+        }
+    )
+
+    assert result["status"] == "COMPLETED"
+    assert result["trust_limit"] == "SOFT_CONTROLLER_INTENT_ONLY"
+    assert result["machine_axis_effect"] == "UNCHANGED"
+    assert result["payload"] == {
+        "response_id": "resp_fixture",
+        "response_model": None,
+        "directives": [
+            {
+                "call_id": "call_fixture",
+                "name": "lookup_premise",
+                "arguments": {"query": "addition"},
+            }
+        ],
+        "text": "",
+        "execution_claimed": False,
+    }
+    assert client.calls[0]["payload"]["tools"][0]["name"] == "lookup_premise"
+    assert client.calls[0]["payload"]["_rk_authorization_bearer"] == "secret"
+
+
+def test_deepseek_responses_validates_function_arguments_against_registered_schema() -> None:
+    output = [
+        {
+            "type": "function_call",
+            "status": "completed",
+            "call_id": "call_fixture",
+            "name": "lookup_premise",
+            "arguments": '{"query":3}',
+        }
+    ]
+    adapter = DeepSeekResponsesControllerAdapter(
+        AdapterProfile.from_mapping(
+            profile_mapping(
+                endpoint="https://registered.invalid/v1/responses",
+                env_whitelist=["DEEPSEEK_API_KEY"],
+            )
+        ),
+        functions={
+            "lookup_premise": {
+                "description": "Search premises.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"query": {"type": "string"}},
+                    "required": ["query"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        client=FakeHttpClient(
+            [
+                HttpResponse(
+                    200,
+                    json.dumps(
+                        {"id": "resp_fixture", "status": "completed", "output": output}
+                    ).encode(),
+                )
+            ]
+        ),
+    )
+
+    result = adapter.run(
+        {
+            "prompt": "Find a premise",
+            "model": "deepseek-v4-pro",
+            "max_output_tokens": 100,
+            "environment": {"DEEPSEEK_API_KEY": "secret"},
+        }
+    )
+
+    assert result["status"] == "ADAPTER_SCHEMA_MISMATCH"
+
+
+def test_deepseek_responses_rejects_caller_supplied_tool_results() -> None:
+    adapter = DeepSeekResponsesControllerAdapter(
+        AdapterProfile.from_mapping(
+            profile_mapping(
+                endpoint="https://registered.invalid/v1/responses",
+                env_whitelist=["DEEPSEEK_API_KEY"],
+            )
+        ),
+        functions={
+            "lookup_premise": {
+                "description": "Search premises.",
+                "parameters": {"type": "object"},
+            }
+        },
+        client=FakeHttpClient([]),
+    )
+
+    with pytest.raises(AdapterRequestError):
+        adapter.run(
+            {
+                "previous_response_id": "caller-controlled-response",
+                "function_outputs": [
+                    {"call_id": "caller-controlled-call", "output": "claimed success"}
+                ],
+                "model": "deepseek-v4-pro",
+                "max_output_tokens": 100,
+                "environment": {"DEEPSEEK_API_KEY": "secret"},
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        [
+            {
+                "type": "function_call",
+                "status": "completed",
+                "call_id": "call_fixture",
+                "name": "unregistered_shell",
+                "arguments": "{}",
+            }
+        ],
+        [
+            {
+                "type": "function_call",
+                "status": "completed",
+                "call_id": "call_fixture",
+                "name": "lookup_premise",
+                "arguments": "not-json",
+            }
+        ],
+        [
+            {
+                "type": "function_call",
+                "status": "completed",
+                "call_id": "duplicate",
+                "name": "lookup_premise",
+                "arguments": "{}",
+            },
+            {
+                "type": "function_call",
+                "status": "completed",
+                "call_id": "duplicate",
+                "name": "lookup_premise",
+                "arguments": "{}",
+            },
+        ],
+    ],
+)
+def test_deepseek_responses_fails_closed_on_invalid_function_calls(
+    output: list[dict[str, Any]],
+) -> None:
+    adapter = DeepSeekResponsesControllerAdapter(
+        AdapterProfile.from_mapping(
+            profile_mapping(
+                endpoint="https://registered.invalid/v1/responses",
+                env_whitelist=["DEEPSEEK_API_KEY"],
+            )
+        ),
+        functions={
+            "lookup_premise": {
+                "description": "Search premises.",
+                "parameters": {"type": "object"},
+            }
+        },
+        client=FakeHttpClient(
+            [
+                HttpResponse(
+                    200,
+                    json.dumps(
+                        {"id": "resp_fixture", "status": "completed", "output": output}
+                    ).encode(),
+                )
+            ]
+        ),
+    )
+
+    result = adapter.run(
+        {
+            "prompt": "Find a premise",
+            "model": "deepseek-v4-pro",
+            "max_output_tokens": 100,
+            "environment": {"DEEPSEEK_API_KEY": "secret"},
+        }
+    )
+
+    assert result["status"] == "ADAPTER_SCHEMA_MISMATCH"
+    assert result["payload"] is None
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        {
+            "id": "resp_fixture",
+            "status": "incomplete",
+            "incomplete_details": {"reason": "max_output_tokens"},
+            "output": [],
+        },
+        {
+            "id": "resp_fixture",
+            "status": "completed",
+            "output": [
+                {
+                    "type": "function_call",
+                    "status": "in_progress",
+                    "call_id": "call_fixture",
+                    "name": "lookup_premise",
+                    "arguments": "{}",
+                }
+            ],
+        },
+        {
+            "id": "resp_fixture",
+            "status": "completed",
+            "output": [{"type": "custom_tool_call", "status": "completed"}],
+        },
+    ],
+)
+def test_deepseek_responses_rejects_incomplete_or_unknown_output(
+    response: dict[str, Any],
+) -> None:
+    adapter = DeepSeekResponsesControllerAdapter(
+        AdapterProfile.from_mapping(
+            profile_mapping(
+                endpoint="https://registered.invalid/v1/responses",
+                env_whitelist=["DEEPSEEK_API_KEY"],
+            )
+        ),
+        functions={
+            "lookup_premise": {
+                "description": "Search premises.",
+                "parameters": {"type": "object"},
+            }
+        },
+        client=FakeHttpClient([HttpResponse(200, json.dumps(response).encode())]),
+    )
+
+    result = adapter.run(
+        {
+            "prompt": "Find a premise",
+            "model": "deepseek-v4-pro",
+            "max_output_tokens": 100,
+            "environment": {"DEEPSEEK_API_KEY": "secret"},
+        }
+    )
+
+    assert result["status"] == "ADAPTER_SCHEMA_MISMATCH"
 
 
 def test_leansearch_empty_is_incomplete_not_no_theorem() -> None:
@@ -735,7 +1073,12 @@ def test_lean_replay_returns_kernel_pass_only_with_pinned_output(tmp_path: Path)
             )
         ),
         runner=FakeRunner(
-            ProcessResult((), 0, "'t' depends on axioms: []", ""), callback=create_output
+            ProcessResult(
+                (), 0,
+                "RK_DECL_AUDIT t target_module True\n't' depends on axioms: []",
+                "",
+            ),
+            callback=create_output,
         ),
     )
     result = adapter.run(
@@ -749,7 +1092,57 @@ def test_lean_replay_returns_kernel_pass_only_with_pinned_output(tmp_path: Path)
     assert result["status"] == "COMPLETED"
     assert result["kernel_verdict"] == "REPLAY_PASS"
     assert result["output_byte_count"] == len(b"olean fixture")
+    assert result["declaration_audit"]["t"] == {
+        "owner": "target_module", "type": "True"
+    }
     assert set(result["phase_wall_time_ms"]) == {"compile", "axiom_audit"}
+    assert len(adapter.runner.calls) == 2
+    audit_call = adapter.runner.calls[1]
+    assert audit_call["argv"][0] == str(binary)
+    assert "lake" not in audit_call["argv"]
+    assert Path(audit_call["env"]["LEAN_PATH"].split(os.pathsep)[0]) == output.resolve()
+
+
+def test_lean_replay_rejects_an_imported_declaration_as_the_local_target(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    output = tmp_path / "output"
+    project.mkdir()
+    output.mkdir()
+    (project / "lean-toolchain").write_text("lean-exact\n", encoding="utf-8")
+    (project / "Main.lean").write_text("import Mathlib\n", encoding="utf-8")
+    binary = project / "lean"
+    binary.write_bytes(b"fixture binary")
+
+    def create_output() -> None:
+        (output / "Main.olean").write_bytes(b"olean fixture")
+
+    adapter = LeanReplayAdapter(
+        AdapterProfile.from_mapping(
+            profile_mapping(
+                name="lean-replay", argv_prefix=[str(binary)],
+                workspace_root=str(project), output_root=str(output),
+                expected_toolchain="lean-exact", binary_path=str(binary),
+                binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
+            )
+        ),
+        runner=FakeRunner(
+            ProcessResult(
+                (), 0,
+                "RK_DECL_AUDIT Nat.add_zero other_module forall n, n + 0 = n\n"
+                "'Nat.add_zero' depends on axioms: []",
+                "",
+            ),
+            callback=create_output,
+        ),
+    )
+    result = adapter.run({
+        "source_relpath": "Main.lean", "output_relpath": "Main.olean",
+        "declarations": ["Nat.add_zero"], "environment": {},
+    })
+    assert result["status"] == "POLICY_VIOLATION"
+    assert result["kernel_verdict"] == "REJECTED"
 
 
 def test_local_proof_model_is_soft_only_and_records_usage(tmp_path: Path) -> None:
@@ -844,6 +1237,46 @@ def test_local_proof_model_does_not_complete_at_generation_limit(tmp_path: Path)
 
     assert result["status"] == "GENERATION_LIMIT"
     assert result["machine_axis_effect"] == "UNCHANGED"
+
+
+def test_local_proof_model_materializes_standard_function_request(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    output_root = tmp_path / "output"
+    workspace.mkdir()
+    output_root.mkdir()
+    binary = workspace / "python"
+    binary.write_bytes(b"fixture binary")
+
+    def create_output() -> None:
+        (output_root / "qed.json").write_text(
+            json.dumps({"text": "inductive proof", "usage": {"output_tokens": 12}}),
+            encoding="utf-8",
+        )
+
+    runner = FakeRunner(ProcessResult((), 0, "", ""), callback=create_output)
+    adapter = LocalProofModelAdapter(
+        AdapterProfile.from_mapping(
+            profile_mapping(
+                argv_prefix=[str(binary)], workspace_root=str(workspace),
+                output_root=str(output_root), binary_path=str(binary),
+                binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
+            )
+        ), runner=runner,
+    )
+    result = adapter.run({
+        "model": "qed-nano", "prompt": "Prove the odd-number identity.",
+        "max_new_tokens": 64, "output_relpath": "qed.json", "environment": {},
+    })
+
+    assert result["status"] == "COMPLETED"
+    input_path = Path(runner.calls[0]["argv"][-2])
+    assert input_path.parent.name == ".rk-local-proof"
+    assert json.loads(input_path.read_text(encoding="utf-8")) == {
+        "model": "qed-nano", "prompt": "Prove the odd-number identity.",
+        "max_new_tokens": 64,
+    }
+
+
 
 
 def test_opencode_normalizes_text_and_usage_without_truth_authority(tmp_path: Path) -> None:

@@ -44,7 +44,7 @@ def _snapshot(
         "attempts": [],
         "leases": [],
         "artifacts": [
-            {"artifact_id": ARTIFACT_ID, "ingest_state": "COMMITTED"},
+            {"artifact_id": ARTIFACT_ID, "ingest_state": "COMMITTED", "sha256": "b" * 64},
         ],
         "open_obligation_ids": [],
     }
@@ -79,8 +79,8 @@ def _decide(
     )
 
 
-def test_command_set_is_the_closed_27_command_union() -> None:
-    assert len(COMMAND_TYPES) == 27
+def test_command_set_is_the_closed_31_command_union() -> None:
+    assert len(COMMAND_TYPES) == 31
     assert "Create" not in COMMAND_TYPES
     assert "PauseRun" not in COMMAND_TYPES
 
@@ -127,8 +127,34 @@ def _peer_review_payload() -> dict[str, object]:
         "statement_hash": "a" * 64,
         "review_artifact_id": ARTIFACT_ID,
         "verdict": "ACCEPT",
-        "checklist": {"proof_checked": True},
+        "checklist": {
+            "proof_checked": {
+                "passed": True,
+                "status": "HUMAN_ATTESTED",
+                "conclusion": "proof checked",
+                "evidence_refs": [ARTIFACT_ID],
+            },
+            "scope_checked": {
+                "passed": True,
+                "status": "HUMAN_ATTESTED",
+                "conclusion": "scope checked",
+                "evidence_refs": [ARTIFACT_ID],
+            },
+            "blind_review": False,
+        },
         "source_graph": {"review_artifact_id": ARTIFACT_ID},
+        "verifier_attestation": {
+            "artifact_sha256": "b" * 64,
+            "verifier_identity_id": "cap-1",
+            "verifier_subject_id": "tester",
+            "promotion_eligible": True,
+            "authority": "HUMAN_ATTESTED",
+            "claim_id": "claim-1",
+            "contract_version": 1,
+            "statement_hash": "a" * 64,
+            "verdict": "ACCEPT",
+            "selected_subgraph_digest": None,
+        },
     }
 
 
@@ -156,7 +182,39 @@ def test_peer_review_overwrites_unverified_dimensions_with_host_unknown() -> Non
     assert decision.accepted
     derived = decision.projection_mutations[0]["independence_profile"]
     assert derived["idea_independence"] == "UNKNOWN"
-    assert derived["reasons"] == ["SOURCE_LINEAGE_NOT_HOST_VERIFIED"]
+    assert derived["reasons"] == ["HUMAN_REVIEW_CHECKLIST_INCOMPLETE"]
+
+
+def test_peer_review_requires_bound_managed_verifier_attestation() -> None:
+    snapshot = _snapshot(
+        "RUNNING",
+        extra={"claims": [{"claim_id": "claim-1", "statement_hash": "a" * 64}]},
+    )
+    payload = _peer_review_payload()
+    del payload["verifier_attestation"]
+    missing = _decide(snapshot, "RecordPeerReview", payload)
+    assert not missing.accepted
+    assert missing.rejection_code == "INDEPENDENCE_UNKNOWN"
+
+    payload = _peer_review_payload()
+    payload["verifier_attestation"]["authority"] = "NONE"
+    untrusted = _decide(snapshot, "RecordPeerReview", payload)
+    assert not untrusted.accepted
+    assert untrusted.rejection_code == "INDEPENDENCE_UNKNOWN"
+
+
+@pytest.mark.parametrize("name", ["proof_checked", "scope_checked"])
+def test_peer_review_rejects_unsigned_boolean_checklist_flags(name: str) -> None:
+    snapshot = _snapshot(
+        "RUNNING",
+        extra={"claims": [{"claim_id": "claim-1", "statement_hash": "a" * 64}]},
+    )
+    payload = _peer_review_payload()
+    payload["checklist"][name] = True
+    decision = _decide(snapshot, "RecordPeerReview", payload)
+    assert not decision.accepted
+    assert decision.rejection_code == "INDEPENDENCE_UNKNOWN"
+    assert decision.missing_conditions[0].code == "SIGNED_REVIEW_CHECKS"
 
 
 def test_peer_promotion_ignores_ephemeral_summary_reviews() -> None:
@@ -257,7 +315,7 @@ def test_self_reported_hard_counterexample_cannot_finalize_disproved() -> None:
     assert decision.rejection_code == "TERMINAL_CLAIM_UNSUPPORTED"
 
 
-def test_legacy_human_closure_witness_cannot_be_repromoted() -> None:
+def test_accepted_managed_human_closure_witness_can_be_repromoted() -> None:
     claim = {
         "claim_id": "claim-1",
         "statement_hash": "a" * 64,
@@ -294,8 +352,7 @@ def test_legacy_human_closure_witness_cannot_be_repromoted() -> None:
         },
     )
 
-    assert not decision.accepted
-    assert decision.rejection_code == "COMPOSITION_OPEN"
+    assert decision.accepted
 
 
 def test_human_argument_edge_is_unavailable_without_managed_human_receipt() -> None:
@@ -332,6 +389,131 @@ def test_human_argument_edge_is_unavailable_without_managed_human_receipt() -> N
 
     assert not decision.accepted
     assert decision.rejection_code == "COMPOSITION_OPEN"
+
+
+def test_revoke_fact_requires_an_active_scoped_fact() -> None:
+    active = {
+        "claim_id": "fact-1",
+        "run_id": RUN_ID,
+        "contract_version": 1,
+        "status": "ACTIVE",
+    }
+    accepted = _decide(
+        _snapshot("RUNNING", extra={"claims": [active]}),
+        "RevokeFact",
+        {"contract_version": 1, "fact_id": "fact-1", "reason": "proof gap"},
+    )
+    missing = _decide(
+        _snapshot("RUNNING"),
+        "RevokeFact",
+        {"contract_version": 1, "fact_id": "fact-1", "reason": "proof gap"},
+    )
+    assert accepted.accepted
+    assert accepted.projection_mutations[0]["op"] == "REVOKE_FACT_CLOSURE"
+    assert not missing.accepted
+
+
+def test_research_hint_is_context_only() -> None:
+    decision = _decide(
+        _snapshot("RUNNING"),
+        "RecordResearchHint",
+        {
+            "contract_version": 1,
+            "hint_kind": "CHANGE_REPRESENTATION",
+            "hint": "改用生成函数表示",
+            "checkpoint_label": "before-route-2",
+        },
+    )
+    assert decision.accepted
+    assert decision.projection_mutations == ({"op": "RECORD_RESEARCH_HINT"},)
+
+
+def test_main_cannot_submit_worker_claim_when_role_ids_are_enforced() -> None:
+    decision = TransitionGuard().decide(
+        now_utc=NOW,
+        snapshot=_snapshot("RUNNING"),
+        command=TypedCommand("RegisterClaim", {}),
+        evidence_summary={},
+        capability=_capability(),
+        policy_snapshot={"candidate_writer_capability_ids": ["worker-cap"]},
+        expected_revision=0,
+    )
+    assert not decision.accepted
+    assert decision.rejection_code == "CAPABILITY_DENIED"
+    assert decision.missing_conditions[0].params["role"] == "WORKER"
+
+
+def test_worker_cannot_revoke_fact_when_main_role_ids_are_enforced() -> None:
+    active = {
+        "claim_id": "fact-1",
+        "run_id": RUN_ID,
+        "contract_version": 1,
+        "status": "ACTIVE",
+    }
+    decision = TransitionGuard().decide(
+        now_utc=NOW,
+        snapshot=_snapshot("RUNNING", extra={"claims": [active]}),
+        command=TypedCommand(
+            "RevokeFact", {"contract_version": 1, "fact_id": "fact-1", "reason": "gap"}
+        ),
+        evidence_summary={},
+        capability=_capability(),
+        policy_snapshot={"main_capability_ids": ["main-cap"]},
+        expected_revision=0,
+    )
+    assert not decision.accepted
+    assert decision.rejection_code == "CAPABILITY_DENIED"
+
+
+def test_non_verifier_cannot_record_whole_paper_verdict() -> None:
+    decision = TransitionGuard().decide(
+        now_utc=NOW,
+        snapshot=_snapshot("RUNNING"),
+        command=TypedCommand("RecordPaperReview", {}),
+        evidence_summary={},
+        capability=_capability(),
+        policy_snapshot={"verifier_capability_ids": ["verifier-cap"]},
+        expected_revision=0,
+    )
+    assert not decision.accepted
+    assert decision.rejection_code == "CAPABILITY_DENIED"
+    assert decision.missing_conditions[0].params["role"] == "VERIFIER"
+
+
+def test_soft_verifier_can_reject_with_feedback_but_cannot_accept_fact() -> None:
+    atomic = {
+        "claim_id": "claim-1",
+        "run_id": RUN_ID,
+        "contract_version": 1,
+        "status": "ACTIVE",
+        "normalized_statement": {"atomic": True},
+    }
+    snapshot = _snapshot("RUNNING", extra={"claims": [atomic]})
+    rejected = _decide(
+        snapshot,
+        "VerifyAtomicClaim",
+        {
+            "contract_version": 1,
+            "claim_id": "claim-1",
+            "backend": "SOFT_VERIFIER",
+            "verdict": "REJECTED",
+            "repair_feedback": "归纳步缺少边界条件",
+        },
+    )
+    accepted = _decide(
+        snapshot,
+        "VerifyAtomicClaim",
+        {
+            "contract_version": 1,
+            "claim_id": "claim-1",
+            "backend": "SOFT_VERIFIER",
+            "verdict": "ACCEPTED",
+        },
+    )
+    assert rejected.accepted
+    assert rejected.projection_mutations[0]["accepted"] is False
+    assert not accepted.accepted
+    assert accepted.rejection_code == "EVIDENCE_INSUFFICIENT"
 
 
 def test_start_interrupt_resume_and_unresolved_finalize() -> None:
@@ -426,6 +608,52 @@ def test_start_run_requires_an_active_canonical_contract_root() -> None:
 
     assert not decision.accepted
     assert decision.rejection_code == "EVIDENCE_SCOPE_MISMATCH"
+
+
+def test_same_active_label_with_different_statement_hash_is_rejected() -> None:
+    import hashlib
+    import json
+
+    statement = {"atomic": True, "statement": "new statement"}
+    digest = hashlib.sha256(
+        json.dumps(statement, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    snapshot = _snapshot(
+        "RUNNING",
+        extra={
+            "claims": [
+                {
+                    "claim_id": "old",
+                    "run_id": RUN_ID,
+                    "contract_version": 1,
+                    "stable_label": "shared-label",
+                    "statement_hash": "f" * 64,
+                    "status": "ACTIVE",
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": ARTIFACT_ID,
+                    "ingest_state": "COMMITTED",
+                    "sha256": digest,
+                }
+            ],
+        },
+    )
+    decision = _decide(
+        snapshot,
+        "RegisterClaim",
+        {
+            "contract_version": 1,
+            "claim_kind": "LEMMA",
+            "stable_label": "shared-label",
+            "statement_artifact_id": ARTIFACT_ID,
+            "statement_hash": digest,
+            "normalized_statement": statement,
+        },
+    )
+    assert not decision.accepted
+    assert decision.rejection_code == "INGEST_SCHEMA_INVALID"
 
 
 def test_stale_revision_has_no_mutation_or_event_intents() -> None:

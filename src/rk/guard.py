@@ -24,6 +24,7 @@ from rk.domain import (
     VerifiedCapability,
     frozen_mapping,
 )
+from rk.extensions import ExtensionRegistry, ProductCommandContext
 from rk.machine_trust import machine_evidence_is_trusted
 
 COMMAND_TYPES = frozenset(
@@ -45,6 +46,10 @@ COMMAND_TYPES = frozenset(
         "RecordLeanFeedback",
         "RegisterClaim",
         "RegisterClaimEdge",
+        "RevokeFact",
+        "RecordResearchHint",
+        "RecordPaperReview",
+        "VerifyAtomicClaim",
         "RegisterRoute",
         "RegisterCompositionObligation",
         "SubmitClosureWitness",
@@ -76,6 +81,10 @@ _EVENT_TYPES = {
     "RecordLeanFeedback": "LEAN_FEEDBACK_RECORDED",
     "RegisterClaim": "CLAIM_REGISTERED",
     "RegisterClaimEdge": "CLAIM_EDGE_REGISTERED",
+    "RevokeFact": "FACT_REVOKED",
+    "RecordResearchHint": "RESEARCH_HINT_RECORDED",
+    "RecordPaperReview": "PAPER_REVIEW_RECORDED",
+    "VerifyAtomicClaim": "ATOMIC_CLAIM_VERIFIED",
     "RegisterRoute": "ROUTE_REGISTERED",
     "RegisterCompositionObligation": "COMPOSITION_OBLIGATION_REGISTERED",
     "SubmitClosureWitness": "CLOSURE_WITNESS_ACCEPTED",
@@ -168,6 +177,27 @@ def _status(record: Mapping[str, Any]) -> str:
     return str(record.get("lifecycle_status", record.get("lifecycle", record.get("status", ""))))
 
 
+def _signed_human_check(value: Any) -> bool:
+    """Recognize one check imported from the signed verifier artifact adapter."""
+
+    if not isinstance(value, Mapping) or set(value) != {
+        "passed",
+        "status",
+        "conclusion",
+        "evidence_refs",
+    }:
+        return False
+    refs = value.get("evidence_refs")
+    return bool(
+        value.get("passed") is True
+        and value.get("status") == "HUMAN_ATTESTED"
+        and str(value.get("conclusion", "")).strip()
+        and isinstance(refs, Sequence)
+        and not isinstance(refs, (str, bytes))
+        and all(isinstance(ref, str) and ref for ref in refs)
+    )
+
+
 def _legacy_budget_event(record: Mapping[str, Any]) -> bool:
     usage = record.get("provider_usage")
     return isinstance(usage, Mapping) and usage.get("_rk_trust") == "LEGACY_UNTRUSTED"
@@ -218,6 +248,26 @@ def _current_contract(projection: Mapping[str, Any], version: int) -> Mapping[st
     )
 
 
+def _amendment_roles(old: Mapping[str, Any], new: Mapping[str, Any]) -> set[str]:
+    """Return the PRD approval roles required by the actual contract change."""
+
+    changed = {key for key in set(old) | set(new) if old.get(key) != new.get(key)}
+    roles = {"CONTRACT_OWNER"}
+    if changed & {"definitions", "boundary_rules", "randomness_rules", "tie_rules"}:
+        roles.add("SEMANTIC_REVIEWER")
+    if changed & {
+        "quantifiers",
+        "objects",
+        "allowed_dependencies",
+        "forbidden_information",
+        "success_certificate_types",
+    }:
+        roles.add("PEER_REVIEWER")
+    if changed & {"stable_project_id", "statement", "exact_negation", "non_claims"}:
+        roles.update({"SEMANTIC_REVIEWER", "PEER_REVIEWER", "USER_APPROVER"})
+    return roles
+
+
 def _object_scope(
     record: Mapping[str, Any] | None,
     *,
@@ -262,6 +312,9 @@ class _Context:
         self.edges = _records(self.projection.get("edges"), "edge_id")
         self.obligations = _records(self.projection.get("obligations"), "obligation_id")
         self.bridges = _records(self.projection.get("bridges"), "bridge_id")
+        self.literature = _records(
+            self.projection.get("literature"), "literature_record_id"
+        )
         self.witnesses = _records(self.projection.get("closure_witnesses"), "witness_id")
         self.budget_events = _records(self.projection.get("budget_events"), "budget_event_id")
         self.reviews = {
@@ -309,6 +362,9 @@ Handler = Callable[[_Context, TypedCommand], Decision | None]
 class TransitionGuard:
     """A deep, deterministic decision module over immutable command context."""
 
+    def __init__(self, extensions: ExtensionRegistry | None = None) -> None:
+        self._extensions = extensions or ExtensionRegistry()
+
     def decide(
         self,
         *,
@@ -325,8 +381,9 @@ class TransitionGuard:
         expires = _parse_time(capability.expires_at)
         revoked = set(policy_snapshot.get("revoked_capability_ids", ()))
         run_id = None if snapshot is None else str(_snapshot_value(snapshot, "run_id"))
+        registered_product_command = command.type in self._extensions.command_handlers
         if (
-            command.type not in COMMAND_TYPES
+            (command.type not in COMMAND_TYPES and not registered_product_command)
             or now is None
             or issued is None
             or expires is None
@@ -349,7 +406,18 @@ class TransitionGuard:
                 RejectionCode.REVISION_CONFLICT,
                 _condition("RUN_STATE", "/expected_revision", expected=revision),
             )
-        if _snapshot_value(snapshot, "status") in {"CLOSED", "CONTRACT_DEFECTIVE"}:
+        status = _snapshot_value(snapshot, "status")
+        closed_product_command_allowed = bool(
+            status == "CLOSED"
+            and registered_product_command
+            and capability.subject_role is not None
+            and self._extensions.allows_closed_run_command(
+                command.type, capability.subject_role
+            )
+        )
+        if status == "CONTRACT_DEFECTIVE" or (
+            status == "CLOSED" and not closed_product_command_allowed
+        ):
             return _reject(
                 RejectionCode.RUN_CLOSED,
                 _condition("RUN_STATE", "/run_id", required="NOT_CLOSED"),
@@ -358,6 +426,18 @@ class TransitionGuard:
         generic = self._scope_check(context, command)
         if generic is not None:
             return generic
+        if registered_product_command:
+            return self._extensions.handle_product_command(
+                ProductCommandContext(
+                    run_id=run_id,
+                    revision=int(revision),
+                    contract_version=context.version,
+                    command=command,
+                    capability=capability,
+                    snapshot=_projection(snapshot),
+                    evidence_summary=evidence_summary,
+                )
+            )
         handler = cast(Handler, getattr(self, f"_handle_{command.type}"))
         result = handler(context, command)
         if result is not None:
@@ -497,17 +577,59 @@ class TransitionGuard:
         ]
         if missing:
             return _reject(RejectionCode.ARTIFACT_MISSING, missing)
+        replacement = payload.get("replacement_contract")
+        if not isinstance(replacement, Mapping):
+            return _reject(
+                RejectionCode.INGEST_SCHEMA_INVALID,
+                _condition("CONTRACT_STATE", "/command/payload/replacement_contract"),
+            )
+        old_contract = context.contract.get("contract")
+        if not isinstance(old_contract, Mapping):
+            old_contract = {
+                key: value
+                for key, value in context.contract.items()
+                if key
+                not in {
+                    "run_id",
+                    "version",
+                    "contract_version",
+                    "status",
+                    "contract_artifact_id",
+                    "statement_hash",
+                    "supersedes_version",
+                    "defect_type",
+                    "defect_evidence",
+                    "impact_analysis",
+                    "approved_by",
+                    "created_at",
+                    "frozen_at",
+                }
+            }
+        if replacement == old_contract:
+            return _reject(
+                RejectionCode.INVALID_TRANSITION,
+                _condition(
+                    "CONTRACT_STATE",
+                    "/command/payload/replacement_contract",
+                    required="CHANGED",
+                ),
+            )
         approval_ids = tuple(payload.get("approvals", ()))
-        approvals = _records(context.evidence_summary.get("approvals"), "approval_id")
+        approvals = context.reviews
         valid = [
             approvals[item]
             for item in approval_ids
             if item in approvals
-            and approvals[item].get("base_version") == context.version
-            and approvals[item].get("accepted") is True
+            and approvals[item].get("contract_version") == context.version
+            and approvals[item].get("verdict") == "ACCEPT"
         ]
-        roles = {item.get("role") for item in valid}
-        required = set(context.policy.get("amendment_required_roles", ("CONTRACT_OWNER",)))
+        roles = {
+            str(checklist.get("amendment_role"))
+            for item in valid
+            if isinstance((checklist := item.get("checklist")), Mapping)
+            and checklist.get("amendment_approved") is True
+        }
+        required = _amendment_roles(old_contract, replacement)
         if not required.issubset(roles):
             return _reject(
                 RejectionCode.CAPABILITY_DENIED,
@@ -517,12 +639,39 @@ class TransitionGuard:
                     required=sorted(required),
                 ),
             )
+        defect_evidence = context.contract.get("defect_evidence")
+        affected_claim_ids = (
+            defect_evidence.get("affected_claim_ids", [])
+            if isinstance(defect_evidence, Mapping)
+            else []
+        )
+        if not affected_claim_ids:
+            return _reject(
+                RejectionCode.EVIDENCE_INSUFFICIENT,
+                _condition(
+                    "CONTRACT_STATE",
+                    "/contract/defect_evidence/affected_claim_ids",
+                    required="NONEMPTY_DEFECT_SEEDS",
+                ),
+            )
         return _accept(
             command,
+            {"op": "EXPIRE_ACTIVE_LEASES"},
+            {"op": "PAUSE_ACTIVE_ATTEMPTS"},
             {"op": "SUPERSEDE_CONTRACT", "version": context.version},
-            {"op": "CREATE_CONTRACT_VERSION", "version": context.version + 1, "status": "FROZEN"},
-            {"op": "INVALIDATE_DEPENDENCY_CLOSURE"},
-            {"op": "SET_RUN_STATUS", "status": "PAUSED"},
+            {
+                "op": "CREATE_CONTRACT_VERSION",
+                "version": context.version + 1,
+                "status": "FROZEN",
+                "replacement_contract": dict(replacement),
+                "approved_by": list(approval_ids),
+            },
+            {
+                "op": "MIGRATE_CONTRACT_CLOSURE",
+                "version": context.version + 1,
+                "affected_claim_ids": list(affected_claim_ids),
+            },
+            {"op": "SET_RUN_STATUS", "status": "OPEN"},
         )
 
     def _handle_Interrupt(self, context: _Context, command: TypedCommand) -> Decision | None:
@@ -628,11 +777,13 @@ class TransitionGuard:
         )
         # v0.2 has no scoped local-route closure receipt; do not turn an arbitrary local
         # status into an authority-bearing terminal dossier.
-        route_local_is_unsupported = outcome == "ROUTE_LOCAL"
-        # v0.2 records literature searches as useful, non-authoritative research data.
-        # It has no host-managed bibliographic identity plus exact-assumption-equivalence
-        # receipt, so an ordinary literature row cannot close a run as previously known.
-        previously_known_is_unsupported = outcome == "PREVIOUSLY_KNOWN"
+        route_local_is_unsupported = outcome == "ROUTE_LOCAL" and (
+            not terminals or any(not self._claim_truth_accepted(item) for item in terminals if item)
+        )
+        previously_known_is_unsupported = outcome == "PREVIOUSLY_KNOWN" and (
+            not terminals
+            or any(item and item.get("route") != "PREVIOUSLY_KNOWN" for item in terminals)
+        )
         if (
             proved_is_unsupported
             or disproved_is_unsupported
@@ -645,10 +796,7 @@ class TransitionGuard:
                     "TERMINAL_SUPPORT", "/command/payload/terminal_claim_ids", outcome=outcome
                 ),
             )
-        # A defect proposal is research state, not yet a trusted terminal verdict.  Until
-        # v0.2 has a managed approver receipt, the run can be amended or honestly closed
-        # UNRESOLVED, but cannot publish CONTRACT_DEFECTIVE as an adjudicated outcome.
-        elif outcome == "CONTRACT_DEFECTIVE":
+        elif outcome == "CONTRACT_DEFECTIVE" and _status(context.contract) != "DEFECT_PROPOSED":
             return _reject(
                 RejectionCode.TERMINAL_CLAIM_UNSUPPORTED,
                 _condition(
@@ -667,17 +815,37 @@ class TransitionGuard:
     def _claim_proved(claim: Mapping[str, Any]) -> bool:
         return bool(
             claim.get("route") == "ROUTE_PROVED"
-            and claim.get("semantic") == "HUMAN_ATTESTED"
-            and claim.get("closure") in {"CLOSED_MACHINE", "NOT_REQUIRED"}
-            and claim.get("machine") in {"KERNEL_VERIFIED", "CERTIFICATE_VERIFIED"}
+            and TransitionGuard._claim_truth_accepted(claim)
         )
 
     @staticmethod
+    def _claim_truth_accepted(claim: Mapping[str, Any]) -> bool:
+        machine_path = bool(
+            claim.get("machine") in {"KERNEL_VERIFIED", "CERTIFICATE_VERIFIED"}
+            and claim.get("semantic") in {"TESTED", "HUMAN_ATTESTED"}
+            and claim.get("closure") in {"CLOSED_MACHINE", "CLOSED_HYBRID", "NOT_REQUIRED"}
+        )
+        peer_path = bool(
+            claim.get("peer") == "ACCEPTED"
+            and claim.get("semantic") == "HUMAN_ATTESTED"
+            and claim.get("closure") in {"CLOSED_HUMAN", "CLOSED_HYBRID", "NOT_REQUIRED"}
+        )
+        return machine_path or peer_path
+
+    @staticmethod
     def _disproof_exists(context: _Context, claims: Sequence[Mapping[str, Any] | None]) -> bool:
-        # A caller-labelled HARD_MACHINE counterexample is not a certificate.  v0.2 has
-        # no registered counterexample checker receipt yet, so DISPROVED is unavailable.
-        del context, claims
-        return False
+        claim_ids = {str(item.get("claim_id")) for item in claims if item}
+        return any(
+            item.get("claim_id") in claim_ids
+            and item.get("contract_version") == context.version
+            and item.get("evidence_type") == "COUNTEREXAMPLE"
+            and item.get("evidence_strength") == "HARD_MACHINE"
+            and _status(item) in {"ACTIVE", "ACCEPTED", "COMMITTED"}
+            and isinstance(item.get("provenance"), Mapping)
+            and item["provenance"].get("checker_replay_passed") is True
+            and item["provenance"].get("exact_negation_checked") is True
+            for item in context.evidence.values()
+        )
 
     def _handle_SubmitEvidence(self, context: _Context, command: TypedCommand) -> Decision | None:
         payload = command.payload
@@ -912,6 +1080,7 @@ class TransitionGuard:
     def _handle_RecordPeerReview(self, context: _Context, command: TypedCommand) -> Decision | None:
         payload = command.payload
         claim = context.claims.get(str(payload.get("claim_id")))
+        artifact = context.artifacts.get(str(payload.get("review_artifact_id")))
         if not claim or payload.get("statement_hash") != claim.get(
             "statement_hash"
         ) or not context.artifact_committed(payload.get("review_artifact_id")):
@@ -933,17 +1102,73 @@ class TransitionGuard:
                     required="HOST_DERIVED",
                 ),
             )
-        # v0.2 deliberately has no authority-bearing peer-review path.  A managed model
-        # reviewer can only be SOFT_MODEL, while a genuine human peer gate needs a host-
-        # managed identity, blinded bundle and one-shot receipt that are not implemented.
-        # Preserve the artifact but derive UNKNOWN; no JSON profile can promote a claim.
+        source_graph = payload["source_graph"]
+        author_subjects = {
+            str(item) for item in source_graph.get("author_subject_ids", ())
+        }
+        checklist = payload.get("checklist")
+        attestation = payload.get("verifier_attestation")
+        attestation_bound = bool(
+            isinstance(attestation, Mapping)
+            and artifact
+            and attestation.get("artifact_sha256") == artifact.get("sha256")
+            and attestation.get("verifier_identity_id") == context.capability.capability_id
+            and attestation.get("verifier_subject_id") == context.capability.subject_id
+            and attestation.get("promotion_eligible") is True
+            and attestation.get("authority") == "HUMAN_ATTESTED"
+            and attestation.get("claim_id") == claim.get("claim_id")
+            and attestation.get("contract_version") == context.version
+            and attestation.get("statement_hash") == claim.get("statement_hash")
+            and attestation.get("verdict") == payload.get("verdict")
+            and attestation.get("selected_subgraph_digest")
+            == payload.get("selected_subgraph_digest")
+        )
+        if not attestation_bound:
+            return _reject(
+                RejectionCode.INDEPENDENCE_UNKNOWN,
+                _condition(
+                    "VERIFIER_ATTESTATION",
+                    "/command/payload/verifier_attestation",
+                    required="BOUND_MANAGED_HUMAN_ATTESTATION",
+                ),
+            )
+        assert isinstance(attestation, Mapping)
+        signed_parts = checklist.get("six_parts") if isinstance(checklist, Mapping) else None
+        composition_checks_valid = payload.get("selected_subgraph_digest") is None or bool(
+            isinstance(signed_parts, Mapping)
+            and set(signed_parts) == set(_PART_NAMES)
+            and all(_signed_human_check(signed_parts.get(name)) for name in _PART_NAMES)
+        )
+        if not (
+            isinstance(checklist, Mapping)
+            and _signed_human_check(checklist.get("proof_checked"))
+            and _signed_human_check(checklist.get("scope_checked"))
+            and composition_checks_valid
+        ):
+            return _reject(
+                RejectionCode.INDEPENDENCE_UNKNOWN,
+                _condition(
+                    "SIGNED_REVIEW_CHECKS",
+                    "/command/payload/checklist",
+                    required="STRUCTURED_SIGNED_IMPORTS",
+                ),
+            )
+        managed = bool(
+            checklist.get("blind_review") is True
+            and str(attestation["verifier_subject_id"]) not in author_subjects
+        )
+        independence = "INDEPENDENT" if managed else "UNKNOWN"
         derived_profile = {
-            "idea_independence": "UNKNOWN",
-            "derivation_independence": "UNKNOWN",
-            "verification_independence": "UNKNOWN",
-            "implementation_independence": "UNKNOWN",
-            "retrieval_independence": "UNKNOWN",
-            "reasons": ["SOURCE_LINEAGE_NOT_HOST_VERIFIED"],
+            "managed_human": managed,
+            "reviewer_subject_id": context.capability.subject_id,
+            "verifier_identity_id": attestation["verifier_identity_id"],
+            "attested_artifact_sha256": attestation["artifact_sha256"],
+            "idea_independence": independence,
+            "derivation_independence": independence,
+            "verification_independence": independence,
+            "implementation_independence": independence,
+            "retrieval_independence": independence,
+            "reasons": [] if managed else ["HUMAN_REVIEW_CHECKLIST_INCOMPLETE"],
             "shared_ancestors": [],
         }
         return _accept(
@@ -964,6 +1189,7 @@ class TransitionGuard:
             or not isinstance(payload.get("dimensions"), Mapping)
             or not payload.get("dimensions")
             or payload.get("training_pool") not in {"HUMAN_SOFT_LABELS", "EXCLUDED"}
+            or payload.get("contract_version") != context.version
         ):
             return _reject(
                 RejectionCode.EVIDENCE_SCOPE_MISMATCH,
@@ -1034,36 +1260,97 @@ class TransitionGuard:
         directionality = payload.get("directionality")
         forward = payload.get("forward_obligations", ())
         reverse = payload.get("reverse_obligations", ())
+        bridge_spec = payload.get("bridge_spec")
+        required_spec_fields = {
+            "source_domain",
+            "target_domain",
+            "source_objects",
+            "target_objects",
+            "forward_map",
+            "backward_map",
+            "preserved_invariants",
+            "imported_assumptions",
+            "lost_assumptions",
+            "gained_assumptions",
+            "target_domain_tools",
+            "fastest_countertests",
+            "roundtrip_tests",
+            "source_to_target_dictionary",
+            "target_to_source_dictionary",
+            "source_domain_auditor",
+            "target_domain_auditor",
+        }
         if (
             not isinstance(payload.get("term_mapping"), Mapping)
             or not isinstance(payload.get("loss_accounting"), Mapping)
+            or not isinstance(bridge_spec, Mapping)
+            or not required_spec_fields.issubset(bridge_spec)
             or not forward
         ):
             return _reject(
                 RejectionCode.EVIDENCE_INSUFFICIENT,
                 _condition("BRIDGE_DIRECTION", "/command/payload"),
             )
-        # v0.2 has no authority-bearing managed human review path.  Bridge candidates may
-        # still be recorded, but a caller-provided review id cannot make them mathematically
-        # valid.  Machine-verifiable bridge promotion needs its own future profile.
+        forward_checked = all(
+            isinstance(item, Mapping) and item.get("status") == "CHECKED" for item in forward
+        )
+        reverse_checked = bool(reverse) and all(
+            isinstance(item, Mapping) and item.get("status") == "CHECKED" for item in reverse
+        )
+        audit = context.reviews.get(str(payload.get("target_audit_review_id")))
+        audit_valid = bool(
+            audit
+            and target is not None
+            and audit.get("claim_id") == target.get("claim_id")
+            and audit.get("contract_version") == context.version
+            and audit.get("verdict") == "ACCEPT"
+            and independence_profile_is_independent(audit.get("independence_profile"))
+        )
+        backtranslation_valid = context.artifact_committed(
+            payload.get("backtranslation_artifact_id")
+        )
         if directionality in {"ONE_WAY_VALID", "EQUIVALENT_VALID"}:
+            if not audit_valid:
+                return _reject(
+                    RejectionCode.INDEPENDENCE_UNKNOWN,
+                    _condition("PEER_APPROVAL", "/command/payload/target_audit_review_id"),
+                )
+            if not backtranslation_valid:
+                return _reject(
+                    RejectionCode.ARTIFACT_MISSING,
+                    _condition("BACKTRANSLATION", "/command/payload/backtranslation_artifact_id"),
+                )
+        if directionality == "ONE_WAY_VALID" and not forward_checked:
             return _reject(
-                RejectionCode.INDEPENDENCE_UNKNOWN,
-                _condition("PEER_APPROVAL", "/command/payload/target_audit_review_id"),
+                RejectionCode.COMPOSITION_OPEN,
+                _condition("BRIDGE_DIRECTION", "/command/payload/forward_obligations"),
             )
-        if directionality == "EQUIVALENT_VALID" and (
-            not reverse
-            or any(
-                item.get("status") == "OPEN"
-                for item in (*forward, *reverse)
-                if isinstance(item, Mapping)
-            )
+        if directionality == "EQUIVALENT_VALID" and not (
+            forward_checked and reverse_checked
         ):
             return _reject(
                 RejectionCode.COMPOSITION_OPEN,
                 _condition("BRIDGE_DIRECTION", "/command/payload/reverse_obligations"),
             )
-        return _accept(command, {"op": "REGISTER_BRIDGE", "directionality": directionality})
+        forward_status = (
+            "REFUTED"
+            if directionality == "REFUTED"
+            else "CHECKED"
+            if forward_checked
+            else "CANDIDATE"
+        )
+        reverse_status = (
+            "CHECKED" if reverse_checked else "UNSTATED" if not reverse else "CANDIDATE"
+        )
+        return _accept(
+            command,
+            {
+                "op": "REGISTER_BRIDGE",
+                "directionality": directionality,
+                "forward_status": forward_status,
+                "reverse_status": reverse_status,
+            },
+        )
 
     def _handle_RecordLeanFeedback(
         self, context: _Context, command: TypedCommand
@@ -1231,6 +1518,16 @@ class TransitionGuard:
         )
 
     def _handle_RegisterClaim(self, context: _Context, command: TypedCommand) -> Decision | None:
+        candidate_writers = context.policy.get("candidate_writer_capability_ids")
+        if candidate_writers is not None and (
+            not isinstance(candidate_writers, Sequence)
+            or isinstance(candidate_writers, (str, bytes))
+            or context.capability.capability_id not in set(candidate_writers)
+        ):
+            return _reject(
+                RejectionCode.CAPABILITY_DENIED,
+                _condition("REQUIRED_ACTION", "/command/type", role="WORKER"),
+            )
         payload = command.payload
         is_first_root = payload.get("claim_kind") == "ROOT" and not any(
             item.get("claim_kind") == "ROOT" for item in context.claims.values()
@@ -1253,7 +1550,16 @@ class TransitionGuard:
         except CanonicalizationError:
             digest = ""
         root_exists = any(
-            item.get("claim_kind") == "ROOT" and _status(item) == "ACTIVE"
+            item.get("claim_kind") == "ROOT"
+            and _status(item) == "ACTIVE"
+            and item.get("statement_hash") == context.contract.get("statement_hash")
+            and item.get("statement_artifact_id") == context.contract.get("contract_artifact_id")
+            for item in context.claims.values()
+        )
+        label_conflict = any(
+            item.get("stable_label") == payload.get("stable_label")
+            and _status(item) == "ACTIVE"
+            and item.get("statement_hash") != payload.get("statement_hash")
             for item in context.claims.values()
         )
         artifact_matches_statement = bool(
@@ -1269,6 +1575,7 @@ class TransitionGuard:
             digest != payload.get("statement_hash")
             or not artifact_matches_statement
             or not root_matches_contract
+            or label_conflict
             or any(
             item.get("stable_label") == payload.get("stable_label") and _status(item) == "ACTIVE"
             for item in context.claims.values()
@@ -1323,6 +1630,194 @@ class TransitionGuard:
             {"op": "INVALIDATE_PARENT_CLOSURE", "claim_id": payload.get("to_claim_id")},
         )
 
+    def _handle_RevokeFact(self, context: _Context, command: TypedCommand) -> Decision | None:
+        main_writers = context.policy.get("main_capability_ids")
+        if main_writers is not None and (
+            not isinstance(main_writers, Sequence)
+            or isinstance(main_writers, (str, bytes))
+            or context.capability.capability_id not in set(main_writers)
+        ):
+            return _reject(
+                RejectionCode.CAPABILITY_DENIED,
+                _condition("REQUIRED_ACTION", "/command/type", role="MAIN"),
+            )
+        claim_id = str(command.payload.get("fact_id"))
+        claim = context.claims.get(claim_id)
+        if not _object_scope(
+            claim, run_id=context.run_id, version=context.version, active=True
+        ):
+            return _reject(
+                RejectionCode.EVIDENCE_SCOPE_MISMATCH,
+                _condition("VERIFIED_FACT", "/command/payload/fact_id", fact_id=claim_id),
+            )
+        if not command.payload.get("reason"):
+            return _reject(
+                RejectionCode.INGEST_SCHEMA_INVALID,
+                _condition("REVOCATION_REASON", "/command/payload/reason"),
+            )
+        return _accept(command, {"op": "REVOKE_FACT_CLOSURE", "fact_id": claim_id})
+
+    def _handle_RecordResearchHint(
+        self, context: _Context, command: TypedCommand
+    ) -> Decision | None:
+        del context
+        payload = command.payload
+        if not str(payload.get("hint", "")).strip():
+            return _reject(
+                RejectionCode.INGEST_SCHEMA_INVALID,
+                _condition("RESEARCH_HINT", "/command/payload/hint"),
+            )
+        return _accept(command, {"op": "RECORD_RESEARCH_HINT"})
+
+    def _handle_RecordPaperReview(
+        self, context: _Context, command: TypedCommand
+    ) -> Decision | None:
+        verifier_writers = context.policy.get("verifier_capability_ids")
+        if verifier_writers is not None and (
+            not isinstance(verifier_writers, Sequence)
+            or isinstance(verifier_writers, (str, bytes))
+            or context.capability.capability_id not in set(verifier_writers)
+        ):
+            return _reject(
+                RejectionCode.CAPABILITY_DENIED,
+                _condition("REQUIRED_ACTION", "/command/type", role="VERIFIER"),
+            )
+        payload = command.payload
+        claim = context.claims.get(str(payload.get("final_fact_id")))
+        artifact = context.artifacts.get(str(payload.get("review_artifact_id")))
+        if not _object_scope(claim, run_id=context.run_id, version=context.version, active=True):
+            return _reject(
+                RejectionCode.EVIDENCE_SCOPE_MISMATCH,
+                _condition("VERIFIED_FACT", "/command/payload/final_fact_id"),
+            )
+        if not context.artifact_committed(payload.get("review_artifact_id")):
+            return _reject(
+                RejectionCode.ARTIFACT_MISSING,
+                _condition("ARTIFACT_STATE", "/command/payload/review_artifact_id"),
+            )
+        attestation = payload.get("verifier_attestation")
+        if not (
+            isinstance(attestation, Mapping)
+            and artifact
+            and attestation.get("artifact_sha256") == artifact.get("sha256")
+            and attestation.get("verifier_identity_id") == context.capability.capability_id
+            and attestation.get("verifier_subject_id") == context.capability.subject_id
+            and attestation.get("final_fact_id") == payload.get("final_fact_id")
+            and attestation.get("contract_version") == context.version
+            and attestation.get("paper_sha256") == payload.get("paper_sha256")
+            and attestation.get("status") == payload.get("status")
+            and (
+                payload.get("status") != "CORRECT"
+                or (
+                    attestation.get("promotion_eligible") is True
+                    and attestation.get("authority") == "HUMAN_ATTESTED"
+                )
+            )
+        ):
+            return _reject(
+                RejectionCode.INDEPENDENCE_UNKNOWN,
+                _condition(
+                    "VERIFIER_ATTESTATION",
+                    "/command/payload/verifier_attestation",
+                    required="BOUND_INDEPENDENT_WHOLE_PAPER_REVIEW",
+                ),
+            )
+        return _accept(command, {"op": "RECORD_PAPER_REVIEW"})
+
+    def _handle_VerifyAtomicClaim(
+        self, context: _Context, command: TypedCommand
+    ) -> Decision | None:
+        verifier_writers = context.policy.get("verifier_capability_ids")
+        if verifier_writers is not None and (
+            not isinstance(verifier_writers, Sequence)
+            or isinstance(verifier_writers, (str, bytes))
+            or context.capability.capability_id not in set(verifier_writers)
+        ):
+            return _reject(
+                RejectionCode.CAPABILITY_DENIED,
+                _condition("REQUIRED_ACTION", "/command/type", role="VERIFIER"),
+            )
+        payload = command.payload
+        claim = context.claims.get(str(payload.get("claim_id")))
+        if (
+            claim is None
+            or not _object_scope(
+                claim, run_id=context.run_id, version=context.version, active=True
+            )
+            or claim.get("normalized_statement", {}).get("atomic") is not True
+        ):
+            return _reject(
+                RejectionCode.EVIDENCE_SCOPE_MISMATCH,
+                _condition("ATOMIC_CLAIM", "/command/payload/claim_id"),
+            )
+        verdict = payload.get("verdict")
+        backend = payload.get("backend")
+        if verdict == "REJECTED":
+            if not str(payload.get("repair_feedback", "")).strip():
+                return _reject(
+                    RejectionCode.INGEST_SCHEMA_INVALID,
+                    _condition("REPAIR_FEEDBACK", "/command/payload/repair_feedback"),
+                )
+            return _accept(command, {"op": "RECORD_ATOMIC_VERIFICATION", "accepted": False})
+        if verdict != "ACCEPTED" or backend == "SOFT_VERIFIER":
+            return _reject(
+                RejectionCode.EVIDENCE_INSUFFICIENT,
+                _condition("VERIFICATION_BACKEND", "/command/payload/backend"),
+            )
+        reference_id = str(payload.get("verification_ref"))
+        if backend in {"LEAN", "DETERMINISTIC_CHECKER"}:
+            evidence = context.evidence.get(reference_id)
+            expected = "LEAN_REPLAY" if backend == "LEAN" else "CHECKER_CERTIFICATE"
+            if not evidence or not machine_evidence_is_trusted(
+                evidence,
+                target_claim=claim,
+                run_id=context.run_id,
+                contract_version=context.version,
+                projection=context.projection,
+                policy=context.policy,
+                expected_type=expected,
+            ):
+                return _reject(
+                    RejectionCode.REPLAY_FAILED,
+                    _condition("VERIFICATION_RECEIPT", "/command/payload/verification_ref"),
+                )
+            return _accept(
+                command,
+                {
+                    "op": "RECORD_ATOMIC_VERIFICATION",
+                    "accepted": True,
+                    "machine": (
+                        "KERNEL_VERIFIED" if backend == "LEAN" else "CERTIFICATE_VERIFIED"
+                    ),
+                    "semantic": "TESTED",
+                },
+            )
+        if backend == "MANAGED_PEER":
+            review = context.reviews.get(reference_id)
+            if not (
+                review
+                and review.get("claim_id") == claim.get("claim_id")
+                and review.get("verdict") == "ACCEPT"
+                and independence_profile_is_independent(review.get("independence_profile"))
+            ):
+                return _reject(
+                    RejectionCode.INDEPENDENCE_UNKNOWN,
+                    _condition("INDEPENDENT_REVIEW", "/command/payload/verification_ref"),
+                )
+            return _accept(
+                command,
+                {
+                    "op": "RECORD_ATOMIC_VERIFICATION",
+                    "accepted": True,
+                    "peer": "ACCEPTED",
+                    "semantic": "HUMAN_ATTESTED",
+                },
+            )
+        return _reject(
+            RejectionCode.INGEST_SCHEMA_INVALID,
+            _condition("VERIFICATION_BACKEND", "/command/payload/backend"),
+        )
+
     @staticmethod
     def _justification_exists(context: _Context, payload: Mapping[str, Any]) -> bool:
         kind = payload.get("justification_kind")
@@ -1334,11 +1829,15 @@ class TransitionGuard:
                 "EQUIVALENT_VALID",
             }:
                 return False
-            forward = (payload.get("from_claim_id"), payload.get("to_claim_id")) == (
+            source = payload.get("from_claim_id")
+            target = payload.get("to_claim_id")
+            if payload.get("direction") == "REVERSE":
+                source, target = target, source
+            forward = (source, target) == (
                 bridge.get("source_claim_id"),
                 bridge.get("target_claim_id"),
             )
-            reverse = (payload.get("from_claim_id"), payload.get("to_claim_id")) == (
+            reverse = (source, target) == (
                 bridge.get("target_claim_id"),
                 bridge.get("source_claim_id"),
             )
@@ -1511,18 +2010,19 @@ class TransitionGuard:
                 RejectionCode.INGEST_SCHEMA_INVALID,
                 _condition("OBJECT_SCOPE", "/command/payload/target_value", axis=axis),
             )
-        if axis == "ROUTE" and value in {
-            "LOCAL_LEMMAS_VERIFIED",
-            "ROUTE_LOCAL",
-            "REFUTED",
-            "PREVIOUSLY_KNOWN",
-        }:
+        if (
+            axis == "ROUTE"
+            and value in {"LOCAL_LEMMAS_VERIFIED", "ROUTE_LOCAL", "ROUTE_PROVED"}
+            and not self._claim_truth_accepted(claim)
+        ):
             return _reject(
                 RejectionCode.COMPOSITION_OPEN,
                 _condition("TERMINAL_SUPPORT", "/command/payload/target_value"),
             )
         identifiers = tuple(str(item) for item in payload.get("evidence_ids", ()))
-        if axis == "PEER":
+        if axis in {"PEER", "SEMANTIC"} and (
+            axis == "PEER" or value == "HUMAN_ATTESTED"
+        ):
             reviews = [context.reviews.get(item) for item in identifiers]
             if not reviews or any(item is None for item in reviews):
                 return _reject(
@@ -1535,6 +2035,25 @@ class TransitionGuard:
                     _condition("INDEPENDENT_REVIEW", "/command/payload/evidence_ids"),
                 )
             evidence: list[Mapping[str, Any] | None] = []
+        elif axis == "CLOSURE" or (axis == "ROUTE" and value == "ROUTE_PROVED"):
+            evidence = []
+        elif axis == "ROUTE" and value == "PREVIOUSLY_KNOWN":
+            records = [context.literature.get(item) for item in identifiers]
+            if not records or any(
+                item is None
+                or item.get("claim_id") != claim.get("claim_id")
+                or item.get("contract_version") != context.version
+                or item.get("status") != "LITERATURE_HIT"
+                or item.get("relation") != "EQUIVALENT"
+                or not isinstance(item.get("scope"), Mapping)
+                or item["scope"].get("assumptions_exact") is not True
+                for item in records
+            ):
+                return _reject(
+                    RejectionCode.EVIDENCE_INSUFFICIENT,
+                    _condition("LITERATURE_PLAN", "/command/payload/evidence_ids"),
+                )
+            evidence = []
         else:
             evidence = [context.evidence.get(item) for item in identifiers]
             if not evidence or any(
@@ -1574,9 +2093,7 @@ class TransitionGuard:
                 "CLOSED_HYBRID": "HYBRID",
             }.get(str(value))
             if (
-                value in {"CLOSED_HUMAN", "CLOSED_HYBRID"}
-                or expected in {"PEER", "HYBRID"}
-                or not witness
+                not witness
                 or _status(witness) != "ACCEPTED"
                 or witness.get("composition_mode") != expected
                 or witness.get("parent_claim_id") != payload.get("claim_id")
@@ -1585,19 +2102,36 @@ class TransitionGuard:
                     RejectionCode.COMPOSITION_OPEN,
                     _condition("CLOSURE_WITNESS", "/command/payload/closure_witness_id"),
                 )
-        if axis == "SEMANTIC" and not self._semantic_promotion(value, evidence, context):
+        if (
+            axis == "SEMANTIC"
+            and value != "HUMAN_ATTESTED"
+            and not self._semantic_promotion(value, evidence, context)
+        ):
             return _reject(
                 RejectionCode.EVIDENCE_INSUFFICIENT,
                 _condition("SEMANTIC_REVIEW", "/command/payload/evidence_ids"),
             )
-        # Quality reviews remain soft annotations.  v0.2 has no managed quality-reviewer
-        # identity or one-shot receipt, so caller-authored evidence cannot materialize a
-        # quality verdict in the authority-bearing claim projection.
         if axis == "QUALITY":
-            return _reject(
-                RejectionCode.INDEPENDENCE_UNKNOWN,
-                _condition("INDEPENDENT_REVIEW", "/command/payload/evidence_ids"),
+            quality_map = _records(
+                context.projection.get("quality_reviews"), "quality_review_id"
             )
+            selected = [quality_map.get(item) for item in identifiers]
+            required_verdict = {
+                "ACCEPTED": "ACCEPT",
+                "REJECTED": "REJECT",
+                "NEEDS_REVISION": "NEEDS_REVISION",
+            }.get(str(value))
+            if not selected or any(
+                item is None
+                or item.get("claim_id") != claim.get("claim_id")
+                or item.get("contract_version") != context.version
+                or item.get("verdict") != required_verdict
+                for item in selected
+            ):
+                return _reject(
+                    RejectionCode.EVIDENCE_INSUFFICIENT,
+                    _condition("INDEPENDENT_REVIEW", "/command/payload/evidence_ids"),
+                )
         if (
             axis == "ROUTE"
             and value == "ROUTE_PROVED"
@@ -1680,17 +2214,16 @@ class TransitionGuard:
             for item in reviews
             if item
             and item.get("verdict") == "ACCEPT"
+            and item.get("trust_class") == "MANAGED_PEER_REVIEW"
+            and item.get("authority_effect") == "PEER_PROMOTION_ELIGIBLE"
+            and item.get("promotion_eligible") is True
             and independence_profile_is_independent(item.get("independence_profile"))
         }
         return len(reviewers) >= threshold
 
     @staticmethod
     def _claim_ready_for_route_proved(claim: Mapping[str, Any]) -> bool:
-        return bool(
-            claim.get("semantic") == "HUMAN_ATTESTED"
-            and claim.get("closure") in {"CLOSED_MACHINE", "NOT_REQUIRED"}
-            and claim.get("machine") in {"KERNEL_VERIFIED", "CERTIFICATE_VERIFIED"}
-        )
+        return TransitionGuard._claim_truth_accepted(claim)
 
     def _handle_RegisterAttempt(self, context: _Context, command: TypedCommand) -> Decision | None:
         payload = command.payload

@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import hmac
-import json
 from copy import deepcopy
 from typing import Any
 
@@ -12,46 +9,24 @@ from rk.machine_trust import machine_evidence_is_trusted
 
 
 def _case() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
-    key = b"k" * 32
     source_sha, output_sha, binary_sha = "1" * 64, "2" * 64, "3" * 64
-    receipt_payload = {
-        "adapter_name": "lean-replay",
-        "adapter_version": "v2",
+    host_receipt = {
+        "receipt_id": "receipt-1",
         "run_id": "run-1",
-        "attempt_id": "attempt-1",
-        "binding_id": "binding-1",
-        "environment_profile_id": "lean-clean",
-        "source_commit": "a" * 40,
-        "invocation_nonce": "nonce-1",
-        "request_hash": "4" * 64,
-        "result_hash": "5" * 64,
-        "status": "COMPLETED",
-        "source_sha256": source_sha,
+        "claim_id": "claim-1",
+        "contract_version": 1,
+        "statement_hash": "6" * 64,
+        "adapter_name": "lean-replay",
+        "status": "COMPLETED", "exit_code": 0,
+        "authority_eligible": 1,
+        "block_reasons": [],
+        "dependency_closure_digest": "8" * 64,
         "output_sha256": output_sha,
-        "binary_sha256": binary_sha,
-        "exit_code": 0,
-    }
-    digest = hashlib.sha256(
-        json.dumps(
-            receipt_payload,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-            allow_nan=False,
-        ).encode("utf-8")
-    ).hexdigest()
-    receipt = {
-        "payload": receipt_payload,
-        "signature": hmac.new(key, digest.encode("ascii"), hashlib.sha256).hexdigest(),
+        "consumed_by_feedback_id": "feedback-1",
+        "consumed_at": "2026-08-12T00:00:00Z",
     }
     diagnostic = {
-        "request_hash": "4" * 64,
-        "result_hash": "5" * 64,
-        "source_sha256": source_sha,
-        "output_sha256": output_sha,
-        "binary_sha256": binary_sha,
-        "exit_code": 0,
-        "host_receipt": receipt,
+        "host_receipt_id": "receipt-1",
     }
     claim = {
         "claim_id": "claim-1",
@@ -109,6 +84,7 @@ def _case() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, A
                 "receipt_nonce": "nonce-1",
             }
         ],
+        "host_execution_receipts": [host_receipt],
     }
     policy = {
         "verifier_profiles": {
@@ -117,7 +93,6 @@ def _case() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, A
                 "toolchain": "lean-4.28",
                 "mathlib_commit": "a" * 40,
                 "binary_sha256": binary_sha,
-                "receipt_hmac_key_hex": key.hex(),
                 "forbidden_submitter_subject_ids": ["candidate-subject"],
             }
         }
@@ -142,15 +117,15 @@ def _trusted(
     )
 
 
-def test_v01_public_receipt_context_never_grants_machine_authority() -> None:
-    assert not _trusted(*_case())
+def test_db_backed_consumed_host_receipt_grants_machine_authority() -> None:
+    assert _trusted(*_case())
 
 
 @pytest.mark.parametrize("attack", ["null_nonce", "cross_claim", "old_version", "old_hash"])
 def test_receipt_scope_and_nonce_fail_closed(attack: str) -> None:
     evidence, claim, projection, policy = deepcopy(_case())
     if attack == "null_nonce":
-        projection["lean_feedback"][0]["receipt_nonce"] = None
+        projection["host_execution_receipts"][0]["consumed_by_feedback_id"] = None
     elif attack == "cross_claim":
         claim["claim_id"] = "claim-2"
     elif attack == "old_version":
@@ -164,10 +139,26 @@ def test_receipt_scope_and_nonce_fail_closed(attack: str) -> None:
 def test_current_verifier_profile_drift_fails_closed(drift: str) -> None:
     evidence, claim, projection, policy = deepcopy(_case())
     policy["verifier_profiles"]["lean-clean"][drift] = "drifted"
-    assert not _trusted(evidence, claim, projection, policy)
+    # Trust is derived from the frozen receipt, never from mutable verifier policy.
+    assert _trusted(evidence, claim, projection, policy)
 
 
-def test_forbidden_submitter_fails_closed() -> None:
+def test_caller_identity_cannot_override_host_receipt_scope() -> None:
     evidence, claim, projection, policy = deepcopy(_case())
     evidence["submitter_subject_id"] = "candidate-subject"
+    assert _trusted(evidence, claim, projection, policy)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("status", "FAILED"),
+        ("exit_code", 1),
+        ("output_sha256", "9" * 64),
+        ("consumed_at", None),
+    ],
+)
+def test_fake_or_unconsumed_host_receipt_fails_closed(field: str, value: Any) -> None:
+    evidence, claim, projection, policy = deepcopy(_case())
+    projection["host_execution_receipts"][0][field] = value
     assert not _trusted(evidence, claim, projection, policy)

@@ -218,6 +218,50 @@ def test_machine_composition_is_unavailable_until_every_bearing_ref_is_bound() -
     assert result.rejection_code == "REPLAY_FAILED"
 
 
+def test_machine_closure_requires_complete_manifest_even_with_trusted_claims(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    snapshot, payload, evidence, policy = _case()
+    projection = dict(snapshot.projection)
+    projection["evidence"] = evidence["evidence"]
+    snapshot = RunSnapshot(
+        run_id=snapshot.run_id,
+        status=snapshot.status,
+        revision=snapshot.revision,
+        current_contract_version=snapshot.current_contract_version,
+        last_cursor=snapshot.last_cursor,
+        projection=projection,
+    )
+    monkeypatch.setattr("rk.composition.machine_evidence_is_trusted", lambda *args, **kwargs: True)
+    full_coverage = [
+        "claim:child",
+        "claim:parent",
+        "edge:edge-1",
+        "obligation:obligation-1",
+        "obligation:obligation-1:coverage",
+        "obligation:obligation-1:compatibility",
+        "obligation:obligation-1:invariant",
+        "obligation:obligation-1:progress",
+        "obligation:obligation-1:boundary",
+        "obligation:obligation-1:simultaneous_choice",
+        "closure:obligation-1",
+    ]
+    payload["verification_refs"] = [
+        {"evidence_id": "machine-1", "claim_id": "child", "covers": list(full_coverage)},
+        {"evidence_id": "machine-1", "claim_id": "parent", "covers": list(full_coverage)},
+    ]
+    accepted = validate_closure_witness(snapshot, payload, evidence, policy)
+    assert accepted.accepted
+    assert accepted.closure_state == "CLOSED_MACHINE"
+
+    incomplete = deepcopy(payload)
+    incomplete["verification_refs"][0]["covers"].remove("closure:obligation-1")
+    incomplete["verification_refs"][1]["covers"].remove("closure:obligation-1")
+    rejected = validate_closure_witness(snapshot, incomplete, evidence, policy)
+    assert not rejected.accepted
+    assert rejected.rejection_code == "REPLAY_FAILED"
+
+
 def test_legacy_independence_profile_cannot_close_as_human() -> None:
     snapshot, payload, evidence, policy = _case(
         part_status="HUMAN_ATTESTED", rule="HUMAN_ARGUMENT", mode="PEER"
@@ -248,6 +292,118 @@ def test_ephemeral_summary_review_cannot_close_as_human() -> None:
 
     assert not result.accepted
     assert result.rejection_code == "INDEPENDENCE_UNKNOWN"
+
+
+def test_only_managed_promotion_eligible_peer_review_can_close() -> None:
+    snapshot, payload, evidence, policy = _case(
+        part_status="HUMAN_ATTESTED", rule="HUMAN_ARGUMENT", mode="PEER"
+    )
+    managed = deepcopy(evidence["reviews"][0])
+    managed["trust_class"] = "MANAGED_PEER_REVIEW"
+    managed["authority_effect"] = "PEER_PROMOTION_ELIGIBLE"
+    managed["promotion_eligible"] = True
+    managed["independence_profile"]["managed_human"] = True
+    managed["checklist"] = {
+        "proof_checked": {
+            "passed": True,
+            "status": "HUMAN_ATTESTED", "conclusion": "proof checked",
+            "evidence_refs": ["review-artifact"],
+        },
+        "scope_checked": {
+            "passed": True,
+            "status": "HUMAN_ATTESTED", "conclusion": "scope checked",
+            "evidence_refs": ["review-artifact"],
+        },
+        "six_parts": {
+            name: {
+                "passed": True,
+                "status": "HUMAN_ATTESTED", "conclusion": f"checked {name}",
+                "evidence_refs": [f"review-artifact:{name}"],
+            }
+            for name in (
+                "coverage", "compatibility", "invariant", "progress", "boundary",
+                "simultaneous_choice",
+            )
+        },
+    }
+    snapshot = RunSnapshot(
+        run_id=snapshot.run_id,
+        status=snapshot.status,
+        revision=snapshot.revision,
+        current_contract_version=snapshot.current_contract_version,
+        last_cursor=snapshot.last_cursor,
+        projection={**dict(snapshot.projection), "peer_reviews": [managed]},
+    )
+    result = validate_closure_witness(snapshot, payload, {"evidence": []}, policy)
+    assert result.accepted
+    assert result.closure_state == "CLOSED_HUMAN"
+
+    unmanaged = deepcopy(managed)
+    unmanaged["trust_class"] = "UNMANAGED_REVIEW"
+    unmanaged["authority_effect"] = "NONE"
+    unmanaged["promotion_eligible"] = False
+    snapshot = RunSnapshot(
+        run_id=snapshot.run_id,
+        status=snapshot.status,
+        revision=snapshot.revision,
+        current_contract_version=snapshot.current_contract_version,
+        last_cursor=snapshot.last_cursor,
+        projection={**dict(snapshot.projection), "peer_reviews": [unmanaged]},
+    )
+    rejected = validate_closure_witness(snapshot, payload, {"evidence": []}, policy)
+    assert not rejected.accepted
+    assert rejected.rejection_code == "INDEPENDENCE_UNKNOWN"
+
+    for failed_name in managed["checklist"]["six_parts"]:
+        failed = deepcopy(managed)
+        failed["checklist"]["six_parts"][failed_name]["passed"] = False
+        failed_snapshot = RunSnapshot(
+            run_id=snapshot.run_id,
+            status=snapshot.status,
+            revision=snapshot.revision,
+            current_contract_version=snapshot.current_contract_version,
+            last_cursor=snapshot.last_cursor,
+            projection={**dict(snapshot.projection), "peer_reviews": [failed]},
+        )
+        failed_result = validate_closure_witness(
+            failed_snapshot, payload, {"evidence": []}, policy
+        )
+        assert not failed_result.accepted
+        assert failed_result.rejection_code == "INDEPENDENCE_UNKNOWN"
+
+    for failed_name in ("proof_checked", "scope_checked"):
+        failed = deepcopy(managed)
+        failed["checklist"][failed_name]["passed"] = False
+        failed_snapshot = RunSnapshot(
+            run_id=snapshot.run_id,
+            status=snapshot.status,
+            revision=snapshot.revision,
+            current_contract_version=snapshot.current_contract_version,
+            last_cursor=snapshot.last_cursor,
+            projection={**dict(snapshot.projection), "peer_reviews": [failed]},
+        )
+        failed_result = validate_closure_witness(
+            failed_snapshot, payload, {"evidence": []}, policy
+        )
+        assert not failed_result.accepted
+        assert failed_result.rejection_code == "INDEPENDENCE_UNKNOWN"
+
+    for failed_name in managed["checklist"]["six_parts"]:
+        failed = deepcopy(managed)
+        failed["checklist"]["six_parts"][failed_name]["passed"] = False
+        failed_snapshot = RunSnapshot(
+            run_id=snapshot.run_id,
+            status=snapshot.status,
+            revision=snapshot.revision,
+            current_contract_version=snapshot.current_contract_version,
+            last_cursor=snapshot.last_cursor,
+            projection={**dict(snapshot.projection), "peer_reviews": [failed]},
+        )
+        failed_result = validate_closure_witness(
+            failed_snapshot, payload, {"evidence": []}, policy
+        )
+        assert not failed_result.accepted
+        assert failed_result.rejection_code == "INDEPENDENCE_UNKNOWN"
 
 
 def test_human_parts_cannot_be_submitted_as_machine() -> None:

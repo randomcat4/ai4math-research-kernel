@@ -1,3 +1,4 @@
+# ruff: noqa: RUF001 -- Assertions intentionally match Chinese report punctuation.
 import json
 
 import pytest
@@ -122,7 +123,8 @@ def test_markdown_and_json_use_the_same_canonical_claim_states(field: str, value
 
     exported_claim = json.loads(json_bytes)["projection"]["claims"][0]
     assert exported_claim[field] == value
-    assert f"{field}={value}" in markdown_bytes.decode("utf-8")
+    assert value not in markdown_bytes.decode("utf-8")
+    assert "结论与核验边界" in markdown_bytes.decode("utf-8")
 
 
 def test_dossier_fails_closed_when_a_canonical_claim_state_is_missing() -> None:
@@ -157,9 +159,11 @@ def test_chinese_markdown_contains_problem_negation_and_outcome() -> None:
     assert media == "text/markdown; charset=utf-8"
     assert r"\\sum_{i=1}^n" in text
     assert "存在一个正整数 n" in text
-    assert "最终结论: `UNRESOLVED`" in text
+    assert "最终结论：未解决" in text
+    assert "机器核验=未核验" in text
     assert "根命题" in text
-    assert "信任分类=UNMANAGED_CANDIDATE" in text
-    assert "权威作用=NONE" in text
-    assert "可晋级=False" in text
-    assert "原始意见=ACCEPT" in text
+    assert "当前不产生数学权威" in text
+    assert "同行意见：通过" in text
+    assert "修订号" not in text
+    assert "规范化陈述" not in text
+    assert "UNRESOLVED" not in text

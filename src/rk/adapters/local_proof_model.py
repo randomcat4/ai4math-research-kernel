@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -38,9 +39,14 @@ class LocalProofModelAdapter:
         self.version = profile.version
 
     def run(self, request: Mapping[str, Any]) -> Mapping[str, Any]:
+        structured = "model" in request or "prompt" in request or "max_new_tokens" in request
         require_exact_keys(
             request,
-            required=frozenset({"input_relpath", "output_relpath", "environment"}),
+            required=(
+                frozenset({"model", "prompt", "max_new_tokens", "output_relpath", "environment"})
+                if structured
+                else frozenset({"input_relpath", "output_relpath", "environment"})
+            ),
             label="local proof model request",
         )
         environment = request["environment"]
@@ -52,7 +58,49 @@ class LocalProofModelAdapter:
         assert workspace is not None
         assert output_root is not None
         assert binary is not None
-        input_path = confined_path(workspace, str(request["input_relpath"]), label="input_relpath")
+        if structured:
+            model, prompt, max_new_tokens = (
+                request["model"], request["prompt"], request["max_new_tokens"]
+            )
+            if model not in {"qed-nano", "deepseek-prover"}:
+                raise AdapterRequestError("model must be qed-nano or deepseek-prover")
+            if (
+                not isinstance(prompt, str)
+                or not prompt.strip()
+                or len(prompt.encode("utf-8")) > 64 * 1024
+            ):
+                raise AdapterRequestError("prompt must be non-empty and at most 64 KiB")
+            if (
+                not isinstance(max_new_tokens, int)
+                or isinstance(max_new_tokens, bool)
+                or not 1 <= max_new_tokens <= 1024
+            ):
+                raise AdapterRequestError("max_new_tokens must be between 1 and 1024")
+            input_payload = {
+                "model": model, "prompt": prompt, "max_new_tokens": max_new_tokens
+            }
+            input_sha256 = hashlib.sha256(
+                json.dumps(
+                    input_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+                ).encode("utf-8")
+            ).hexdigest()
+            input_path = confined_path(
+                workspace,
+                f".rk-local-proof/{input_sha256}.json",
+                label="materialized_input_relpath",
+            )
+            input_path.parent.mkdir(parents=True, exist_ok=True)
+            encoded = json.dumps(
+                input_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8") + b"\n"
+            if input_path.exists() and input_path.read_bytes() != encoded:
+                return {**self.profile.provenance(), "status": "INPUT_COLLISION"}
+            if not input_path.exists():
+                input_path.write_bytes(encoded)
+        else:
+            input_path = confined_path(
+                workspace, str(request["input_relpath"]), label="input_relpath"
+            )
         output_path = confined_path(
             output_root, str(request["output_relpath"]), label="output_relpath"
         )

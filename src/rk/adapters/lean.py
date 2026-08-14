@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import os
 import re
 import time
 from collections.abc import Mapping, Sequence
@@ -23,6 +25,9 @@ _FORBIDDEN = re.compile(
 )
 _DECLARATION = re.compile(r"^[A-Za-z_][A-Za-z0-9_'.]*$")
 _AXIOM_LIST = re.compile(r"depends on axioms:\s*\[([^\]]*)\]")
+_DECLARATION_AUDIT = re.compile(
+    r"RK_DECL_AUDIT\s+(\S+)\s+(target_module|other_module)\s+(.+)"
+)
 
 
 class LeanReplayAdapter:
@@ -78,6 +83,13 @@ class LeanReplayAdapter:
         assert expected_toolchain is not None
         source = confined_path(project_root, str(request["source_relpath"]), label="source_relpath")
         output = confined_path(output_root, str(request["output_relpath"]), label="output_relpath")
+        source_relative = source.relative_to(project_root)
+        expected_output_relative = source_relative.with_suffix(".olean")
+        if output.relative_to(output_root) != expected_output_relative:
+            raise AdapterRequestError("output_relpath must mirror the source module path")
+        module_name = ".".join(source_relative.with_suffix("").parts)
+        if any(not _DECLARATION.fullmatch(part) for part in module_name.split(".")):
+            raise AdapterRequestError("source_relpath does not define a valid Lean module")
         env = self.profile.select_environment(environment)
         common = {
             **self.profile.provenance(),
@@ -115,7 +127,7 @@ class LeanReplayAdapter:
                 "kernel_verdict": "NOT_RUN",
             }
         output.parent.mkdir(parents=True, exist_ok=True)
-        argv = [*self.profile.argv_prefix, "-o", str(output), str(source.relative_to(project_root))]
+        argv = [*self.profile.argv_prefix, "-o", str(output), str(source_relative)]
         compile_started = time.monotonic_ns()
         completed = self.runner.run(
             argv,
@@ -143,17 +155,38 @@ class LeanReplayAdapter:
                 "transient_execution_output": transient,
             }
         audit_source.write_text(
-            source_text
+            f"import {module_name}\nimport Lean\n"
+            + """
+open Lean Elab Command
+elab \"#rk_decl_audit \" n:ident : command => do
+  let env ← getEnv
+  let name := n.getId
+  let info ← getConstInfo name
+  let type ← liftTermElabM do Meta.ppExpr info.type
+  let targetModule := env.getModuleIdx? `MODULE_NAME
+  let owner := if env.getModuleIdxFor? name == targetModule then
+    \"target_module\"
+  else
+    \"other_module\"
+  logInfo m!\"RK_DECL_AUDIT {name} {owner} {type}\"
+""".replace("MODULE_NAME", module_name)
+            + "\n"
+            + "\n".join(f"#rk_decl_audit {name}" for name in declaration_names)
             + "\n"
             + "\n".join(f"#print axioms {name}" for name in declaration_names)
             + "\n",
             encoding="utf-8",
         )
         audit_started = time.monotonic_ns()
+        audit_env = dict(env)
+        prior_lean_path = audit_env.get("LEAN_PATH")
+        audit_env["LEAN_PATH"] = str(output_root) + (
+            os.pathsep + prior_lean_path if prior_lean_path else ""
+        )
         audit = self.runner.run(
-            [*self.profile.argv_prefix, str(audit_source)],
+            [str(binary_path), str(audit_source)],
             cwd=project_root,
-            env=env,
+            env=audit_env,
             timeout=self.profile.timeout_seconds,
         )
         audit_wall_time_ms = (time.monotonic_ns() - audit_started) // 1_000_000
@@ -171,12 +204,18 @@ class LeanReplayAdapter:
                     "axiom_stderr": audit.stderr,
                 },
             }
-        reported = [name for name in declaration_names if name in audit_output]
-        if len(reported) != len(declaration_names):
+        declaration_audits = {
+            name: {"owner": owner, "type": rendered_type.strip()}
+            for name, owner, rendered_type in _DECLARATION_AUDIT.findall(audit_output)
+        }
+        if set(declaration_audits) != set(declaration_names) or any(
+            item["owner"] != "target_module" or not item["type"]
+            for item in declaration_audits.values()
+        ):
             return {
                 **common,
-                "status": "ADAPTER_SCHEMA_MISMATCH",
-                "kernel_verdict": "NOT_PROVIDED",
+                "status": "POLICY_VIOLATION",
+                "kernel_verdict": "REJECTED",
                 "exit_code": audit.returncode,
                 "transient_execution_output": {
                     **transient,
@@ -213,6 +252,16 @@ class LeanReplayAdapter:
             "output_sha256": self._sha256_file(output),
             "output_byte_count": output.stat().st_size,
             "axiom_dependencies": sorted(used_axioms),
+            "declaration_audit": declaration_audits,
+            "declaration_module": module_name,
+            "declaration_type_digest": hashlib.sha256(
+                json.dumps(
+                    declaration_audits,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
             "phase_wall_time_ms": {
                 "compile": compile_wall_time_ms,
                 "axiom_audit": audit_wall_time_ms,

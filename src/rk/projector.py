@@ -12,11 +12,14 @@ import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from hashlib import sha256
 from typing import Any
 
 from rk.domain import TypedCommand
+from rk.extensions import ExtensionRegistry
 from rk.ports import IdGenerator
 from rk.runtime import format_utc
+from rk.wire import canonical_json_bytes
 
 
 class ProjectionError(RuntimeError):
@@ -44,13 +47,25 @@ class ProjectionContext:
 class ProjectionWriter:
     """Apply a frozen set of mutation opcodes inside the caller's transaction."""
 
-    unsupported_ops = frozenset({"CREATE_CONTRACT_VERSION"})
+    unsupported_ops: frozenset[str] = frozenset()
 
-    def __init__(self, id_generator: IdGenerator) -> None:
+    def __init__(
+        self,
+        id_generator: IdGenerator,
+        extensions: ExtensionRegistry | None = None,
+    ) -> None:
         self._ids = id_generator
+        self._extensions = extensions or ExtensionRegistry()
 
     def supports(self, mutations: Sequence[Mapping[str, Any]]) -> bool:
-        return all(str(item.get("op")) not in self.unsupported_ops for item in mutations)
+        return all(
+            str(item.get("op")) not in self.unsupported_ops
+            and (
+                getattr(self, f"_op_{item.get('op')}", None) is not None
+                or str(item.get("op")) in self._extensions.projection_mutations
+            )
+            for item in mutations
+        )
 
     def apply(
         self,
@@ -62,7 +77,10 @@ class ProjectionWriter:
             op = str(mutation.get("op"))
             handler = getattr(self, f"_op_{op}", None)
             if handler is None:
-                raise ProjectionError(f"unsupported projection mutation: {op}")
+                if op not in self._extensions.projection_mutations:
+                    raise ProjectionError(f"unsupported projection mutation: {op}")
+                self._extensions.apply_projection_mutation(connection, context, mutation)
+                continue
             handler(connection, context, mutation)
 
     @staticmethod
@@ -166,9 +184,184 @@ class ProjectionWriter:
         context: ProjectionContext,
         mutation: Mapping[str, Any],
     ) -> None:
-        del connection, context, mutation
-        raise ProjectionError(
-            "AmendContract is disabled until the patch artifact wire format is frozen"
+        replacement = mutation.get("replacement_contract")
+        artifact_id = context.generated_artifact_ids.get("amended_contract")
+        if not isinstance(replacement, Mapping) or artifact_id is None:
+            raise ProjectionError("AmendContract did not stage the replacement contract")
+        contract_bytes = canonical_json_bytes(replacement)
+        connection.execute(
+            "INSERT INTO contract_versions(run_id,version,status,contract_artifact_id,"
+            "contract_json,statement_hash,supersedes_version,created_by_capability_id,"
+            "approved_by_json,impact_analysis_json,created_at,frozen_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                context.run_id,
+                int(mutation["version"]),
+                str(mutation["status"]),
+                artifact_id,
+                _json(replacement),
+                sha256(contract_bytes).hexdigest(),
+                context.contract_version,
+                context.capability_id,
+                _json(mutation.get("approved_by", [])),
+                _json({"artifact_id": context.command.payload["impact_analysis_artifact_id"]}),
+                context.recorded_at,
+                context.recorded_at,
+            ),
+        )
+        connection.execute(
+            "UPDATE runs SET current_contract_version=?,root_claim_id=NULL,updated_at=? "
+            "WHERE run_id=?",
+            (int(mutation["version"]), context.recorded_at, context.run_id),
+        )
+        connection.execute(
+            "UPDATE routes SET status='RETIRED',retired_by_event_id=?,updated_at=? "
+            "WHERE run_id=? AND contract_version=? AND status<>'RETIRED'",
+            (context.event_id, context.recorded_at, context.run_id, context.contract_version),
+        )
+
+    @staticmethod
+    def _op_MIGRATE_CONTRACT_CLOSURE(
+        connection: sqlite3.Connection,
+        context: ProjectionContext,
+        mutation: Mapping[str, Any],
+    ) -> None:
+        """Carry independent facts forward and invalidate only the defect closure.
+
+        Claim ids are stable research-memory handles.  A contract amendment therefore
+        keeps unaffected active claims (and their claim-scoped evidence) under the new
+        version, while the declared defect seeds and every logical dependent remain in
+        the superseded version as invalid history.
+        """
+
+        new_version = int(mutation["version"])
+        seeds = tuple(dict.fromkeys(str(item) for item in mutation["affected_claim_ids"]))
+        if not seeds:
+            raise ProjectionError("contract amendment has no affected claim seeds")
+        seed_placeholders = ",".join("?" for _ in seeds)
+        invalid_rows = connection.execute(
+            "WITH RECURSIVE affected(claim_id) AS ("
+            f"SELECT claim_id FROM claims WHERE claim_id IN ({seed_placeholders}) "
+            "AND run_id=? AND contract_version=? UNION "
+            "SELECT CASE WHEN e.direction='REVERSE' THEN e.from_claim_id "
+            "ELSE e.to_claim_id END FROM claim_edges e JOIN affected a ON "
+            "(e.direction<>'REVERSE' AND e.from_claim_id=a.claim_id) OR "
+            "(e.direction='REVERSE' AND e.to_claim_id=a.claim_id) "
+            "WHERE e.run_id=? AND e.contract_version=? "
+            "AND e.status='ACTIVE' AND e.edge_kind IN "
+            "('IMPLIES','DEPENDS_ON','SPECIALIZES','GENERALIZES') UNION "
+            "SELECT e.from_claim_id FROM claim_edges e JOIN affected a "
+            "ON e.to_claim_id=a.claim_id WHERE e.run_id=? AND e.contract_version=? "
+            "AND e.status='ACTIVE' AND e.direction='BIDIRECTIONAL' AND e.edge_kind IN "
+            "('IMPLIES','DEPENDS_ON','SPECIALIZES','GENERALIZES')) "
+            "SELECT claim_id FROM affected",
+            (
+                *seeds,
+                context.run_id,
+                context.contract_version,
+                context.run_id,
+                context.contract_version,
+                context.run_id,
+                context.contract_version,
+            ),
+        ).fetchall()
+        invalid = tuple(str(row[0]) for row in invalid_rows)
+        if not invalid:
+            raise ProjectionError("contract amendment seeds are outside the current contract")
+        invalid_placeholders = ",".join("?" for _ in invalid)
+
+        connection.execute(
+            f"UPDATE claims SET lifecycle_status='SUPERSEDED',closure_state="
+            f"CASE WHEN closure_state='NOT_REQUIRED' THEN closure_state ELSE 'INVALIDATED' END,"
+            f"invalidated_by_event_id=?,updated_at=? WHERE claim_id IN ({invalid_placeholders})",
+            (context.event_id, context.recorded_at, *invalid),
+        )
+        connection.execute(
+            f"UPDATE evidence SET ingest_status='INVALIDATED',invalidated_by_event_id=? "
+            f"WHERE ingest_status='ACCEPTED' AND claim_id IN ({invalid_placeholders})",
+            (context.event_id, *invalid),
+        )
+        connection.execute(
+            f"UPDATE claim_edges SET status='INVALIDATED',invalidated_by_event_id=? "
+            f"WHERE run_id=? AND contract_version=? AND status='ACTIVE' AND "
+            f"(from_claim_id IN ({invalid_placeholders}) "
+            f"OR to_claim_id IN ({invalid_placeholders}))",
+            (context.event_id, context.run_id, context.contract_version, *invalid, *invalid),
+        )
+        connection.execute(
+            f"UPDATE closure_witnesses SET status='INVALIDATED' WHERE status='ACCEPTED' "
+            f"AND parent_claim_id IN ({invalid_placeholders})",
+            invalid,
+        )
+        connection.execute(
+            f"UPDATE composition_obligations SET status='INVALIDATED',updated_by_event_id=?,"
+            f"updated_at=? WHERE status<>'INVALIDATED' "
+            f"AND parent_claim_id IN ({invalid_placeholders})",
+            (context.event_id, context.recorded_at, *invalid),
+        )
+
+        carried_rows = connection.execute(
+            f"SELECT claim_id FROM claims WHERE run_id=? AND contract_version=? "
+            f"AND lifecycle_status='ACTIVE' AND claim_id NOT IN ({invalid_placeholders})",
+            (context.run_id, context.contract_version, *invalid),
+        ).fetchall()
+        carried = tuple(str(row[0]) for row in carried_rows)
+        if carried:
+            carried_placeholders = ",".join("?" for _ in carried)
+            # Claim-scoped truth records follow the stable claim into the amended contract.
+            for table in (
+                "evidence",
+                "peer_reviews",
+                "quality_reviews",
+                "atomic_verifications",
+                "lean_feedback_events",
+            ):
+                connection.execute(
+                    f"UPDATE {table} SET contract_version=? WHERE run_id=? "
+                    f"AND contract_version=? AND claim_id IN ({carried_placeholders})",
+                    (new_version, context.run_id, context.contract_version, *carried),
+                )
+            connection.execute(
+                f"UPDATE research_hints SET contract_version=? WHERE run_id=? "
+                f"AND contract_version=? AND target_claim_id IN ({carried_placeholders})",
+                (new_version, context.run_id, context.contract_version, *carried),
+            )
+            connection.execute(
+                f"UPDATE literature_records SET contract_version=? WHERE run_id=? "
+                f"AND contract_version=? AND claim_id IN ({carried_placeholders})",
+                (new_version, context.run_id, context.contract_version, *carried),
+            )
+            connection.execute(
+                f"UPDATE claim_edges SET contract_version=? WHERE run_id=? AND contract_version=? "
+                f"AND status='ACTIVE' AND from_claim_id IN ({carried_placeholders}) "
+                f"AND to_claim_id IN ({carried_placeholders})",
+                (new_version, context.run_id, context.contract_version, *carried, *carried),
+            )
+            connection.execute(
+                f"UPDATE bridges SET contract_version=? WHERE run_id=? AND contract_version=? "
+                f"AND source_claim_id IN ({carried_placeholders}) "
+                f"AND target_claim_id IN ({carried_placeholders})",
+                (new_version, context.run_id, context.contract_version, *carried, *carried),
+            )
+            connection.execute(
+                f"UPDATE claims SET contract_version=?,updated_at=? "
+                f"WHERE claim_id IN ({carried_placeholders})",
+                (new_version, context.recorded_at, *carried),
+            )
+        connection.execute(
+            "UPDATE contract_versions SET impact_analysis_json=? WHERE run_id=? AND version=?",
+            (
+                _json(
+                    {
+                        "artifact_id": context.command.payload["impact_analysis_artifact_id"],
+                        "defect_seed_claim_ids": list(seeds),
+                        "invalidated_claim_ids": list(invalid),
+                        "carried_claim_ids": list(carried),
+                    }
+                ),
+                context.run_id,
+                new_version,
+            ),
         )
 
     @staticmethod
@@ -384,6 +577,27 @@ class ProjectionWriter:
                 context.recorded_at,
             ),
         )
+        verdict = str(p["verdict"])
+        managed = profile.get("managed_human") is True
+        peer_value = (
+            {"ACCEPT": "ACCEPTED", "REJECT": "REJECTED"}.get(
+                verdict, "NEEDS_REVISION"
+            )
+            if managed
+            else None
+        )
+        semantic_value = (
+            "HUMAN_ATTESTED"
+            if verdict == "ACCEPT"
+            and p.get("checklist", {}).get("semantic_attestation") is True
+            else None
+        )
+        connection.execute(
+            "UPDATE claims SET peer_verdict=COALESCE(?,peer_verdict),"
+            "semantic_verdict=COALESCE(?,semantic_verdict),"
+            "updated_at=? WHERE claim_id=?",
+            (peer_value, semantic_value, context.recorded_at, p["claim_id"]),
+        )
 
     def _op_APPEND_QUALITY_REVIEW(
         self,
@@ -410,6 +624,13 @@ class ProjectionWriter:
                 context.event_id,
                 context.recorded_at,
             ),
+        )
+        quality_value = {"ACCEPT": "ACCEPTED", "REJECT": "REJECTED"}.get(
+            str(p["verdict"]), "NEEDS_REVISION"
+        )
+        connection.execute(
+            "UPDATE claims SET quality_verdict=?,updated_at=? WHERE claim_id=?",
+            (quality_value, context.recorded_at, p["claim_id"]),
         )
 
     def _op_APPEND_LITERATURE_RECORD(
@@ -455,8 +676,8 @@ class ProjectionWriter:
             "INSERT INTO bridges(bridge_id,run_id,contract_version,source_claim_id,target_claim_id,"
             "directionality,term_mapping_json,forward_obligations_json,reverse_obligations_json,"
             "loss_accounting_json,target_audit_review_id,backtranslation_artifact_id,"
-            "created_by_event_id,updated_by_event_id,created_at,updated_at) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "created_by_event_id,updated_by_event_id,created_at,updated_at,bridge_spec_json,"
+            "forward_status,reverse_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 bridge_id,
                 context.run_id,
@@ -474,6 +695,9 @@ class ProjectionWriter:
                 context.event_id,
                 context.recorded_at,
                 context.recorded_at,
+                _json(p["bridge_spec"]),
+                mutation["forward_status"],
+                mutation["reverse_status"],
             ),
         )
 
@@ -596,6 +820,161 @@ class ProjectionWriter:
                 context.event_id,
                 context.recorded_at,
             ),
+        )
+
+    @staticmethod
+    def _op_REVOKE_FACT_CLOSURE(
+        connection: sqlite3.Connection,
+        context: ProjectionContext,
+        mutation: Mapping[str, Any],
+    ) -> None:
+        fact_id = str(mutation["fact_id"])
+        closure = connection.execute(
+            "WITH RECURSIVE affected(claim_id) AS ("
+            "SELECT ? UNION SELECT CASE WHEN e.direction='REVERSE' THEN e.from_claim_id "
+            "ELSE e.to_claim_id END FROM claim_edges e JOIN affected a ON "
+            "(e.direction<>'REVERSE' AND e.from_claim_id=a.claim_id) OR "
+            "(e.direction='REVERSE' AND e.to_claim_id=a.claim_id) "
+            "WHERE e.run_id=? AND e.contract_version=? AND e.status='ACTIVE' "
+            "AND e.edge_kind IN ('IMPLIES','DEPENDS_ON','SPECIALIZES','GENERALIZES') "
+            "UNION SELECT e.from_claim_id FROM claim_edges e JOIN affected a "
+            "ON e.to_claim_id=a.claim_id WHERE e.run_id=? AND e.contract_version=? "
+            "AND e.status='ACTIVE' AND e.direction='BIDIRECTIONAL' "
+            "AND e.edge_kind IN ('IMPLIES','DEPENDS_ON','SPECIALIZES','GENERALIZES')) "
+            "SELECT claim_id FROM affected",
+            (
+                fact_id,
+                context.run_id,
+                context.contract_version,
+                context.run_id,
+                context.contract_version,
+            ),
+        ).fetchall()
+        affected = tuple(str(row[0]) for row in closure)
+        if not affected:
+            raise ProjectionError("fact revocation closure is empty")
+        placeholders = ",".join("?" for _ in affected)
+        connection.execute(
+            f"UPDATE claims SET lifecycle_status='INVALIDATED',closure_state='INVALIDATED',"
+            f"invalidated_by_event_id=?,updated_at=? WHERE claim_id IN ({placeholders})",
+            (context.event_id, context.recorded_at, *affected),
+        )
+        connection.execute(
+            f"UPDATE claim_edges SET status='INVALIDATED',invalidated_by_event_id=? "
+            f"WHERE status='ACTIVE' AND (from_claim_id IN ({placeholders}) "
+            f"OR to_claim_id IN ({placeholders}))",
+            (context.event_id, *affected, *affected),
+        )
+        connection.execute(
+            f"UPDATE closure_witnesses SET status='INVALIDATED' "
+            f"WHERE status='ACCEPTED' AND parent_claim_id IN ({placeholders})",
+            affected,
+        )
+        connection.execute(
+            f"UPDATE evidence SET ingest_status='INVALIDATED',invalidated_by_event_id=? "
+            f"WHERE ingest_status='ACCEPTED' AND claim_id IN ({placeholders})",
+            (context.event_id, *affected),
+        )
+        connection.execute(
+            f"UPDATE composition_obligations SET status='INVALIDATED',updated_by_event_id=?,"
+            f"updated_at=? WHERE status<>'INVALIDATED' AND parent_claim_id IN ({placeholders})",
+            (context.event_id, context.recorded_at, *affected),
+        )
+
+    def _op_RECORD_RESEARCH_HINT(
+        self,
+        connection: sqlite3.Connection,
+        context: ProjectionContext,
+        mutation: Mapping[str, Any],
+    ) -> None:
+        del mutation
+        payload = context.command.payload
+        connection.execute(
+            "INSERT INTO research_hints(hint_id,run_id,contract_version,hint_kind,hint_text,"
+            "target_route_id,target_claim_id,checkpoint_label,created_by_capability_id,"
+            "created_by_event_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                self._ids.new(),
+                context.run_id,
+                context.contract_version,
+                payload["hint_kind"],
+                payload["hint"],
+                payload.get("target_route_id"),
+                payload.get("target_claim_id"),
+                payload["checkpoint_label"],
+                context.capability_id,
+                context.event_id,
+                context.recorded_at,
+            ),
+        )
+
+    def _op_RECORD_PAPER_REVIEW(
+        self,
+        connection: sqlite3.Connection,
+        context: ProjectionContext,
+        mutation: Mapping[str, Any],
+    ) -> None:
+        del mutation
+        payload = context.command.payload
+        connection.execute(
+            "INSERT INTO paper_reviews(paper_review_id,run_id,contract_version,final_fact_id,"
+            "paper_sha256,status,review_artifact_id,reviewer_capability_id,created_by_event_id,"
+            "created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (
+                self._ids.new(),
+                context.run_id,
+                context.contract_version,
+                payload["final_fact_id"],
+                payload["paper_sha256"],
+                payload["status"],
+                payload["review_artifact_id"],
+                context.capability_id,
+                context.event_id,
+                context.recorded_at,
+            ),
+        )
+
+    def _op_RECORD_ATOMIC_VERIFICATION(
+        self,
+        connection: sqlite3.Connection,
+        context: ProjectionContext,
+        mutation: Mapping[str, Any],
+    ) -> None:
+        payload = context.command.payload
+        connection.execute(
+            "INSERT INTO atomic_verifications(verification_id,run_id,contract_version,claim_id,"
+            "backend,verdict,verification_ref,repair_feedback,verifier_capability_id,"
+            "created_by_event_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                self._ids.new(),
+                context.run_id,
+                context.contract_version,
+                payload["claim_id"],
+                payload["backend"],
+                payload["verdict"],
+                payload.get("verification_ref"),
+                payload.get("repair_feedback", ""),
+                context.capability_id,
+                context.event_id,
+                context.recorded_at,
+            ),
+        )
+        if mutation.get("accepted") is not True:
+            return
+        updates = ["updated_at=?"]
+        values: list[Any] = [context.recorded_at]
+        for column, key in (
+            ("machine_verdict", "machine"),
+            ("semantic_verdict", "semantic"),
+            ("peer_verdict", "peer"),
+        ):
+            if mutation.get(key) is not None:
+                updates.append(f"{column}=?")
+                values.append(mutation[key])
+        values.append(payload["claim_id"])
+        connection.execute(
+            f"UPDATE claims SET {','.join(updates)} WHERE claim_id=?",
+            values,
         )
 
     @staticmethod
@@ -768,6 +1147,12 @@ class ProjectionWriter:
             "UPDATE claims SET closure_state = ?, updated_at = ? WHERE claim_id = ?",
             (mutation["closure_state"], context.recorded_at, p["parent_claim_id"]),
         )
+        if mutation["closure_state"] in {"CLOSED_HUMAN", "CLOSED_HYBRID"}:
+            connection.execute(
+                "UPDATE claims SET semantic_verdict = 'HUMAN_ATTESTED', updated_at = ? "
+                "WHERE claim_id = ?",
+                (context.recorded_at, p["parent_claim_id"]),
+            )
 
     def _op_SET_CLAIM_AXIS(
         self,

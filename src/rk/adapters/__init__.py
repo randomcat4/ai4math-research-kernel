@@ -5,6 +5,10 @@ registered profiles and passes them to the kernel through the ``ExecutionAdapter
 """
 
 from rk.adapters.archon import ArchonAdapter
+from rk.adapters.attestation import (
+    IndependentVerifierArtifactAdapter,
+    VerifierIdentity,
+)
 from rk.adapters.base import (
     AdapterConfigurationError,
     AdapterProfile,
@@ -17,6 +21,7 @@ from rk.adapters.base import (
     SafeSubprocessRunner,
     UrlLibHttpClient,
 )
+from rk.adapters.deepseek_responses import DeepSeekResponsesControllerAdapter
 from rk.adapters.deterministic import RegisteredFileToolAdapter
 from rk.adapters.jixia import JixiaAdapter
 from rk.adapters.lean import LeanReplayAdapter
@@ -34,8 +39,10 @@ __all__ = [
     "ArchonAdapter",
     "CrossrefLiteratureAdapter",
     "CurlHttpClient",
+    "DeepSeekResponsesControllerAdapter",
     "HttpClient",
     "HttpResponse",
+    "IndependentVerifierArtifactAdapter",
     "JixiaAdapter",
     "LeanReplayAdapter",
     "LeanSearchAdapter",
@@ -48,4 +55,5 @@ __all__ = [
     "RethlasAdapter",
     "SafeSubprocessRunner",
     "UrlLibHttpClient",
+    "VerifierIdentity",
 ]

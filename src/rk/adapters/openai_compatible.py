@@ -60,6 +60,8 @@ class OpenAICompatibleAdapter:
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": max_tokens,
+                "thinking": {"type": "disabled"},
+                "response_format": {"type": "json_object"},
                 "_rk_authorization_bearer": api_key,
             },
             timeout=self.profile.timeout_seconds,
@@ -87,7 +89,26 @@ class OpenAICompatibleAdapter:
             if not isinstance(message, Mapping):
                 raise ValueError("message missing")
             text = message.get("content")
+            finish_reason = choices[0].get("finish_reason")
             if not isinstance(text, str) or not text.strip():
+                if finish_reason == "length":
+                    return {
+                        **common,
+                        "status": "TOKEN_LIMIT",
+                        "payload": None,
+                        "usage": {
+                            "input_tokens": int(value.get("usage", {}).get("prompt_tokens", 0)),
+                            "output_tokens": int(
+                                value.get("usage", {}).get("completion_tokens", 0)
+                            ),
+                            "reasoning_tokens": int(
+                                value.get("usage", {})
+                                .get("completion_tokens_details", {})
+                                .get("reasoning_tokens", 0)
+                            ),
+                            "total_tokens": int(value.get("usage", {}).get("total_tokens", 0)),
+                        },
+                    }
                 raise ValueError("content missing")
             usage_raw = value.get("usage")
             usage_raw = usage_raw if isinstance(usage_raw, Mapping) else {}
@@ -108,5 +129,11 @@ class OpenAICompatibleAdapter:
             "status": "COMPLETED",
             "payload": {"text": text.strip()},
             "usage": usage,
-            "provider_request": {"model": model, "max_tokens": max_tokens, "tools": []},
+            "provider_request": {
+                "model": model,
+                "max_tokens": max_tokens,
+                "thinking": "disabled",
+                "response_format": "json_object",
+                "tools": [],
+            },
         }

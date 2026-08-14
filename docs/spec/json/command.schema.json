@@ -115,9 +115,11 @@
           "additionalProperties": false,
           "required": ["format", "include_raw_artifacts", "language"],
           "properties": {
-            "format": {"enum": ["JSON", "MARKDOWN"]},
+            "format": {"enum": ["JSON", "MARKDOWN", "LATEX", "PDF"]},
             "include_raw_artifacts": {"type": "boolean"},
-            "language": {"enum": ["zh-CN", "en"]}
+            "language": {"enum": ["zh-CN", "en"]},
+            "final_fact_id": {"$ref": "#/$defs/id"},
+            "title": {"type": "string", "minLength": 1}
           }
         }
       }
@@ -138,7 +140,69 @@
         {"$ref": "#/$defs/registerAttempt"}, {"$ref": "#/$defs/acquireLease"},
         {"$ref": "#/$defs/heartbeatLease"}, {"$ref": "#/$defs/releaseLease"},
         {"$ref": "#/$defs/recordBudget"}, {"$ref": "#/$defs/bindExecution"}
+        , {"$ref": "#/$defs/revokeFact"}, {"$ref": "#/$defs/recordResearchHint"},
+        {"$ref": "#/$defs/recordPaperReview"}, {"$ref": "#/$defs/verifyAtomicClaim"}
       ]
+    },
+    "revokeFact": {
+      "type": "object", "additionalProperties": false, "required": ["type", "payload"],
+      "properties": {"type": {"const": "RevokeFact"}, "payload": {
+        "type": "object", "additionalProperties": false,
+        "required": ["contract_version", "fact_id", "reason"],
+        "properties": {
+          "contract_version": {"type": "integer", "minimum": 1},
+          "fact_id": {"$ref": "#/$defs/id"},
+          "reason": {"type": "string", "minLength": 1}
+        }
+      }}
+    },
+    "recordResearchHint": {
+      "type": "object", "additionalProperties": false, "required": ["type", "payload"],
+      "properties": {"type": {"const": "RecordResearchHint"}, "payload": {
+        "type": "object", "additionalProperties": false,
+        "required": ["contract_version", "hint_kind", "hint", "checkpoint_label"],
+        "properties": {
+          "contract_version": {"type": "integer", "minimum": 1},
+          "hint_kind": {"enum": ["CHANGE_REPRESENTATION", "STOP_ROUTE", "PRIORITIZE_LEMMA", "CHANGE_STRATEGY", "OTHER"]},
+          "hint": {"type": "string", "minLength": 1},
+          "checkpoint_label": {"type": "string", "minLength": 1},
+          "target_route_id": {"$ref": "#/$defs/id"},
+          "target_claim_id": {"$ref": "#/$defs/id"}
+        }
+      }}
+    },
+    "recordPaperReview": {
+      "type": "object", "additionalProperties": false, "required": ["type", "payload"],
+      "properties": {"type": {"const": "RecordPaperReview"}, "payload": {
+        "type": "object", "additionalProperties": false,
+        "required": ["contract_version", "final_fact_id", "paper_sha256", "status", "review_artifact_id", "verifier_attestation"],
+        "properties": {
+          "contract_version": {"type": "integer", "minimum": 1},
+          "final_fact_id": {"$ref": "#/$defs/id"},
+          "paper_sha256": {"$ref": "#/$defs/hash"},
+          "status": {"enum": ["CORRECT", "WRONG", "PENDING", "OVERRIDDEN"]},
+          "review_artifact_id": {"$ref": "#/$defs/id"},
+          "whole_paper_review": {"type": "boolean"},
+          "checks": {"$ref": "#/$defs/jsonObject"},
+          "independence": {"$ref": "#/$defs/jsonObject"},
+          "verifier_attestation": {"$ref": "#/$defs/jsonObject"}
+        }
+      }}
+    },
+    "verifyAtomicClaim": {
+      "type": "object", "additionalProperties": false, "required": ["type", "payload"],
+      "properties": {"type": {"const": "VerifyAtomicClaim"}, "payload": {
+        "type": "object", "additionalProperties": false,
+        "required": ["contract_version", "claim_id", "backend", "verdict"],
+        "properties": {
+          "contract_version": {"type": "integer", "minimum": 1},
+          "claim_id": {"$ref": "#/$defs/id"},
+          "backend": {"enum": ["LEAN", "DETERMINISTIC_CHECKER", "MANAGED_PEER", "SOFT_VERIFIER"]},
+          "verdict": {"enum": ["ACCEPTED", "REJECTED"]},
+          "verification_ref": {"$ref": "#/$defs/id"},
+          "repair_feedback": {"type": "string"}
+        }
+      }}
     },
     "typedCommand": {
       "type": "object",
@@ -166,8 +230,8 @@
       "type": "object", "additionalProperties": false, "required": ["type", "payload"],
       "properties": {"type": {"const": "AmendContract"}, "payload": {
         "type": "object", "additionalProperties": false,
-        "required": ["base_version", "patch_artifact_id", "approvals", "impact_analysis_artifact_id"],
-        "properties": {"base_version": {"type": "integer", "minimum": 1}, "patch_artifact_id": {"$ref": "#/$defs/id"}, "approvals": {"$ref": "#/$defs/idArray"}, "impact_analysis_artifact_id": {"$ref": "#/$defs/id"}}
+        "required": ["base_version", "replacement_contract", "patch_artifact_id", "approvals", "impact_analysis_artifact_id"],
+        "properties": {"base_version": {"type": "integer", "minimum": 1}, "replacement_contract": {"$ref": "#/$defs/contract"}, "patch_artifact_id": {"$ref": "#/$defs/id"}, "approvals": {"$ref": "#/$defs/idArray"}, "impact_analysis_artifact_id": {"$ref": "#/$defs/id"}}
       }}
     },
     "interrupt": {
@@ -228,8 +292,8 @@
       "type": "object", "additionalProperties": false, "required": ["type", "payload"],
       "properties": {"type": {"const": "RecordPeerReview"}, "payload": {
         "type": "object", "additionalProperties": false,
-        "required": ["claim_id","contract_version","statement_hash","review_artifact_id","verdict","checklist","source_graph"],
-        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "statement_hash": {"$ref": "#/$defs/hash"}, "selected_subgraph_digest": {"$ref": "#/$defs/hash"}, "review_artifact_id": {"$ref": "#/$defs/id"}, "verdict": {"enum": ["ACCEPT","REJECT","NEEDS_REVISION"]}, "checklist": {"$ref": "#/$defs/jsonObject"}, "source_graph": {"$ref": "#/$defs/jsonObject"}}
+        "required": ["claim_id","contract_version","statement_hash","review_artifact_id","verdict","checklist","source_graph","verifier_attestation"],
+        "properties": {"claim_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "statement_hash": {"$ref": "#/$defs/hash"}, "selected_subgraph_digest": {"$ref": "#/$defs/hash"}, "review_artifact_id": {"$ref": "#/$defs/id"}, "verdict": {"enum": ["ACCEPT","REJECT","NEEDS_REVISION"]}, "checklist": {"$ref": "#/$defs/jsonObject"}, "source_graph": {"$ref": "#/$defs/jsonObject"}, "verifier_attestation": {"$ref": "#/$defs/jsonObject"}}
       }}
     },
     "recordQualityReview": {
@@ -252,8 +316,8 @@
       "type": "object", "additionalProperties": false, "required": ["type", "payload"],
       "properties": {"type": {"const": "RegisterBridge"}, "payload": {
         "type": "object", "additionalProperties": false,
-        "required": ["contract_version","source_claim_id","target_claim_id","directionality","term_mapping","forward_obligations","reverse_obligations","loss_accounting"],
-        "properties": {"bridge_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "source_claim_id": {"$ref": "#/$defs/id"}, "target_claim_id": {"$ref": "#/$defs/id"}, "directionality": {"enum": ["CANDIDATE","ONE_WAY_VALID","EQUIVALENT_VALID","REFUTED"]}, "term_mapping": {"$ref": "#/$defs/jsonObject"}, "forward_obligations": {"type": "array", "items": {"type": "object"}}, "reverse_obligations": {"type": "array", "items": {"type": "object"}}, "loss_accounting": {"$ref": "#/$defs/jsonObject"}, "target_audit_review_id": {"$ref": "#/$defs/id"}, "backtranslation_artifact_id": {"$ref": "#/$defs/id"}}
+        "required": ["contract_version","source_claim_id","target_claim_id","directionality","term_mapping","forward_obligations","reverse_obligations","loss_accounting","bridge_spec"],
+        "properties": {"bridge_id": {"$ref": "#/$defs/id"}, "contract_version": {"type": "integer", "minimum": 1}, "source_claim_id": {"$ref": "#/$defs/id"}, "target_claim_id": {"$ref": "#/$defs/id"}, "directionality": {"enum": ["CANDIDATE","ONE_WAY_VALID","EQUIVALENT_VALID","REFUTED"]}, "term_mapping": {"$ref": "#/$defs/jsonObject"}, "forward_obligations": {"type": "array", "items": {"type": "object"}}, "reverse_obligations": {"type": "array", "items": {"type": "object"}}, "loss_accounting": {"$ref": "#/$defs/jsonObject"}, "bridge_spec": {"$ref": "#/$defs/jsonObject"}, "target_audit_review_id": {"$ref": "#/$defs/id"}, "backtranslation_artifact_id": {"$ref": "#/$defs/id"}}
       }}
     },
     "recordLeanFeedback": {

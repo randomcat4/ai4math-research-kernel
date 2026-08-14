@@ -26,9 +26,12 @@ from rk.domain import (
     frozen_mapping,
 )
 from rk.dossier import DossierBuilder
+from rk.extensions import ExtensionRegistry, ProductActivity
+from rk.factgraph import VerifiedFactGraph
 from rk.guard import TransitionGuard
 from rk.ingest import EvidenceIngest, IngestDisposition, IngestPolicy
 from rk.migrations import MigrationRunner
+from rk.paper import VerifiedPaper, paper_math_review_status
 from rk.ports import Clock, IdGenerator
 from rk.projector import ProjectionContext, ProjectionWriter
 from rk.runtime import SystemClock, Uuid7Generator, format_utc
@@ -135,6 +138,15 @@ def _receipt(value: Mapping[str, Any]) -> CommandReceipt:
     )
 
 
+def _single_fact_id(fact_ids: Any) -> str:
+    if not isinstance(fact_ids, (list, tuple)) or len(fact_ids) != 1:
+        raise RequestValidationError("fact query requires exactly one fact_id")
+    fact_id = fact_ids[0]
+    if not isinstance(fact_id, str) or not fact_id:
+        raise RequestValidationError("fact_id must be a non-empty string")
+    return fact_id
+
+
 class ResearchKernel:
     """Own all state transitions while hiding storage, guards, and adapters."""
 
@@ -150,7 +162,9 @@ class ResearchKernel:
         clock: Clock,
         id_generator: IdGenerator,
         dossier: DossierBuilder,
+        paper_compiler: str = "pdflatex",
         policy_snapshot: Mapping[str, Any] | None = None,
+        extensions: ExtensionRegistry | None = None,
     ) -> None:
         self._storage = storage
         self._cas = cas
@@ -161,7 +175,9 @@ class ResearchKernel:
         self._clock = clock
         self._ids = id_generator
         self._dossier = dossier
+        self._paper_compiler = paper_compiler
         self._policy = dict(policy_snapshot or {})
+        self._extensions = extensions or ExtensionRegistry()
 
     @classmethod
     def from_config(
@@ -169,6 +185,7 @@ class ResearchKernel:
         config: KernelConfig,
         *,
         migrations_dir: Path | None = None,
+        extensions: ExtensionRegistry | None = None,
     ) -> ResearchKernel:
         config.prepare_local_directories()
         root = Path(__file__).resolve().parents[2]
@@ -176,6 +193,7 @@ class ResearchKernel:
         MigrationRunner(config.db_path, migration_root, config.busy_timeout_ms).migrate()
         ids = Uuid7Generator()
         clock = SystemClock()
+        registry = extensions or ExtensionRegistry()
         storage = SQLiteStorage(config.db_path, config.busy_timeout_ms)
         cas = ContentAddressedStore(
             config.cas_root,
@@ -198,18 +216,29 @@ class ResearchKernel:
             "adapter_profiles": dict(config.adapter_profiles),
             "verifier_profiles": dict(config.verifier_profiles),
             **dict(config.budget_policy),
+            **{
+                key: list(config.product[key])
+                for key in (
+                    "main_capability_ids",
+                    "candidate_writer_capability_ids",
+                    "verifier_capability_ids",
+                )
+                if isinstance(config.product.get(key), (list, tuple))
+            },
         }
         return cls(
             storage=storage,
             cas=cas,
-            guard=TransitionGuard(),
-            projector=ProjectionWriter(ids),
+            guard=TransitionGuard(registry),
+            projector=ProjectionWriter(ids, registry),
             ingest=ingest,
             wire=WireValidator(config.command_schema_path, config.receipt_schema_path),
             clock=clock,
             id_generator=ids,
             dossier=DossierBuilder(),
+            paper_compiler=str(config.product.get("paper_compiler", "pdflatex")),
             policy_snapshot=policy,
+            extensions=registry,
         )
 
     def create(self, request: CreateRequest, capability: VerifiedCapability) -> RunHandle:
@@ -412,6 +441,26 @@ class ResearchKernel:
                         linked_at=decided_at,
                     )
                     committed.append(graph)
+                if request.command.type == "AmendContract":
+                    replacement = request.command.payload["replacement_contract"]
+                    new_contract_version = int(snapshot["current_contract_version"]) + 1
+                    amended_stage = self._cas.stage_bytes(
+                        canonical_json_bytes(replacement),
+                        media_type="application/json",
+                        source_name=f"contract.v{new_contract_version}.json",
+                    )
+                    amended = self._cas.commit(amended_stage, now=now)
+                    canonical = self._storage.insert_artifact(connection, amended.to_record())
+                    generated["amended_contract"] = str(canonical["artifact_id"])
+                    self._storage.link_artifact(
+                        connection,
+                        run_id=request.run_id,
+                        artifact_id=str(canonical["artifact_id"]),
+                        logical_name=f"contract.v{new_contract_version}",
+                        role="CONTRACT",
+                        linked_at=decided_at,
+                    )
+                    committed.append(amended)
                 if request.command.type == "Finalize":
                     # Finalization and later export must use exactly the same public
                     # projection.  The transaction already contains this command's
@@ -535,14 +584,85 @@ class ResearchKernel:
                     request.expected_revision,
                     updated_at=decided_at,
                 )
+            if self._extensions.product_activity_append is not None:
+                self._extensions.append_kernel_activity(
+                    connection,
+                    ProductActivity(
+                        event_id=self._ids.new(),
+                        scope_kind="RUN",
+                        source="KERNEL",
+                        recorded_at=decided_at,
+                        payload=frozen_mapping(
+                            {
+                                "command_type": request.command.type,
+                                "accepted": decision.accepted,
+                                "revision_before": revision_before,
+                                "revision_after": revision_after,
+                                "rejection_code": decision.rejection_code,
+                            }
+                        ),
+                        run_id=request.run_id,
+                        research_revision=revision_after,
+                        kernel_event_id=event_ids[0] if event_ids else None,
+                        entity_refs=frozen_mapping(
+                            {"command_id": command_id, "request_id": request.request_id}
+                        ),
+                    ),
+                )
             return receipt
+
+    def import_artifact(
+        self,
+        run_id: str,
+        value: Any,
+        capability: VerifiedCapability,
+        *,
+        logical_name: str,
+        role: str = "RESEARCH_MATERIAL",
+    ) -> ArtifactRef:
+        """Save one user or component document in the run's durable artifact collection."""
+
+        if not capability.allows("SubmitEvidence", run_id):
+            raise CapabilityError("CAPABILITY_DENIED")
+        inspection = self._ingest.inspect(value)
+        if not inspection.accepted:
+            raise RequestValidationError("artifact input was rejected by ingest policy")
+        staged = self._cas.stage_input(value)
+        now = self._clock.now()
+        try:
+            committed = self._cas.commit(staged, now=now)
+            self._storage.ensure_capability(capability)
+            with self._storage.transaction() as connection:
+                snapshot = self._storage.guard_snapshot(run_id, connection=connection)
+                canonical = self._storage.insert_artifact(connection, committed.to_record())
+                self._storage.link_artifact(
+                    connection,
+                    run_id=run_id,
+                    artifact_id=str(canonical["artifact_id"]),
+                    logical_name=logical_name,
+                    role=role,
+                    linked_at=format_utc(now),
+                )
+                return ArtifactRef(
+                    artifact_id=str(canonical["artifact_id"]),
+                    sha256=str(canonical["sha256"]),
+                    byte_count=int(canonical["byte_count"]),
+                    media_type=str(canonical["media_type"]),
+                    at_revision=int(snapshot["revision"]),
+                )
+        except BaseException:
+            self._cas.discard(staged)
+            raise
 
     def inspect(
         self,
         run_id: str,
         after_cursor: int | None = None,
         limit: int = 100,
+        fact_query: Mapping[str, Any] | None = None,
     ) -> RunSnapshot | EventPage:
+        if after_cursor is not None and fact_query is not None:
+            raise RequestValidationError("event pagination and fact query are mutually exclusive")
         if after_cursor is not None:
             page = self._storage.event_page(run_id, after_cursor, limit)
             return EventPage(
@@ -552,7 +672,78 @@ class ResearchKernel:
                 next_cursor=page["next_cursor"],
                 has_more=page["has_more"],
             )
-        return _public_run_snapshot(self._storage.inspect_snapshot(run_id))
+        snapshot = _public_run_snapshot(self._storage.inspect_snapshot(run_id))
+        if fact_query is None:
+            return snapshot
+        graph = VerifiedFactGraph(snapshot.projection)
+        operation = str(fact_query.get("operation", "summary"))
+        fact_ids = fact_query.get("fact_ids", ())
+        if not isinstance(fact_ids, (list, tuple)) or not all(
+            isinstance(item, str) for item in fact_ids
+        ):
+            raise RequestValidationError("fact_ids must be an array of strings")
+        if operation == "summary":
+            result: Any = graph.summary()
+        elif operation == "search":
+            query = fact_query.get("query")
+            if not isinstance(query, str) or not query.strip():
+                raise RequestValidationError("fact search query must be non-empty")
+            requested_limit = fact_query.get("limit", 10)
+            if not isinstance(requested_limit, int) or isinstance(requested_limit, bool):
+                raise RequestValidationError("fact search limit must be an integer")
+            result = graph.search(query, limit=requested_limit)
+        elif operation == "search_negative":
+            query = fact_query.get("query")
+            requested_limit = fact_query.get("limit", 10)
+            if not isinstance(query, str) or not query.strip():
+                raise RequestValidationError("negative search query must be non-empty")
+            if not isinstance(requested_limit, int) or isinstance(requested_limit, bool):
+                raise RequestValidationError("negative search limit must be an integer")
+            result = graph.search_negative(query, limit=requested_limit)
+        elif operation == "predecessors":
+            result = graph.predecessors(_single_fact_id(fact_ids))
+        elif operation == "successors":
+            result = graph.successors(_single_fact_id(fact_ids))
+        elif operation == "dependency_closure":
+            result = graph.dependency_closure(fact_ids)
+        elif operation == "reverse_closure":
+            result = graph.reverse_closure(fact_ids)
+        else:
+            raise RequestValidationError(f"unsupported fact query operation: {operation}")
+        return RunSnapshot(
+            run_id=snapshot.run_id,
+            status=snapshot.status,
+            revision=snapshot.revision,
+            current_contract_version=snapshot.current_contract_version,
+            last_cursor=snapshot.last_cursor,
+            projection=frozen_mapping({**snapshot.projection, "fact_graph": result}),
+        )
+
+    def record_component_usage(
+        self,
+        *,
+        run_id: str,
+        request_id: str,
+        component: str,
+        usage: Mapping[str, Any],
+        capability: VerifiedCapability,
+    ) -> tuple[str, ...]:
+        """Record usage observed at the shared component-runtime seam."""
+
+        now = format_utc(self._clock.now())
+        limits = self._policy.get("global_budget_limits", {})
+        return self._storage.record_component_usage_atomic(
+            run_id=run_id,
+            request_id=request_id,
+            component=component,
+            usage=usage,
+            capability=capability,
+            command_id=self._ids.new(),
+            event_id=self._ids.new(),
+            trace_id=self._ids.new(),
+            now=now,
+            budget_limits=limits if isinstance(limits, Mapping) else {},
+        )
 
     def export(self, request: ExportRequest, capability: VerifiedCapability) -> ArtifactRef:
         if not capability.allows("export", request.run_id):
@@ -561,7 +752,48 @@ class ResearchKernel:
         snapshot = self.inspect(request.run_id)
         if not isinstance(snapshot, RunSnapshot) or snapshot.revision != request.at_revision:
             raise RequestValidationError("export revision is not the current persisted revision")
-        data, media_type = self._dossier.build(snapshot, request.dossier_spec)
+        output_format = str(request.dossier_spec.get("format", "JSON"))
+        if output_format in {"LATEX", "PDF"}:
+            final_fact_id = request.dossier_spec.get("final_fact_id")
+            if not isinstance(final_fact_id, str) or not final_fact_id:
+                raise RequestValidationError("paper export requires final_fact_id")
+            root_claim_id = snapshot.projection.get("root_claim_id")
+            terminal_claim_ids = snapshot.projection.get("terminal_claim_ids", ())
+            if (
+                snapshot.status != "CLOSED"
+                or not snapshot.projection.get("final_outcome")
+                or final_fact_id != root_claim_id
+                or list(terminal_claim_ids) != [root_claim_id]
+            ):
+                raise RequestValidationError(
+                    "paper export requires a finalized run with the unique ROOT terminal"
+                )
+            paper = VerifiedPaper().build(
+                {"status": snapshot.status, **dict(snapshot.projection)},
+                final_fact_id,
+                title=(
+                    str(request.dossier_spec["title"])
+                    if request.dossier_spec.get("title")
+                    else None
+                ),
+            )
+            if output_format == "LATEX":
+                data, media_type = paper.tex, "application/x-tex; charset=utf-8"
+            else:
+                paper_sha256 = hashlib.sha256(paper.tex).hexdigest()
+                review_status = paper_math_review_status(
+                    snapshot.projection, final_fact_id, paper_sha256
+                )
+                if review_status not in {"CORRECT", "OVERRIDDEN"}:
+                    raise RequestValidationError(
+                        "paper PDF delivery requires a persisted whole-paper math review"
+                    )
+                data, _compile_log = VerifiedPaper().compile_pdf(
+                    paper.tex, executable=self._paper_compiler
+                )
+                media_type = "application/pdf"
+        else:
+            data, media_type = self._dossier.build(snapshot, request.dossier_spec)
         now = self._clock.now()
         staged = self._cas.stage_bytes(data, media_type=media_type, source_name="dossier")
         committed = self._cas.commit(staged, now=now)

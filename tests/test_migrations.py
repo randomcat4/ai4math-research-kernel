@@ -44,7 +44,7 @@ def test_empty_database_migrates_and_restart_is_idempotent(tmp_path: Path) -> No
     with sqlite3.connect(db_path) as connection:
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
-        assert connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone() == (4,)
+        assert connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone() == (12,)
 
 
 def test_v02_migration_revokes_materialized_unmanaged_human_authority() -> None:

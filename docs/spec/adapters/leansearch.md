@@ -12,7 +12,7 @@ package version: 0.1.0
 corpus/toolchain: Mathlib v4.28.0-rc1
 ```
 
-## v1 默认：公共 retriever-only
+## v1 默认：公共候选检索（执行模式未证明）
 
 ```text
 POST https://leansearch.net/search
@@ -49,9 +49,11 @@ Content-Type: application/json
 }
 ```
 
-公开部署使用 Qwen3-Reranker-4B；论文 Table 1 使用 8B。每个返回项保存为候选，随后
-必须在当前项目/Mathlib toolchain 中由 LeanWorker 解析、检查完整前提。高相似不等于
-适用，强假设命中不得自动采用。
+客户端发送 `rerank: true`，但公共响应不带服务端 model/index/实际 rerank 模式的受信
+证明；因此只能记录“请求了 rerank”，不能声称服务端确实执行了重排。公开站点说明其
+部署与论文 Table 1 的 8B 配置不同，也不能据此推断本次请求的实际模型。每个返回项只
+保存为候选，随后必须在当前项目/Mathlib toolchain 中由 LeanWorker 解析、检查完整前提。
+高相似不等于适用，强假设命中不得自动采用。
 
 ## 本地 full service（v1 非默认）
 
@@ -70,15 +72,17 @@ endpoint：`POST /search`、`POST /search_with_profile`、`GET /health`。本地
 - 代码在 0 GPU 直接报错；单 GPU 时没有 reranker replica，不能承诺正常 rerank；
 - AMD/ROCm 服务器不能原样运行 CUDA cuVS 路径。
 
-因此 v1 在该 AMD 机上固定 public/retriever-only。若移植 ROCm 或加入 CPU fallback，
+因此 v1 在该 AMD 机上固定使用 public 候选接口，执行模式标为 `UNATTESTED`。若移植
+ROCm 或加入 CPU fallback，
 必须另立 adapter `leansearch-rocm-v2` 并重新跑检索质量/延迟验收，不能声称现仓库原生
 单卡 AMD 支持。
 
 ## 记录与失败
 
-每次调用记录 query hash、top-k、rerank flag、endpoint、响应 hash、声明 name/type、
-toolchain compatibility。服务失败可降级为 no-rerank/public，但必须记录 mode；空响应
-是 `SEARCH_INCOMPLETE`，不是没有适用定理。
+每次调用记录 query hash、top-k、请求的 rerank flag、endpoint、响应 hash、声明
+name/type、toolchain compatibility。v1 服务失败必须显式返回失败；若操作者另启一个
+no-rerank profile，只能产生一笔新的候选请求，不能把它冒充为原 rerank 请求已满足。
+空响应是 `SEARCH_INCOMPLETE`，不是没有适用定理。
 
 禁止：
 

@@ -120,7 +120,7 @@ SearchResult 类型；未在 AMD 本地启动 full service。现实现使用 CUD
 固定 commit `755fde27a9cf1fb25c17a015b1cc4ac68384aa63`，checkout toolchain 4.29.0。
 已核构建/调用/`-i` 与精确版本要求；尚未执行本规格自己的 jixia fixture smoke。
 
-## 7. 明确未完成
+## 7. 历史规格阶段未完成项（已由当前产品树取代）
 
 - 未创建 `magi/rk` 代码仓库；
 - 未实现/性质测试 TransitionGuard；
@@ -132,4 +132,6 @@ SearchResult 类型；未在 AMD 本地启动 full service。现实现使用 CUD
 - 未用 jixia 分析实际 Lean fixture；
 - 未把 N2 工件真实写入 ResearchKernel DB（因为实现尚不存在）。
 
-因此本目录可称 `IMPLEMENTATION_READY_SPEC`，不可称 `IMPLEMENTATION_COMPLETE`。
+以上清单描述 2026-08-11 的规格冻结时点，不是当前实现状态。当前逐项状态和发布证据以
+`../prdledger.md`、`../implementation-status.md` 与 `../rke2e3.json` 为准；AC5 360 次实验、
+ROCm 移植和真实 Archon 模型轮属于明确非目标或外部基准，不作为 RK PRD 完成门。

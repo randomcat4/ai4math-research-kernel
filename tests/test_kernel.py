@@ -21,6 +21,7 @@ from rk.domain import (
     VerifiedCapability,
     frozen_mapping,
 )
+from rk.extensions import ExtensionRegistry, ProductActivity
 from rk.kernel import ResearchKernel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -95,6 +96,140 @@ def _apply(
         ),
         capability,
     )
+
+
+def test_kernel_mounts_activity_appender_in_the_command_transaction(tmp_path: Path) -> None:
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    support = inbox / "support.txt"
+    support.write_text("contract completeness", encoding="utf-8")
+    observed: list[ProductActivity] = []
+
+    def append(connection: sqlite3.Connection, activity: ProductActivity) -> int:
+        assert connection.in_transaction
+        observed.append(activity)
+        return len(observed)
+
+    config = KernelConfig.from_mapping(
+        {
+            "workspace_root": str(tmp_path / "state"),
+            "inbox_roots": [str(inbox)],
+            "command_schema_path": str(ROOT / "docs/spec/json/command.schema.json"),
+            "receipt_schema_path": str(ROOT / "docs/spec/json/receipt.schema.json"),
+        },
+        base=ROOT,
+    )
+    kernel = ResearchKernel.from_config(
+        config,
+        migrations_dir=ROOT / "migrations",
+        extensions=ExtensionRegistry().register_product_activity_append(append),
+    )
+    capability = _capability()
+    handle = kernel.create(
+        CreateRequest(
+            str(uuid.uuid4()),
+            frozen_mapping(_contract()),
+            (_artifact(support, "support.txt"),),
+        ),
+        capability,
+    )
+    snapshot = kernel.inspect(handle.run_id)
+    assert isinstance(snapshot, RunSnapshot)
+    support_id = snapshot.projection["artifacts"][0]["artifact_id"]
+
+    accepted = _apply(
+        kernel,
+        capability,
+        handle.run_id,
+        0,
+        "FreezeContract",
+        {"contract_version": 1, "completeness_check_artifact_id": support_id},
+    )
+    rejected = _apply(
+        kernel,
+        capability,
+        handle.run_id,
+        0,
+        "FreezeContract",
+        {"contract_version": 1, "completeness_check_artifact_id": support_id},
+    )
+
+    assert accepted.accepted
+    assert not rejected.accepted
+    assert [(item.payload["command_type"], item.payload["accepted"]) for item in observed] == [
+        ("FreezeContract", True),
+        ("FreezeContract", False),
+    ]
+    assert observed[0].kernel_event_id == accepted.event_ids[0]
+    assert observed[1].kernel_event_id is None
+    assert observed[1].research_revision == accepted.revision_after
+
+
+def test_component_runtime_usage_enters_authoritative_budget_ledger(tmp_path: Path) -> None:
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    support = inbox / "support.txt"
+    support.write_text("contract support", encoding="utf-8")
+    capability = _capability()
+    config = KernelConfig.from_mapping(
+        {
+            "workspace_root": str(tmp_path / "state"),
+            "inbox_roots": [str(inbox)],
+            "command_schema_path": str(ROOT / "docs/spec/json/command.schema.json"),
+            "receipt_schema_path": str(ROOT / "docs/spec/json/receipt.schema.json"),
+            "budget_policy": {
+                "global_budget_limits": {
+                    "INPUT_TOKEN": 20_000_000,
+                    "OUTPUT_TOKEN": 20_000_000,
+                    "WALL_SECOND": 20_000_000,
+                }
+            },
+        },
+        base=ROOT,
+    )
+    kernel = ResearchKernel.from_config(config, migrations_dir=ROOT / "migrations")
+    handle = kernel.create(
+        CreateRequest(
+            str(uuid.uuid4()),
+            frozen_mapping(_contract()),
+            (_artifact(support, "support.txt"),),
+        ),
+        capability,
+    )
+
+    assert kernel.record_component_usage(
+        run_id=handle.run_id,
+        request_id="component-request-1",
+        component="research-model",
+        usage={"input_tokens": 7, "output_tokens": 3, "wall_time_ms": 12},
+        capability=capability,
+    ) == ()
+    # Retry is idempotent, while the persisted projection remains the single budget truth.
+    assert kernel.record_component_usage(
+        run_id=handle.run_id,
+        request_id="component-request-1",
+        component="research-model",
+        usage={"input_tokens": 7, "output_tokens": 3, "wall_time_ms": 12},
+        capability=capability,
+    ) == ()
+    snapshot = kernel.inspect(handle.run_id)
+    assert isinstance(snapshot, RunSnapshot)
+    events = snapshot.projection["budget_events"]
+    assert {item["resource_kind"] for item in events} == {
+        "INPUT_TOKEN",
+        "OUTPUT_TOKEN",
+        "WALL_SECOND",
+    }
+    assert snapshot.projection["component_usage"]["research-model"] == {
+        "input_tokens": 7,
+        "output_tokens": 3,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "total_tokens": 0,
+        "wall_time_ms": 12,
+        "unknown_count": 0,
+    }
 
 
 def test_public_lifecycle_is_executable_and_idempotent(tmp_path: Path) -> None:
@@ -363,8 +498,30 @@ def test_public_peer_review_derives_unknown_and_rejects_caller_independence(
         "statement_hash": statement_hash,
         "review_artifact_id": support_id,
         "verdict": "ACCEPT",
-        "checklist": {"proof_checked": True},
+        "checklist": {
+            "proof_checked": {
+                "passed": True, "status": "HUMAN_ATTESTED",
+                "conclusion": "proof checked", "evidence_refs": [support_id],
+            },
+            "scope_checked": {
+                "passed": True, "status": "HUMAN_ATTESTED",
+                "conclusion": "scope checked", "evidence_refs": [support_id],
+            },
+            "blind_review": False,
+        },
         "source_graph": {"review_artifact_id": support_id},
+        "verifier_attestation": {
+            "artifact_sha256": hashlib.sha256(support.read_bytes()).hexdigest(),
+            "verifier_identity_id": capability.capability_id,
+            "verifier_subject_id": capability.subject_id,
+            "promotion_eligible": True,
+            "authority": "HUMAN_ATTESTED",
+            "claim_id": claim_id,
+            "contract_version": 1,
+            "statement_hash": statement_hash,
+            "verdict": "ACCEPT",
+            "selected_subgraph_digest": None,
+        },
     }
     recorded = _apply(
         kernel, capability, handle.run_id, 1, "RecordPeerReview", payload
@@ -529,3 +686,448 @@ def test_component_usage_is_aggregated_in_inspect(tmp_path: Path) -> None:
     assert not receipt.accepted
     assert receipt.rejection_code == "CAPABILITY_DENIED"
     assert "deepseek-v4-pro" not in kernel.inspect(handle.run_id).projection["component_usage"]
+
+
+def test_contract_amendment_preserves_unaffected_sibling(tmp_path: Path) -> None:
+    """A local contract defect must not erase independent verified research memory."""
+
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    support = inbox / "support.txt"
+    support.write_text("contract amendment evidence\n", encoding="utf-8")
+    config = KernelConfig.from_mapping(
+        {
+            "workspace_root": str(tmp_path / "state"),
+            "inbox_roots": [str(inbox)],
+            "command_schema_path": str(ROOT / "docs/spec/json/command.schema.json"),
+            "receipt_schema_path": str(ROOT / "docs/spec/json/receipt.schema.json"),
+        },
+        base=ROOT,
+    )
+    kernel = ResearchKernel.from_config(config, migrations_dir=ROOT / "migrations")
+    capability = _capability()
+    handle = kernel.create(
+        CreateRequest(
+            str(uuid.uuid4()),
+            frozen_mapping(_contract()),
+            (_artifact(support, "support.txt"),),
+        ),
+        capability,
+    )
+    initial = kernel.inspect(handle.run_id)
+    contract_artifact = next(
+        item["artifact_id"]
+        for item in initial.projection["artifacts"]
+        if item["role"] == "CONTRACT"
+    )
+    contract_hash = hashlib.sha256(composition_json_bytes(_contract())).hexdigest()
+    revision = 0
+
+    def apply(
+        kind: str,
+        payload: dict[str, object],
+        artifacts: tuple[ArtifactInput, ...] = (),
+    ):
+        nonlocal revision
+        receipt = _apply(
+            kernel, capability, handle.run_id, revision, kind, payload, artifacts
+        )
+        assert receipt.accepted, (kind, receipt.rejection_code, receipt.missing_conditions)
+        revision = receipt.revision_after
+        return receipt
+
+    apply(
+        "RegisterClaim",
+        {
+            "contract_version": 1,
+            "claim_kind": "ROOT",
+            "stable_label": "root",
+            "statement_artifact_id": contract_artifact,
+            "statement_hash": contract_hash,
+            "normalized_statement": _contract(),
+        },
+    )
+    apply(
+        "FreezeContract",
+        {"contract_version": 1, "completeness_check_artifact_id": contract_artifact},
+    )
+    apply(
+        "StartRun",
+        {
+            "contract_version": 1,
+            "literature_plan_artifact_id": contract_artifact,
+            "budget_policy": {"global": {"CPU_SECOND": 1000}},
+        },
+    )
+    root_id = str(kernel.inspect(handle.run_id).projection["root_claim_id"])
+
+    def add_claim(label: str) -> tuple[str, str]:
+        normalized = {"atomic": True, "statement": label, "proof": f"proof of {label}"}
+        path = inbox / f"{label}.json"
+        path.write_bytes(composition_json_bytes(normalized))
+        data = path.read_bytes()
+        claim_input = ArtifactInput(
+            name="atomic.json",
+            path=str(path),
+            sha256=hashlib.sha256(data).hexdigest(),
+            byte_count=len(data),
+            media_type="application/json",
+        )
+        imported = kernel.import_artifact(
+            handle.run_id,
+            claim_input,
+            capability,
+            logical_name=f"claim-{label}",
+            role="CLAIM_STATEMENT",
+        )
+        apply(
+            "RegisterClaim",
+            {
+                "contract_version": 1,
+                "claim_kind": "LEMMA",
+                "stable_label": label,
+                "statement_artifact_id": imported.artifact_id,
+                "statement_hash": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "normalized_statement": normalized,
+            },
+        )
+        claims = kernel.inspect(handle.run_id).projection["claims"]
+        claim_id = next(item["claim_id"] for item in claims if item["stable_label"] == label)
+        return str(claim_id), imported.artifact_id
+
+    dependent_id, dependent_artifact = add_claim("depends-on-root")
+    sibling_id, _ = add_claim("independent-sibling")
+    apply(
+        "RegisterClaimEdge",
+        {
+            "contract_version": 1,
+            # Store the endpoints opposite to the effective dependency direction.  Contract
+            # amendment must follow direction, not raw column order.
+            "from_claim_id": dependent_id,
+            "to_claim_id": root_id,
+            "edge_kind": "DEPENDS_ON",
+            "direction": "REVERSE",
+            "justification_kind": "DEFINITIONAL",
+            "justification_ref": dependent_artifact,
+        },
+    )
+    apply(
+        "SubmitEvidence",
+        {
+            "claim_id": root_id,
+            "contract_version": 1,
+            "statement_hash": contract_hash,
+            "evidence_type": "NATURAL_LANGUAGE_PROOF",
+            "evidence_strength": "HUMAN_ATTESTED",
+            "artifact_input_names": ["support.txt"],
+            "scope": {"claim_id": root_id, "contract_version": 1, "statement_hash": contract_hash},
+            "provenance": {"actor": "contract-auditor"},
+            "evidence_root": {"root_kind": "HUMAN", "source_graph": {}},
+        },
+        (_artifact(support, "support.txt"),),
+    )
+    evidence_id = str(kernel.inspect(handle.run_id).projection["evidence"][-1]["evidence_id"])
+    apply(
+        "RecordPeerReview",
+        {
+            "claim_id": root_id,
+            "contract_version": 1,
+            "statement_hash": contract_hash,
+            "review_artifact_id": contract_artifact,
+            "verdict": "ACCEPT",
+            "checklist": {
+                "proof_checked": {
+                    "passed": True, "status": "HUMAN_ATTESTED",
+                    "conclusion": "proof checked", "evidence_refs": [contract_artifact],
+                },
+                "scope_checked": {
+                    "passed": True, "status": "HUMAN_ATTESTED",
+                    "conclusion": "scope checked", "evidence_refs": [contract_artifact],
+                },
+                "blind_review": True,
+                "amendment_approved": True,
+                "amendment_role": "CONTRACT_OWNER",
+            },
+            "source_graph": {"author_subject_ids": ["different-worker"]},
+            "verifier_attestation": {
+                "artifact_sha256": contract_hash,
+                "verifier_identity_id": capability.capability_id,
+                "verifier_subject_id": capability.subject_id,
+                "promotion_eligible": True,
+                "authority": "HUMAN_ATTESTED",
+                "claim_id": root_id,
+                "contract_version": 1,
+                "statement_hash": contract_hash,
+                "verdict": "ACCEPT",
+                "selected_subgraph_digest": None,
+            },
+        },
+    )
+    review_id = str(kernel.inspect(handle.run_id).projection["peer_reviews"][-1]["review_id"])
+    patch = kernel.import_artifact(
+        handle.run_id,
+        _artifact(support, "patch.txt"),
+        capability,
+        logical_name="contract-patch",
+        role="RESEARCH_MATERIAL",
+    )
+    apply(
+        "ProposeContractDefect",
+        {
+            "contract_version": 1,
+            "defect_type": "BUDGET_SCOPE",
+            "evidence_refs": [evidence_id],
+            "affected_claim_ids": [root_id],
+            "proposed_patch_artifact_id": patch.artifact_id,
+        },
+    )
+    impact = kernel.import_artifact(
+        handle.run_id,
+        _artifact(support, "impact.txt"),
+        capability,
+        logical_name="contract-impact",
+        role="RESEARCH_MATERIAL",
+    )
+    replacement = _contract()
+    replacement["budget_policy"] = {"global": {"CPU_SECOND": 2000}}
+    apply(
+        "AmendContract",
+        {
+            "base_version": 1,
+            "replacement_contract": replacement,
+            "patch_artifact_id": patch.artifact_id,
+            "approvals": [review_id],
+            "impact_analysis_artifact_id": impact.artifact_id,
+        },
+    )
+    result = kernel.inspect(handle.run_id).projection
+    by_id = {item["claim_id"]: item for item in result["claims"]}
+    assert by_id[root_id]["lifecycle"] == "SUPERSEDED"
+    assert by_id[dependent_id]["lifecycle"] == "SUPERSEDED"
+    assert by_id[sibling_id]["lifecycle"] == "ACTIVE"
+    assert by_id[sibling_id]["contract_version"] == 2
+    with sqlite3.connect(config.db_path) as connection:
+        impact_summary = json.loads(
+            connection.execute(
+                "SELECT impact_analysis_json FROM contract_versions "
+                "WHERE run_id=? AND version=2",
+                (handle.run_id,),
+            ).fetchone()[0]
+        )
+    assert impact_summary["invalidated_claim_ids"] == [root_id, dependent_id]
+    assert impact_summary["carried_claim_ids"] == [sibling_id]
+
+
+def test_bridge_spec_one_way_product_flow_rejects_reverse_use(tmp_path: Path) -> None:
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    support = inbox / "support.txt"
+    support.write_text("bridge audit and backtranslation\n", encoding="utf-8")
+    config = KernelConfig.from_mapping(
+        {
+            "workspace_root": str(tmp_path / "state"),
+            "inbox_roots": [str(inbox)],
+            "command_schema_path": str(ROOT / "docs/spec/json/command.schema.json"),
+            "receipt_schema_path": str(ROOT / "docs/spec/json/receipt.schema.json"),
+        },
+        base=ROOT,
+    )
+    kernel = ResearchKernel.from_config(config, migrations_dir=ROOT / "migrations")
+    capability = _capability()
+    handle = kernel.create(
+        CreateRequest(
+            str(uuid.uuid4()),
+            frozen_mapping(_contract()),
+            (_artifact(support, "support.txt"),),
+        ),
+        capability,
+    )
+    snapshot = kernel.inspect(handle.run_id)
+    contract_artifact = next(
+        item["artifact_id"]
+        for item in snapshot.projection["artifacts"]
+        if item["role"] == "CONTRACT"
+    )
+    contract_hash = hashlib.sha256(composition_json_bytes(_contract())).hexdigest()
+    revision = 0
+
+    def apply(kind: str, payload: dict[str, object]):
+        nonlocal revision
+        receipt = _apply(kernel, capability, handle.run_id, revision, kind, payload)
+        revision = receipt.revision_after
+        return receipt
+
+    assert apply(
+        "RegisterClaim",
+        {
+            "contract_version": 1,
+            "claim_kind": "ROOT",
+            "stable_label": "source-domain-claim",
+            "statement_artifact_id": contract_artifact,
+            "statement_hash": contract_hash,
+            "normalized_statement": _contract(),
+        },
+    ).accepted
+    assert apply(
+        "FreezeContract",
+        {"contract_version": 1, "completeness_check_artifact_id": contract_artifact},
+    ).accepted
+    assert apply(
+        "StartRun",
+        {
+            "contract_version": 1,
+            "literature_plan_artifact_id": contract_artifact,
+            "budget_policy": {"global": {"CPU_SECOND": 1000}},
+        },
+    ).accepted
+    source_id = str(kernel.inspect(handle.run_id).projection["root_claim_id"])
+    target_statement = {
+        "atomic": True,
+        "statement": "The translated graph has a perfect matching.",
+        "proof": "target-domain certificate",
+    }
+    target_path = inbox / "target.json"
+    target_path.write_bytes(composition_json_bytes(target_statement))
+    target_data = target_path.read_bytes()
+    target_artifact = kernel.import_artifact(
+        handle.run_id,
+        ArtifactInput(
+            "target.json",
+            str(target_path),
+            hashlib.sha256(target_data).hexdigest(),
+            len(target_data),
+            "application/json",
+        ),
+        capability,
+        logical_name="target-domain-claim",
+        role="CLAIM_STATEMENT",
+    )
+    assert apply(
+        "RegisterClaim",
+        {
+            "contract_version": 1,
+            "claim_kind": "BRIDGE",
+            "stable_label": "target-domain-claim",
+            "statement_artifact_id": target_artifact.artifact_id,
+            "statement_hash": hashlib.sha256(target_data).hexdigest(),
+            "normalized_statement": target_statement,
+        },
+    ).accepted
+    target_id = str(
+        next(
+            item["claim_id"]
+            for item in kernel.inspect(handle.run_id).projection["claims"]
+            if item["stable_label"] == "target-domain-claim"
+        )
+    )
+    assert apply(
+        "RecordPeerReview",
+        {
+            "claim_id": target_id,
+            "contract_version": 1,
+            "statement_hash": hashlib.sha256(target_data).hexdigest(),
+            "review_artifact_id": contract_artifact,
+            "verdict": "ACCEPT",
+                "checklist": {
+                    "proof_checked": {
+                        "passed": True, "status": "HUMAN_ATTESTED",
+                        "conclusion": "proof checked", "evidence_refs": [contract_artifact],
+                    },
+                    "scope_checked": {
+                        "passed": True, "status": "HUMAN_ATTESTED",
+                        "conclusion": "scope checked", "evidence_refs": [contract_artifact],
+                    },
+                    "blind_review": True,
+                },
+            "source_graph": {"author_subject_ids": ["bridge-constructor"]},
+            "verifier_attestation": {
+                "artifact_sha256": contract_hash,
+                "verifier_identity_id": capability.capability_id,
+                "verifier_subject_id": capability.subject_id,
+                "promotion_eligible": True,
+                "authority": "HUMAN_ATTESTED",
+                "claim_id": target_id,
+                "contract_version": 1,
+                "statement_hash": hashlib.sha256(target_data).hexdigest(),
+                "verdict": "ACCEPT",
+                "selected_subgraph_digest": None,
+            },
+        },
+    ).accepted
+    audit_id = str(kernel.inspect(handle.run_id).projection["peer_reviews"][-1]["review_id"])
+    backtranslation = kernel.import_artifact(
+        handle.run_id,
+        _artifact(support, "backtranslation.txt"),
+        capability,
+        logical_name="bridge-backtranslation",
+        role="RESEARCH_MATERIAL",
+    )
+    bridge_id = str(uuid.uuid4())
+    bridge_spec = {
+        "source_domain": "finite set systems",
+        "target_domain": "bipartite graphs",
+        "source_objects": ["sets", "representatives"],
+        "target_objects": ["left vertices", "right vertices", "edges"],
+        "forward_map": "membership becomes adjacency",
+        "backward_map": "matched edge becomes representative",
+        "preserved_invariants": ["distinctness"],
+        "imported_assumptions": [],
+        "lost_assumptions": ["reverse Hall implication not checked"],
+        "gained_assumptions": [],
+        "target_domain_tools": ["matching checker"],
+        "fastest_countertests": ["two sets sharing one element"],
+        "roundtrip_tests": ["representatives -> matching -> representatives"],
+        "source_to_target_dictionary": {"representative": "matched neighbor"},
+        "target_to_source_dictionary": {"matched neighbor": "representative"},
+        "source_domain_auditor": "set-system-reviewer",
+        "target_domain_auditor": "graph-reviewer",
+    }
+    registered = apply(
+        "RegisterBridge",
+        {
+            "bridge_id": bridge_id,
+            "contract_version": 1,
+            "source_claim_id": source_id,
+            "target_claim_id": target_id,
+            "directionality": "ONE_WAY_VALID",
+            "term_mapping": {"membership": "adjacency"},
+            "forward_obligations": [{"id": "map-total", "status": "CHECKED"}],
+            "reverse_obligations": [{"id": "reverse", "status": "OPEN"}],
+            "loss_accounting": {"reverse_direction": "not established"},
+            "bridge_spec": bridge_spec,
+            "target_audit_review_id": audit_id,
+            "backtranslation_artifact_id": backtranslation.artifact_id,
+        },
+    )
+    assert registered.accepted
+    forward_edge = apply(
+        "RegisterClaimEdge",
+        {
+            "contract_version": 1,
+            "from_claim_id": target_id,
+            "to_claim_id": source_id,
+            "edge_kind": "IMPLIES",
+            "direction": "REVERSE",
+            "justification_kind": "BRIDGE",
+            "justification_ref": bridge_id,
+        },
+    )
+    assert forward_edge.accepted
+    reverse_edge = apply(
+        "RegisterClaimEdge",
+        {
+            "contract_version": 1,
+            "from_claim_id": target_id,
+            "to_claim_id": source_id,
+            "edge_kind": "IMPLIES",
+            "direction": "FORWARD",
+            "justification_kind": "BRIDGE",
+            "justification_ref": bridge_id,
+        },
+    )
+    assert not reverse_edge.accepted
+    assert reverse_edge.rejection_code == "COMPOSITION_OPEN"
+    bridge = kernel.inspect(handle.run_id).projection["bridges"][0]
+    assert bridge["forward_status"] == "CHECKED"
+    assert bridge["reverse_status"] == "CANDIDATE"
+    assert bridge["bridge_spec"]["target_domain"] == "bipartite graphs"

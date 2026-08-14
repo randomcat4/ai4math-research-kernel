@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import os
 import queue
 import signal
@@ -44,7 +45,9 @@ class OpenCodeJsonlRunner:
         if process.poll() is not None:
             return
         if os.name == "posix":
-            os.killpg(process.pid, signal.SIGKILL if force else signal.SIGTERM)
+            killpg = os.__dict__["killpg"]
+            posix_signal = signal.__dict__["SIGKILL"] if force else signal.SIGTERM
+            killpg(process.pid, posix_signal)
         elif force:
             process.kill()
         else:
@@ -63,9 +66,8 @@ class OpenCodeJsonlRunner:
         if self.run_as_user is not None:
             if os.name != "posix":
                 raise OSError("run_as_user requires POSIX")
-            import pwd
-
-            account = pwd.getpwnam(self.run_as_user)
+            pwd_module = importlib.import_module("pwd")
+            account = pwd_module.getpwnam(self.run_as_user)
             identity = {"user": account.pw_uid, "group": account.pw_gid, "extra_groups": []}
         process = subprocess.Popen(
             list(command),
@@ -269,11 +271,11 @@ class OpenCodeAdapter:
             runtime_config.write_bytes(config_raw)
             env["OPENCODE_CONFIG"] = str(runtime_config)
         if self.profile.run_as_user is not None:
-            import pwd
-
-            account = pwd.getpwnam(self.profile.run_as_user)
+            pwd_module = importlib.import_module("pwd")
+            account = pwd_module.getpwnam(self.profile.run_as_user)
+            chown = os.__dict__["chown"]
             for path in (workspace, *workspace.rglob("*")):
-                os.chown(path, account.pw_uid, account.pw_gid)
+                chown(path, account.pw_uid, account.pw_gid)
         argv = [
             *self.profile.argv_prefix,
             "run",

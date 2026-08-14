@@ -232,9 +232,10 @@ class AdapterProfile:
     def _validate(self) -> None:
         if not self.name or not self.version or not self.source_commit:
             raise AdapterConfigurationError("name, version, and source_commit must be non-empty")
-        if len(self.source_commit) not in {40, 64} or any(
+        commit_is_pinned = len(self.source_commit) in {40, 64} and not any(
             char not in "0123456789abcdef" for char in self.source_commit
-        ):
+        )
+        if self.source_commit != "UNATTESTED" and not commit_is_pinned:
             raise AdapterConfigurationError("source_commit must be a full lowercase Git object ID")
         if self.timeout_seconds <= 0 or self.max_response_bytes <= 0:
             raise AdapterConfigurationError("timeout and response limit must be positive")

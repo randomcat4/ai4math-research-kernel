@@ -16,6 +16,7 @@ from types import MappingProxyType
 from typing import Any
 
 from rk.domain import MissingCondition, RejectionCode, frozen_mapping
+from rk.machine_trust import machine_evidence_is_trusted
 
 _PREFIX = b"rk.cgraph.v1\n"
 _COLLECTION_KEYS = {
@@ -200,7 +201,10 @@ def _projection(snapshot: Any) -> Mapping[str, Any]:
     projection = getattr(snapshot, "projection", None)
     if isinstance(projection, Mapping):
         return projection
-    return snapshot if isinstance(snapshot, Mapping) else {}
+    if isinstance(snapshot, Mapping):
+        nested = snapshot.get("projection")
+        return nested if isinstance(nested, Mapping) else snapshot
+    return {}
 
 
 def _snapshot_value(snapshot: Any, key: str, default: Any = None) -> Any:
@@ -306,11 +310,32 @@ def _review_is_acceptable(
     review: Mapping[str, Any], *, parent_id: str, version: int, digest: str
 ) -> bool:
     profile = review.get("independence_profile", {})
+    checklist = review.get("checklist")
+
+    def signed_check(name: str) -> bool:
+        value = checklist.get(name) if isinstance(checklist, Mapping) else None
+        refs = value.get("evidence_refs") if isinstance(value, Mapping) else None
+        return bool(
+            isinstance(value, Mapping)
+            and set(value) == {"passed", "status", "conclusion", "evidence_refs"}
+            and value.get("passed") is True
+            and value.get("status") == "HUMAN_ATTESTED"
+            and str(value.get("conclusion", "")).strip()
+            and isinstance(refs, Sequence)
+            and not isinstance(refs, (str, bytes))
+            and all(isinstance(ref, str) and ref for ref in refs)
+        )
+
     return bool(
         review.get("verdict") == "ACCEPT"
+        and review.get("trust_class") == "MANAGED_PEER_REVIEW"
+        and review.get("authority_effect") == "PEER_PROMOTION_ELIGIBLE"
+        and review.get("promotion_eligible") is True
         and review.get("claim_id") == parent_id
         and review.get("contract_version") == version
         and review.get("selected_subgraph_digest") == digest
+        and signed_check("proof_checked")
+        and signed_check("scope_checked")
         and independence_profile_is_independent(profile)
     )
 
@@ -325,17 +350,14 @@ _INDEPENDENCE_DIMENSIONS = (
 
 
 def independence_profile_is_independent(value: Any) -> bool:
-    """Fail closed until a managed *human* review receipt exists.
+    """Accept the host-derived profile of a managed, blinded human review."""
 
-    v0.1 records legacy profiles and v0.2 can preserve reviews as soft human-authored
-    artifacts, but neither version has a host-managed human identity and blind-review
-    receipt.  Merely spelling all five dimensions ``INDEPENDENT`` must never grant peer
-    authority.  A future receipt verifier will replace this closed gate; managed model
-    reviews will remain soft and will not use the human peer axis.
-    """
-
-    del value
-    return False
+    return bool(
+        isinstance(value, Mapping)
+        and value.get("managed_human") is True
+        and all(value.get(name) == "INDEPENDENT" for name in _INDEPENDENCE_DIMENSIONS)
+        and not value.get("shared_ancestors")
+    )
 
 
 def _verification_id(value: Any) -> str | None:
@@ -358,14 +380,40 @@ def _all_machine_refs_valid(
     contract_version: int,
     projection: Mapping[str, Any],
     policy: Mapping[str, Any],
+    required_coverage: set[str],
 ) -> bool:
-    # v0.2 supports trusted replay for an atomic claim, but not authority-bearing
-    # composition.  A composition receipt must bind every logical edge, every
-    # MACHINE_CHECKED obligation part, each closure theorem and each cut to an exact
-    # verifier scope.  Until that manifest exists, one real leaf replay must not close
-    # an arbitrary larger graph.
-    del refs, evidence, claims, selected_claim_ids, run_id, contract_version, projection, policy
-    return False
+    manifests = [item for item in refs if isinstance(item, Mapping)]
+    if not manifests:
+        return False
+    covered: set[str] = set()
+    trusted_claims: set[str] = set()
+    for manifest in manifests:
+        evidence_id = manifest.get("evidence_id")
+        claim_id = manifest.get("claim_id")
+        item = evidence.get(str(evidence_id))
+        claim = claims.get(str(claim_id))
+        declared = manifest.get("covers")
+        if (
+            item is None
+            or claim is None
+            or str(claim_id) not in selected_claim_ids
+            or not isinstance(declared, Sequence)
+            or isinstance(declared, (str, bytes))
+            or not all(isinstance(token, str) and token for token in declared)
+            or not machine_evidence_is_trusted(
+                item,
+                target_claim=claim,
+                run_id=run_id,
+                contract_version=contract_version,
+                projection=projection,
+                policy=policy,
+                expected_type="LEAN_REPLAY",
+            )
+        ):
+            return False
+        trusted_claims.add(str(claim_id))
+        covered.update(str(token) for token in declared)
+    return trusted_claims == selected_claim_ids and required_coverage.issubset(covered)
 
 
 def _obligation_parts(
@@ -716,6 +764,17 @@ def validate_closure_witness(
     verification_refs = payload.get("verification_refs", ())
     review_ids = tuple(payload.get("human_attestation_review_ids", ()))
     mode = payload.get("composition_mode")
+    machine_coverage = {
+        *(f"claim:{claim_id}" for claim_id in selected_claims),
+        *(f"edge:{edge_id}" for edge_id in selected_edges),
+        *(f"obligation:{obligation_id}" for obligation_id in selected_obligations),
+        *(
+            f"obligation:{obligation_id}:{part_name}"
+            for obligation_id, selected in selected_obligations.items()
+            for part_name in _obligation_parts(selected, obligations[obligation_id])
+        ),
+        *(f"closure:{obligation_id}" for obligation_id in selected_obligations),
+    }
 
     if mode == "MACHINE":
         direct_edges_are_machine = all(
@@ -740,6 +799,7 @@ def validate_closure_witness(
             contract_version=int(version),
             projection=projection,
             policy=policy_snapshot,
+            required_coverage=machine_coverage,
         ):
             return _failure(
                 RejectionCode.REPLAY_FAILED,
@@ -772,6 +832,41 @@ def validate_closure_witness(
     }
     reviews_satisfy = len(accepted_reviews) >= threshold and len(reviewer_roots) >= threshold
 
+    def signed_review_covers_all_human_parts(review: Mapping[str, Any]) -> bool:
+        checklist = review.get("checklist")
+        signed_parts = checklist.get("six_parts") if isinstance(checklist, Mapping) else None
+        if not isinstance(signed_parts, Mapping) or set(signed_parts) != set(_PART_NAMES):
+            return False
+        for name in _PART_NAMES:
+            signed = signed_parts.get(name)
+            selected_values = [
+                _obligation_parts(selected, obligations[obligation_id]).get(name, {})
+                for obligation_id, selected in selected_obligations.items()
+            ]
+            if (
+                not isinstance(signed, Mapping)
+                or set(signed) != {"passed", "status", "conclusion", "evidence_refs"}
+                or signed.get("passed") is not True
+                or signed.get("status") != "HUMAN_ATTESTED"
+                or not str(signed.get("conclusion", "")).strip()
+                or not isinstance(signed.get("evidence_refs"), Sequence)
+                or isinstance(signed.get("evidence_refs"), (str, bytes))
+                or any(
+                    not isinstance(ref, str) or not ref
+                    for ref in signed.get("evidence_refs", ())
+                )
+                or any(
+                    value.get("status") == "HUMAN_ATTESTED" and not value.get("ref")
+                    for value in selected_values
+                )
+            ):
+                return False
+        return True
+
+    signed_human_parts_satisfy = bool(accepted_reviews) and all(
+        signed_review_covers_all_human_parts(review) for review in accepted_reviews
+    )
+
     if mode == "PEER":
         direct_edges_are_human = all(
             edge.get("justification_kind") == "HUMAN_ARGUMENT"
@@ -786,7 +881,7 @@ def validate_closure_witness(
                 RejectionCode.EVIDENCE_INSUFFICIENT,
                 _condition("PEER_APPROVAL", "/command/payload/composition_mode"),
             )
-        if verification_refs or not reviews_satisfy:
+        if verification_refs or not reviews_satisfy or not signed_human_parts_satisfy:
             return _failure(
                 RejectionCode.INDEPENDENCE_UNKNOWN,
                 _condition(
@@ -830,6 +925,7 @@ def validate_closure_witness(
                 contract_version=int(version),
                 projection=projection,
                 policy=policy_snapshot,
+                required_coverage=machine_coverage,
             ):
                 return _failure(
                     RejectionCode.REPLAY_FAILED,
@@ -863,16 +959,20 @@ def validate_closure_witness(
                     "CLOSURE_WITNESS", f"/command/payload/selected_subgraph/cuts/{index}/kind"
                 ),
             )
-    if not _all_machine_refs_valid(
-        verification_refs,
-        evidence,
-        claims=claims,
-        selected_claim_ids=set(selected_claims),
-        run_id=str(_snapshot_value(snapshot, "run_id")),
-        contract_version=int(version),
-        projection=projection,
-        policy=policy_snapshot,
-    ) or not reviews_satisfy:
+    if (
+        not _all_machine_refs_valid(
+            verification_refs,
+            evidence,
+            claims=claims,
+            selected_claim_ids=set(selected_claims),
+            run_id=str(_snapshot_value(snapshot, "run_id")),
+            contract_version=int(version),
+            projection=projection,
+            policy=policy_snapshot,
+            required_coverage=machine_coverage,
+        )
+        or not reviews_satisfy
+    ):
         return _failure(
             RejectionCode.EVIDENCE_INSUFFICIENT,
             (

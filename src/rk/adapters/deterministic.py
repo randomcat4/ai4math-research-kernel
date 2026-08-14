@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,6 @@ from rk.adapters.base import (
     SafeSubprocessRunner,
     confined_path,
     load_json,
-    require_exact_keys,
 )
 
 
@@ -48,11 +48,14 @@ class RegisteredFileToolAdapter:
         self.version = profile.version
 
     def run(self, request: Mapping[str, Any]) -> Mapping[str, Any]:
-        require_exact_keys(
-            request,
-            required=frozenset({"input_relpath", "expected", "environment"}),
-            label=f"{self.capability_kind} request",
-        )
+        keys = frozenset(request)
+        legacy_keys = frozenset({"input_relpath", "expected", "environment"})
+        structured_keys = frozenset({"input", "expected", "environment"})
+        if keys not in {legacy_keys, structured_keys}:
+            raise AdapterRequestError(
+                f"{self.capability_kind} request must contain input or input_relpath, "
+                "expected, and environment"
+            )
         environment = request["environment"]
         if not isinstance(environment, Mapping):
             raise AdapterRequestError("environment must be an object")
@@ -60,9 +63,22 @@ class RegisteredFileToolAdapter:
         binary = self.profile.binary_path
         assert workspace is not None
         assert binary is not None
-        input_path = confined_path(
-            workspace, str(request["input_relpath"]), label="input_relpath"
-        )
+        if "input" in request:
+            input_value = request["input"]
+            if not isinstance(input_value, Mapping):
+                raise AdapterRequestError("input must be an object")
+            body = json.dumps(
+                dict(input_value), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+            input_folder = workspace / ".rktool"
+            input_folder.mkdir(parents=True, exist_ok=True)
+            input_path = input_folder / f"{hashlib.sha256(body).hexdigest()}.json"
+            if not input_path.exists():
+                input_path.write_bytes(body)
+        else:
+            input_path = confined_path(
+                workspace, str(request["input_relpath"]), label="input_relpath"
+            )
         if not input_path.is_file() or input_path.is_symlink():
             raise AdapterRequestError("input_relpath does not name a regular file")
         if not binary.is_file() or self._sha256_file(binary) != self.profile.binary_sha256:

@@ -10,6 +10,7 @@ from rk.http_shell import (
     HttpErrorClass,
     HttpRequest,
     HttpResponse,
+    HttpStreamResponse,
     ProductHttpError,
     RouteRegistry,
     RouteSpec,
@@ -82,7 +83,9 @@ def test_registry_allows_same_path_for_different_methods() -> None:
         (HttpErrorClass.NOT_FOUND, 404),
         (HttpErrorClass.CONFLICT, 409),
         (HttpErrorClass.BUSINESS_GATE, 422),
+        (HttpErrorClass.GONE, 410),
         (HttpErrorClass.UNAVAILABLE, 503),
+        (HttpErrorClass.RANGE, 416),
     ],
 )
 def test_product_error_mapping_is_stable(error_class: HttpErrorClass, status: int) -> None:
@@ -115,6 +118,18 @@ def test_unhandled_error_is_500_and_does_not_leak_exception_text() -> None:
         "params": {},
     }
     assert "secret" not in str(response.body)
+
+
+def test_stream_response_iterates_raw_bytes_without_changing_json_response() -> None:
+    chunks = (b"first", b"second")
+    streamed = HttpStreamResponse(206, iter(chunks), {"content-length": "11"})
+    regular = HttpResponse(200, {"schema_version": "rk.test.v1"})
+
+    assert b"".join(streamed.body) == b"firstsecond"
+    assert streamed.status == 206
+    assert streamed.headers["content-length"] == "11"
+    assert dict(regular.body) == {"schema_version": "rk.test.v1"}
+    assert regular.headers["content-type"] == "application/json"
 
 
 def test_request_does_not_have_an_actor_or_capability_field() -> None:
