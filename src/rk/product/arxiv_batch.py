@@ -187,6 +187,13 @@ class ArxivBatchPipeline:
         budget = _budget(per_run_budget)
         template = self._read_json(contract_template_artifact)
         _contract_template(template)
+        self._pools.bind_artifact(
+            problem_pool_id,
+            binding_kind="CONTRACT_TEMPLATE",
+            artifact=contract_template_artifact,
+            bound_by=session.principal_subject_id,
+            now=now,
+        )
         payload: JsonObject = MappingProxyType(
             {
                 "problem_pool_id": problem_pool_id,

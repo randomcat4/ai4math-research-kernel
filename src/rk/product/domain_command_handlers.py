@@ -511,10 +511,14 @@ class _Handlers:
 
     def freeze_problem_pool(self, i: DomainInvocation) -> ProductDecision:
         p = i.request.payload
+        semantic_audit = _exact_artifact(
+            self.s.artifacts, _object(p, "semantic_audit_artifact")
+        )
         pool = self.s.problem_pool.freeze(
             _text(p, "pool_name"),
             frozen_by=i.session.principal_subject_id,
             actor_kind="USER",
+            semantic_audit_artifact=semantic_audit,
             now=self.s.clock(),
         )
         if self.s.problem_pool.denominator(pool.problem_pool_id).total != _integer(
@@ -696,6 +700,19 @@ def _json_artifact(
     if not isinstance(value, dict):
         raise ValueError("artifact JSON must be an object")
     return cast(dict[str, object], value)
+
+
+def _exact_artifact(
+    service: ArtifactReadService, binding: Mapping[str, object]
+) -> ExactArtifactRef:
+    ref = ExactArtifactRef(
+        _text(binding, "artifact_id"),
+        _text(binding, "sha256"),
+        _integer(binding, "byte_count"),
+        _text(binding, "media_type"),
+    )
+    service.describe(ref.artifact_id, expected_ref=ref)
+    return ref
 
 
 def _review_ref(value: Mapping[str, object]) -> ReviewArtifactRef:
