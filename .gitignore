@@ -21,3 +21,5 @@ secrets/
 capability*.json
 artifacts/
 runs/
+frontend/tsconfig.app.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo
