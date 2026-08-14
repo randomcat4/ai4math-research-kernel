@@ -42,7 +42,7 @@ def test_client_exposes_only_four_transport_operations() -> None:
     client.query(
         scope=GlobalScope("f1d10eee-4da4-49cf-ae78-870dff1c08ba"),
         query_type="LIST_RESEARCH",
-        payload={"limit": 20},
+        payload={"page": {"limit": 20}},
     )
     assert [item[0] for item in calls] == ["query"]
     assert calls[0][1]["query"]["type"] == "LIST_RESEARCH"

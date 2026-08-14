@@ -1,0 +1,3848 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.ai4math/rk/product/command.schema.json",
+  "title": "RK ProductCommand strict tagged union v1",
+  "$ref": "#/$defs/productCommand",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeNatural": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "safePositive": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "artifactBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "microunits",
+        "wall_seconds"
+      ],
+      "properties": {
+        "microunits": {
+          "$ref": "#/$defs/safeNatural"
+        },
+        "wall_seconds": {
+          "$ref": "#/$defs/safePositive"
+        }
+      }
+    },
+    "contractDraft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objects",
+        "domain",
+        "quantifiers",
+        "boundary_conditions",
+        "exact_negation",
+        "allowed_tools",
+        "success_conditions"
+      ],
+      "properties": {
+        "objects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantifiers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "boundary_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "exact_negation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowed_tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "success_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "artifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "byte_count": {
+          "$ref": "#/$defs/safeNatural"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logical_name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "globalScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "deployment_id"
+      ],
+      "properties": {
+        "kind": {
+          "const": "GLOBAL"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "runScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "run_id",
+        "expected_revision",
+        "expected_contract_version"
+      ],
+      "properties": {
+        "kind": {
+          "const": "RUN"
+        },
+        "run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/safeNatural"
+        },
+        "expected_contract_version": {
+          "$ref": "#/$defs/safePositive"
+        }
+      }
+    },
+    "deploymentScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "deployment_id",
+        "expected_deployment_revision"
+      ],
+      "properties": {
+        "kind": {
+          "const": "DEPLOYMENT"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "expected_deployment_revision": {
+          "$ref": "#/$defs/safeNatural"
+        }
+      }
+    },
+    "productCommandCreateResearchBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "CREATE_RESEARCH"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "question",
+            "contract_draft",
+            "owner",
+            "labels",
+            "initial_budget"
+          ],
+          "properties": {
+            "question": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contract_draft": {
+              "$ref": "#/$defs/contractDraft"
+            },
+            "owner": {
+              "type": "string",
+              "minLength": 1
+            },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "initial_budget": {
+              "$ref": "#/$defs/budget"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "material_artifacts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/artifactBinding"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "GLOBAL"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "KERNEL_GUARDED_CREATE"
+    },
+    "productCommandCreateResearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/globalScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandCreateResearchBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandConfirmContractBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "CONFIRM_CONTRACT"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contract_digest",
+            "material_anchor_ids",
+            "confirmation_note"
+          ],
+          "properties": {
+            "contract_digest": {
+              "$ref": "#/$defs/hash"
+            },
+            "material_anchor_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "confirmation_note": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "KERNEL_GUARDED_MATH_STATE"
+    },
+    "productCommandConfirmContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandConfirmContractBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandAmendContractBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "AMEND_CONTRACT"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "base_contract_version",
+            "amendment_artifact",
+            "impact_acknowledgement"
+          ],
+          "properties": {
+            "base_contract_version": {
+              "$ref": "#/$defs/safePositive"
+            },
+            "amendment_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "impact_acknowledgement": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "KERNEL_GUARDED_INVALIDATION"
+    },
+    "productCommandAmendContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandAmendContractBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandApplyRoutePlanBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "APPLY_ROUTE_PLAN"
+        },
+        "payload": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "route_plan_id",
+                "plan_digest"
+              ],
+              "properties": {
+                "action": {
+                  "const": "APPROVE"
+                },
+                "route_plan_id": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "plan_digest": {
+                  "$ref": "#/$defs/hash"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "route_plan_id"
+              ],
+              "properties": {
+                "action": {
+                  "const": "START"
+                },
+                "route_plan_id": {
+                  "$ref": "#/$defs/uuid"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "route_plan_id",
+                "reason"
+              ],
+              "properties": {
+                "action": {
+                  "const": "PAUSE"
+                },
+                "route_plan_id": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "route_plan_id",
+                "reason"
+              ],
+              "properties": {
+                "action": {
+                  "const": "STOP"
+                },
+                "route_plan_id": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "route_plan_id",
+                "priority"
+              ],
+              "properties": {
+                "action": {
+                  "const": "SET_PRIORITY"
+                },
+                "route_plan_id": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "priority": {
+                  "$ref": "#/$defs/safePositive"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "route_plan_id",
+                "budget"
+              ],
+              "properties": {
+                "action": {
+                  "const": "SET_BUDGET"
+                },
+                "route_plan_id": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "budget": {
+                  "$ref": "#/$defs/budget"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "ORCHESTRATION_ONLY"
+    },
+    "productCommandApplyRoutePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandApplyRoutePlanBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandStartResearchBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "START_RESEARCH"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "route_plan_id",
+            "checkpoint_id"
+          ],
+          "properties": {
+            "route_plan_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "checkpoint_id": {
+              "$ref": "#/$defs/uuid"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "ORCHESTRATION_ONLY"
+    },
+    "productCommandStartResearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandStartResearchBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandPauseResearchBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "PAUSE_RESEARCH"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reason",
+            "checkpoint_required"
+          ],
+          "properties": {
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "checkpoint_required": {
+              "const": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "ORCHESTRATION_ONLY"
+    },
+    "productCommandPauseResearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandPauseResearchBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandResumeResearchBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "RESUME_RESEARCH"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "checkpoint_id",
+            "resume_invalidated_items"
+          ],
+          "properties": {
+            "checkpoint_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "resume_invalidated_items": {
+              "const": false
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "ORCHESTRATION_ONLY"
+    },
+    "productCommandResumeResearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandResumeResearchBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandCancelResearchBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "CANCEL_RESEARCH"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reason",
+            "cancel_pending_external_attempts"
+          ],
+          "properties": {
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cancel_pending_external_attempts": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "ORCHESTRATION_ONLY"
+    },
+    "productCommandCancelResearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandCancelResearchBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandSubmitGuidanceBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "SUBMIT_GUIDANCE"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "target_checkpoint_id",
+            "goal",
+            "guidance_text",
+            "affected_route_ids"
+          ],
+          "properties": {
+            "target_checkpoint_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "goal": {
+              "type": "string",
+              "minLength": 1
+            },
+            "guidance_text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "affected_route_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "NO_FACT_GRAPH_WRITE"
+    },
+    "productCommandSubmitGuidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandSubmitGuidanceBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandWithdrawGuidanceBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "WITHDRAW_GUIDANCE"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "guidance_id",
+            "reason"
+          ],
+          "properties": {
+            "guidance_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "NO_FACT_GRAPH_WRITE"
+    },
+    "productCommandWithdrawGuidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandWithdrawGuidanceBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandSubmitClaimBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "SUBMIT_CLAIM"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "statement",
+            "claim_kind",
+            "proof_or_evidence_artifacts",
+            "predecessor_fact_ids",
+            "source_binding_artifact",
+            "work_item_id",
+            "worker_run_id",
+            "attempt_id"
+          ],
+          "properties": {
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "claim_kind": {
+              "enum": [
+                "ROOT",
+                "LEMMA",
+                "DEFINITION",
+                "COUNTEREXAMPLE",
+                "COMPUTATION"
+              ]
+            },
+            "proof_or_evidence_artifacts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/artifactBinding"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "predecessor_fact_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "source_binding_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "work_item_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "worker_run_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "attempt_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "route_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "supersedes_claim_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "public_summary": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "KERNEL_VALIDATION_GATE_REQUIRED"
+    },
+    "productCommandSubmitClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandSubmitClaimBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandImportVerificationBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "IMPORT_VERIFICATION"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "review_task_id",
+            "signed_review_artifact",
+            "target_digest",
+            "verifier_receipt_ids"
+          ],
+          "properties": {
+            "review_task_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "signed_review_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "target_digest": {
+              "$ref": "#/$defs/hash"
+            },
+            "verifier_receipt_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "KERNEL_VALIDATION_GATE_REQUIRED"
+    },
+    "productCommandImportVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandImportVerificationBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandConfirmRevokeBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "CONFIRM_REVOKE"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fact_id",
+            "preview_revision",
+            "contract_version",
+            "target_fact_digest",
+            "affected_fact_ids",
+            "reopened_obligation_ids",
+            "preserved_sibling_ids",
+            "reason_artifact"
+          ],
+          "properties": {
+            "fact_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "preview_revision": {
+              "$ref": "#/$defs/safeNatural"
+            },
+            "contract_version": {
+              "$ref": "#/$defs/safePositive"
+            },
+            "target_fact_digest": {
+              "$ref": "#/$defs/hash"
+            },
+            "affected_fact_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "reopened_obligation_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "preserved_sibling_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "reason_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "KERNEL_GUARDED_INVALIDATION"
+    },
+    "productCommandConfirmRevoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandConfirmRevokeBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandRegisterBridgeSpecBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "REGISTER_BRIDGE_SPEC"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bridge_opportunity_id",
+            "direction",
+            "source_domain",
+            "target_domain",
+            "mapping_artifact",
+            "assumption_loss_artifact",
+            "translation_artifact",
+            "target_review_artifact",
+            "composition_obligation_ids"
+          ],
+          "properties": {
+            "bridge_opportunity_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "direction": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_domain": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_domain": {
+              "type": "string",
+              "minLength": 1
+            },
+            "mapping_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "assumption_loss_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "translation_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "target_review_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "composition_obligation_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "KERNEL_VALIDATION_GATE_REQUIRED"
+    },
+    "productCommandRegisterBridgeSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandRegisterBridgeSpecBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandSubmitClosureWitnessBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "SUBMIT_CLOSURE_WITNESS"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "terminal_root_id",
+            "selected_subgraph_digest",
+            "graph_revision",
+            "edge_justification_artifacts",
+            "bridge_spec_ids",
+            "composition_obligation_ids",
+            "verification_review_ids"
+          ],
+          "properties": {
+            "terminal_root_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "selected_subgraph_digest": {
+              "$ref": "#/$defs/hash"
+            },
+            "graph_revision": {
+              "$ref": "#/$defs/safeNatural"
+            },
+            "edge_justification_artifacts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/artifactBinding"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "bridge_spec_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "composition_obligation_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "verification_review_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "KERNEL_CLOSURE_GATE_REQUIRED"
+    },
+    "productCommandSubmitClosureWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandSubmitClosureWitnessBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandCreateReviewTaskBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "CREATE_REVIEW_TASK"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "review_type",
+            "target_entity_ids",
+            "target_digest",
+            "author_subject_ids",
+            "assignee_subject_id",
+            "independence_constraints",
+            "expires_at"
+          ],
+          "properties": {
+            "review_type": {
+              "enum": [
+                "ATOMIC",
+                "COMPOSITION",
+                "PAPER",
+                "MATERIAL",
+                "LITERATURE",
+                "SEMANTIC_FREEZE"
+              ]
+            },
+            "target_entity_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "target_digest": {
+              "$ref": "#/$defs/hash"
+            },
+            "author_subject_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "assignee_subject_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "independence_constraints": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "expires_at": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "NO_FACT_GRAPH_WRITE"
+    },
+    "productCommandCreateReviewTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandCreateReviewTaskBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandClaimReviewTaskBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "CLAIM_REVIEW_TASK"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "review_task_id",
+            "task_binding_digest"
+          ],
+          "properties": {
+            "review_task_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "task_binding_digest": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "NO_FACT_GRAPH_WRITE"
+    },
+    "productCommandClaimReviewTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandClaimReviewTaskBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandSubmitReviewBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "SUBMIT_REVIEW"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "review_task_id",
+            "signed_review_artifact",
+            "review_schema_version",
+            "task_binding_digest"
+          ],
+          "properties": {
+            "review_task_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "signed_review_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "review_schema_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "task_binding_digest": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "SIGNED_REVIEW_ONLY"
+    },
+    "productCommandSubmitReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandSubmitReviewBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandGenerateCandidateTexBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "GENERATE_CANDIDATE_TEX"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "finalized_revision",
+            "terminal_root_id",
+            "dependency_closure_digest",
+            "template_artifact"
+          ],
+          "properties": {
+            "finalized_revision": {
+              "$ref": "#/$defs/safeNatural"
+            },
+            "terminal_root_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "dependency_closure_digest": {
+              "$ref": "#/$defs/hash"
+            },
+            "template_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "CLOSED_RUN_PUBLICATION_ONLY"
+    },
+    "productCommandGenerateCandidateTex": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandGenerateCandidateTexBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandSubmitPaperReviewBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "SUBMIT_PAPER_REVIEW"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "review_task_id",
+            "signed_paper_review_artifact",
+            "candidate_tex_artifact",
+            "paper_review_schema_version"
+          ],
+          "properties": {
+            "review_task_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "signed_paper_review_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "candidate_tex_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "paper_review_schema_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "SIGNED_PAPER_REVIEW_ONLY"
+    },
+    "productCommandSubmitPaperReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandSubmitPaperReviewBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandFinalizeResearchBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "FINALIZE_RESEARCH"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "final_outcome",
+            "terminal_root_id",
+            "closure_witness_id"
+          ],
+          "properties": {
+            "final_outcome": {
+              "enum": [
+                "PROVED",
+                "DISPROVED",
+                "UNRESOLVED"
+              ]
+            },
+            "terminal_root_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "closure_witness_id": {
+              "$ref": "#/$defs/uuid"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "KERNEL_FINALIZATION_GATE_REQUIRED"
+    },
+    "productCommandFinalizeResearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandFinalizeResearchBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandCompileFinalPdfBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "COMPILE_FINAL_PDF"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "candidate_tex_artifact",
+            "paper_review_id",
+            "compiler_profile_id",
+            "compiler_profile_version"
+          ],
+          "properties": {
+            "candidate_tex_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "paper_review_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "compiler_profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "compiler_profile_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "CLOSED_RUN_PUBLICATION_ONLY"
+    },
+    "productCommandCompileFinalPdf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandCompileFinalPdfBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandConfirmMaterialExtractionBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "CONFIRM_MATERIAL_EXTRACTION"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "material_extraction_id",
+            "source_artifact",
+            "extraction_digest",
+            "reviewed_page_numbers",
+            "corrections_artifact"
+          ],
+          "properties": {
+            "material_extraction_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "source_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "extraction_digest": {
+              "$ref": "#/$defs/hash"
+            },
+            "reviewed_page_numbers": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "corrections_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "NO_FACT_GRAPH_WRITE"
+    },
+    "productCommandConfirmMaterialExtraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandConfirmMaterialExtractionBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandRunLiteratureQueryBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "RUN_LITERATURE_QUERY"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "research_question",
+            "connector_profile_ids",
+            "query_text",
+            "coverage_boundary",
+            "target_entity_ids",
+            "capture_raw_response"
+          ],
+          "properties": {
+            "research_question": {
+              "type": "string",
+              "minLength": 1
+            },
+            "connector_profile_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "query_text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "coverage_boundary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_entity_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "capture_raw_response": {
+              "const": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "EXTERNAL_SIDE_EFFECT",
+      "x-rk-authority-boundary": "NO_MATH_OR_NOVELTY_WRITE"
+    },
+    "productCommandRunLiteratureQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandRunLiteratureQueryBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandReplaySourceSnapshotBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "REPLAY_SOURCE_SNAPSHOT"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_snapshot_id",
+            "expected_response_sha256",
+            "reconfirm_external_index"
+          ],
+          "properties": {
+            "source_snapshot_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "expected_response_sha256": {
+              "$ref": "#/$defs/hash"
+            },
+            "reconfirm_external_index": {
+              "const": false
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "NO_MATH_OR_NOVELTY_WRITE"
+    },
+    "productCommandReplaySourceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandReplaySourceSnapshotBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandReviewTheoremApplicabilityBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "REVIEW_THEOREM_APPLICABILITY"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "theorem_source_binding",
+            "target_claim_id",
+            "verdict",
+            "assumption_mapping_artifact",
+            "signed_review_artifact"
+          ],
+          "properties": {
+            "theorem_source_binding": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "target_claim_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "verdict": {
+              "enum": [
+                "APPLICABLE",
+                "INAPPLICABLE",
+                "CONDITIONAL",
+                "INSUFFICIENT_CONTEXT"
+              ]
+            },
+            "assumption_mapping_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "signed_review_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "NO_FACT_GRAPH_WRITE"
+    },
+    "productCommandReviewTheoremApplicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandReviewTheoremApplicabilityBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandFreezeProblemPoolBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "FREEZE_PROBLEM_POOL"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pool_name",
+            "frozen_at",
+            "subject_classes",
+            "version_rule",
+            "inclusion_rules",
+            "exclusion_rules",
+            "source_snapshot_ids",
+            "candidate_denominator",
+            "semantic_audit_artifact"
+          ],
+          "properties": {
+            "pool_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "frozen_at": {
+              "type": "string",
+              "minLength": 1
+            },
+            "subject_classes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "version_rule": {
+              "type": "string",
+              "minLength": 1
+            },
+            "inclusion_rules": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "exclusion_rules": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "source_snapshot_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "candidate_denominator": {
+              "$ref": "#/$defs/safePositive"
+            },
+            "semantic_audit_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "GLOBAL"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "NO_MATH_OR_NOVELTY_WRITE"
+    },
+    "productCommandFreezeProblemPool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/globalScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandFreezeProblemPoolBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandBatchCreateResearchBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "BATCH_CREATE_RESEARCH"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "problem_pool_id",
+            "problem_candidate_ids",
+            "contract_template_artifact",
+            "per_run_budget",
+            "labels"
+          ],
+          "properties": {
+            "problem_pool_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "problem_candidate_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "contract_template_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "per_run_budget": {
+              "$ref": "#/$defs/budget"
+            },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "GLOBAL"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "KERNEL_GUARDED_CREATE"
+    },
+    "productCommandBatchCreateResearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/globalScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandBatchCreateResearchBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandRegisterBridgeOpportunityBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "REGISTER_BRIDGE_OPPORTUNITY"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "normalized_source_problem",
+            "candidate_target_domain",
+            "domain_distance_basis",
+            "source_method_maturity",
+            "target_domain_absence_evidence",
+            "native_tool_advantage",
+            "expected_certificate_compression",
+            "mapping_and_assumption_losses",
+            "round_trip_and_source_review_cost",
+            "fastest_death_test",
+            "selection_rationale",
+            "source_snapshot_ids"
+          ],
+          "properties": {
+            "normalized_source_problem": {
+              "type": "string",
+              "minLength": 1
+            },
+            "candidate_target_domain": {
+              "type": "string",
+              "minLength": 1
+            },
+            "domain_distance_basis": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_method_maturity": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_domain_absence_evidence": {
+              "type": "string",
+              "minLength": 1
+            },
+            "native_tool_advantage": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected_certificate_compression": {
+              "type": "string",
+              "minLength": 1
+            },
+            "mapping_and_assumption_losses": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "round_trip_and_source_review_cost": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fastest_death_test": {
+              "type": "string",
+              "minLength": 1
+            },
+            "selection_rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_snapshot_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "NO_FACT_GRAPH_WRITE"
+    },
+    "productCommandRegisterBridgeOpportunity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandRegisterBridgeOpportunityBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandAssignAblationBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "ASSIGN_ABLATION"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ablation_plan_id",
+            "group",
+            "problem_candidate_ids",
+            "model_profile",
+            "tool_profile",
+            "candidate_count",
+            "budget",
+            "final_verifier_profile"
+          ],
+          "properties": {
+            "ablation_plan_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "group": {
+              "enum": [
+                "direct",
+                "near",
+                "far-random",
+                "far-retrieval",
+                "full-RK"
+              ]
+            },
+            "problem_candidate_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "model_profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tool_profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "candidate_count": {
+              "$ref": "#/$defs/safePositive"
+            },
+            "budget": {
+              "$ref": "#/$defs/budget"
+            },
+            "final_verifier_profile": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "RESEARCH_HYPOTHESIS_ONLY"
+    },
+    "productCommandAssignAblation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandAssignAblationBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandImportResearchLineageBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "IMPORT_RESEARCH_LINEAGE"
+        },
+        "payload": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mode",
+                "source_project_id",
+                "source_versions",
+                "clean_room_input_manifest",
+                "historical_conclusions_injected"
+              ],
+              "properties": {
+                "mode": {
+                  "const": "CLEAN_ROOM_REDISCOVERY"
+                },
+                "source_project_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_versions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 0,
+                  "uniqueItems": true
+                },
+                "clean_room_input_manifest": {
+                  "$ref": "#/$defs/artifactBinding"
+                },
+                "historical_conclusions_injected": {
+                  "const": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mode",
+                "source_project_id",
+                "source_versions",
+                "imported_artifacts",
+                "certificate_import_report",
+                "verifier_receipt_ids"
+              ],
+              "properties": {
+                "mode": {
+                  "const": "IMPORTED_CERTIFICATE_VERIFICATION"
+                },
+                "source_project_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_versions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 0,
+                  "uniqueItems": true
+                },
+                "imported_artifacts": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/artifactBinding"
+                  },
+                  "minItems": 0,
+                  "uniqueItems": true
+                },
+                "certificate_import_report": {
+                  "$ref": "#/$defs/artifactBinding"
+                },
+                "verifier_receipt_ids": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/uuid"
+                  },
+                  "minItems": 0,
+                  "uniqueItems": true
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mode",
+                "source_project_id",
+                "source_versions",
+                "candidate_artifacts",
+                "promote_as_verified"
+              ],
+              "properties": {
+                "mode": {
+                  "const": "HISTORICAL_CANDIDATE_MIGRATION"
+                },
+                "source_project_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_versions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 0,
+                  "uniqueItems": true
+                },
+                "candidate_artifacts": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/artifactBinding"
+                  },
+                  "minItems": 0,
+                  "uniqueItems": true
+                },
+                "promote_as_verified": {
+                  "const": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "CANDIDATE_ONLY_NO_FACT_GRAPH_WRITE"
+    },
+    "productCommandImportResearchLineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandImportResearchLineageBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandCreateComputeTaskBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "CREATE_COMPUTE_TASK"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "script_artifact",
+            "input_artifacts",
+            "environment_profile_id",
+            "environment_profile_version",
+            "parameters_artifact",
+            "limits_artifact",
+            "expected_output_names"
+          ],
+          "properties": {
+            "script_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "input_artifacts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/artifactBinding"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "environment_profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "environment_profile_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parameters_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "limits_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "expected_output_names": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "SOFT_TOOL_RESULT_ONLY"
+    },
+    "productCommandCreateComputeTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandCreateComputeTaskBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandRunToolBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "RUN_TOOL"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tool_id",
+            "tool_version",
+            "function_name",
+            "function_schema_digest",
+            "input_artifact_ids",
+            "arguments_artifact",
+            "authority_ceiling"
+          ],
+          "properties": {
+            "tool_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tool_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "function_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "function_schema_digest": {
+              "$ref": "#/$defs/hash"
+            },
+            "input_artifact_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "arguments_artifact": {
+              "$ref": "#/$defs/artifactBinding"
+            },
+            "authority_ceiling": {
+              "enum": [
+                "NO_FACT_GRAPH_WRITE",
+                "SOFT_TOOL_RESULT",
+                "CERTIFICATE_REQUIRES_VALIDATION"
+              ]
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN"
+      ],
+      "x-rk-execution-class": "EXTERNAL_SIDE_EFFECT",
+      "x-rk-authority-boundary": "TOOL_RECEIPT_NOT_AUTHORITY"
+    },
+    "productCommandRunTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/runScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandRunToolBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandCancelJobBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "CANCEL_JOB"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "job_id",
+            "reason"
+          ],
+          "properties": {
+            "job_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN",
+        "DEPLOYMENT"
+      ],
+      "x-rk-execution-class": "IMMEDIATE",
+      "x-rk-authority-boundary": "EXECUTION_STATE_ONLY"
+    },
+    "productCommandCancelJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/runScope"
+            },
+            {
+              "$ref": "#/$defs/deploymentScope"
+            }
+          ]
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandCancelJobBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandRetryUnknownOutcomeBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "RETRY_UNKNOWN_OUTCOME"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "outcome_unknown_receipt_id",
+            "unknown_external_call_ref",
+            "resolution_strategy",
+            "evidence_artifact_ids"
+          ],
+          "properties": {
+            "outcome_unknown_receipt_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "unknown_external_call_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "resolution_strategy": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_artifact_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "x-rk-scope-kinds": [
+        "RUN",
+        "DEPLOYMENT"
+      ],
+      "x-rk-execution-class": "EXTERNAL_SIDE_EFFECT",
+      "x-rk-authority-boundary": "NO_IMPLICIT_MATH_DECISION"
+    },
+    "productCommandRetryUnknownOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/runScope"
+            },
+            {
+              "$ref": "#/$defs/deploymentScope"
+            }
+          ]
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandRetryUnknownOutcomeBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommandDeploymentOperationBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "DEPLOYMENT_OPERATION"
+        },
+        "payload": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "data_root",
+                "configuration_artifact"
+              ],
+              "properties": {
+                "action": {
+                  "const": "BOOTSTRAP"
+                },
+                "data_root": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "configuration_artifact": {
+                  "$ref": "#/$defs/artifactBinding"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "configuration_artifact",
+                "expected_config_digest"
+              ],
+              "properties": {
+                "action": {
+                  "const": "UPDATE_CONFIG"
+                },
+                "configuration_artifact": {
+                  "$ref": "#/$defs/artifactBinding"
+                },
+                "expected_config_digest": {
+                  "$ref": "#/$defs/hash"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "capability_profile_id"
+              ],
+              "properties": {
+                "action": {
+                  "const": "PROBE_CAPABILITY"
+                },
+                "capability_profile_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "inventory_profile_id"
+              ],
+              "properties": {
+                "action": {
+                  "const": "INVENTORY_HARDWARE"
+                },
+                "inventory_profile_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "component_manifest"
+              ],
+              "properties": {
+                "action": {
+                  "const": "REGISTER_COMPONENT"
+                },
+                "component_manifest": {
+                  "$ref": "#/$defs/artifactBinding"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "daemon_id"
+              ],
+              "properties": {
+                "action": {
+                  "const": "START_DAEMON"
+                },
+                "daemon_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "daemon_id",
+                "drain_timeout_seconds"
+              ],
+              "properties": {
+                "action": {
+                  "const": "STOP_DAEMON"
+                },
+                "daemon_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "drain_timeout_seconds": {
+                  "$ref": "#/$defs/safePositive"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "backup_target",
+                "include_cas",
+                "include_configuration"
+              ],
+              "properties": {
+                "action": {
+                  "const": "BACKUP"
+                },
+                "backup_target": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "include_cas": {
+                  "type": "boolean"
+                },
+                "include_configuration": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "backup_artifact",
+                "new_data_root"
+              ],
+              "properties": {
+                "action": {
+                  "const": "RESTORE"
+                },
+                "backup_artifact": {
+                  "$ref": "#/$defs/artifactBinding"
+                },
+                "new_data_root": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "release_manifest"
+              ],
+              "properties": {
+                "action": {
+                  "const": "UPGRADE_PREFLIGHT"
+                },
+                "release_manifest": {
+                  "$ref": "#/$defs/artifactBinding"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "release_manifest",
+                "backup_id"
+              ],
+              "properties": {
+                "action": {
+                  "const": "MIGRATE_SCHEMA"
+                },
+                "release_manifest": {
+                  "$ref": "#/$defs/artifactBinding"
+                },
+                "backup_id": {
+                  "$ref": "#/$defs/uuid"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "redact_credentials"
+              ],
+              "properties": {
+                "action": {
+                  "const": "EXPORT_DIAGNOSTICS"
+                },
+                "redact_credentials": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "x-rk-scope-kinds": [
+        "DEPLOYMENT"
+      ],
+      "x-rk-execution-class": "DURABLE_JOB",
+      "x-rk-authority-boundary": "DEPLOYMENT_STATE_ONLY"
+    },
+    "productCommandDeploymentOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "command",
+        "artifact_inputs"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "rk.product.command.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "$ref": "#/$defs/deploymentScope"
+        },
+        "command": {
+          "$ref": "#/$defs/productCommandDeploymentOperationBody"
+        },
+        "artifact_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "productCommand": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/productCommandCreateResearch"
+        },
+        {
+          "$ref": "#/$defs/productCommandConfirmContract"
+        },
+        {
+          "$ref": "#/$defs/productCommandAmendContract"
+        },
+        {
+          "$ref": "#/$defs/productCommandApplyRoutePlan"
+        },
+        {
+          "$ref": "#/$defs/productCommandStartResearch"
+        },
+        {
+          "$ref": "#/$defs/productCommandPauseResearch"
+        },
+        {
+          "$ref": "#/$defs/productCommandResumeResearch"
+        },
+        {
+          "$ref": "#/$defs/productCommandCancelResearch"
+        },
+        {
+          "$ref": "#/$defs/productCommandSubmitGuidance"
+        },
+        {
+          "$ref": "#/$defs/productCommandWithdrawGuidance"
+        },
+        {
+          "$ref": "#/$defs/productCommandSubmitClaim"
+        },
+        {
+          "$ref": "#/$defs/productCommandImportVerification"
+        },
+        {
+          "$ref": "#/$defs/productCommandConfirmRevoke"
+        },
+        {
+          "$ref": "#/$defs/productCommandRegisterBridgeSpec"
+        },
+        {
+          "$ref": "#/$defs/productCommandSubmitClosureWitness"
+        },
+        {
+          "$ref": "#/$defs/productCommandCreateReviewTask"
+        },
+        {
+          "$ref": "#/$defs/productCommandClaimReviewTask"
+        },
+        {
+          "$ref": "#/$defs/productCommandSubmitReview"
+        },
+        {
+          "$ref": "#/$defs/productCommandGenerateCandidateTex"
+        },
+        {
+          "$ref": "#/$defs/productCommandSubmitPaperReview"
+        },
+        {
+          "$ref": "#/$defs/productCommandFinalizeResearch"
+        },
+        {
+          "$ref": "#/$defs/productCommandCompileFinalPdf"
+        },
+        {
+          "$ref": "#/$defs/productCommandConfirmMaterialExtraction"
+        },
+        {
+          "$ref": "#/$defs/productCommandRunLiteratureQuery"
+        },
+        {
+          "$ref": "#/$defs/productCommandReplaySourceSnapshot"
+        },
+        {
+          "$ref": "#/$defs/productCommandReviewTheoremApplicability"
+        },
+        {
+          "$ref": "#/$defs/productCommandFreezeProblemPool"
+        },
+        {
+          "$ref": "#/$defs/productCommandBatchCreateResearch"
+        },
+        {
+          "$ref": "#/$defs/productCommandRegisterBridgeOpportunity"
+        },
+        {
+          "$ref": "#/$defs/productCommandAssignAblation"
+        },
+        {
+          "$ref": "#/$defs/productCommandImportResearchLineage"
+        },
+        {
+          "$ref": "#/$defs/productCommandCreateComputeTask"
+        },
+        {
+          "$ref": "#/$defs/productCommandRunTool"
+        },
+        {
+          "$ref": "#/$defs/productCommandCancelJob"
+        },
+        {
+          "$ref": "#/$defs/productCommandRetryUnknownOutcome"
+        },
+        {
+          "$ref": "#/$defs/productCommandDeploymentOperation"
+        }
+      ]
+    }
+  }
+}

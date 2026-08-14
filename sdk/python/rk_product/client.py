@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from .types import ArtifactOperationType, CommandType, QueryType
+from .types import COMMAND_CONTRACTS, QUERY_CONTRACTS, ArtifactOperationType, CommandType, QueryType
 
 type JsonScalar = bool | int | str | None
 type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
@@ -118,6 +118,36 @@ class RunScope:
 
 
 @dataclass(frozen=True, slots=True)
+class QueryRunScope:
+    run_id: str
+    at_revision: int | None = None
+    at_contract_version: int | None = None
+
+    def to_dict(self) -> JsonObject:
+        value: JsonObject = {"kind": "RUN", "run_id": self.run_id}
+        if self.at_revision is not None:
+            value["at_revision"] = self.at_revision
+        if self.at_contract_version is not None:
+            value["at_contract_version"] = self.at_contract_version
+        return value
+
+
+@dataclass(frozen=True, slots=True)
+class QueryDeploymentScope:
+    deployment_id: str
+    at_deployment_revision: int | None = None
+
+    def to_dict(self) -> JsonObject:
+        value: JsonObject = {"kind": "DEPLOYMENT", "deployment_id": self.deployment_id}
+        if self.at_deployment_revision is not None:
+            value["at_deployment_revision"] = self.at_deployment_revision
+        return value
+
+
+QueryScope = GlobalScope | QueryRunScope | QueryDeploymentScope
+
+
+@dataclass(frozen=True, slots=True)
 class DeploymentScope:
     deployment_id: str
     expected_deployment_revision: int
@@ -140,6 +170,42 @@ def _enum_value[T: str](enum_type: type[T], value: T | str, label: str) -> str:
         raise UnknownVariantError(f"unknown {label} variant {value!r}; upgrade the SDK") from error
 
 
+def _validate_command_contract(command_type: str, payload: Mapping[str, Any], scope: Scope) -> None:
+    contract = COMMAND_CONTRACTS[command_type]
+    scope_kind = scope.to_dict()["kind"]
+    if scope_kind not in contract["scope_kinds"]:
+        raise InvalidEnvelopeError(
+            f"{command_type} requires scope in {contract['scope_kinds']}, got {scope_kind}"
+        )
+    actual = set(payload)
+    required = set(contract["required_payload_fields"])
+    optional = set(contract["optional_payload_fields"])
+    missing = required - actual
+    unknown = actual - required - optional
+    if missing:
+        raise InvalidEnvelopeError(f"{command_type} payload is missing fields {sorted(missing)}")
+    if unknown:
+        raise InvalidEnvelopeError(f"{command_type} payload has unknown fields {sorted(unknown)}")
+
+
+def _validate_query_contract(
+    query_type: str, payload: Mapping[str, Any], scope: QueryScope
+) -> None:
+    contract = QUERY_CONTRACTS[query_type]
+    scope_kind = scope.to_dict()["kind"]
+    if scope_kind not in contract["scope_kinds"]:
+        raise InvalidEnvelopeError(
+            f"{query_type} requires query scope in {contract['scope_kinds']}, got {scope_kind}"
+        )
+    actual = set(payload)
+    required = set(contract["required_payload_fields"])
+    allowed = required | set(contract["optional_payload_fields"])
+    if missing := required - actual:
+        raise InvalidEnvelopeError(f"{query_type} payload is missing fields {sorted(missing)}")
+    if unknown := actual - allowed:
+        raise InvalidEnvelopeError(f"{query_type} payload has unknown fields {sorted(unknown)}")
+
+
 class ResearchProductClient:
     """Only the four frozen ResearchProduct operation families."""
 
@@ -155,34 +221,38 @@ class ResearchProductClient:
         payload: Mapping[str, Any],
         artifact_inputs: list[Mapping[str, Any]] | None = None,
     ) -> JsonObject:
+        normalized_type = _enum_value(CommandType, command_type, "command")
         body = self._body(
             {
                 "schema_version": "rk.product.command.v1",
                 "request_id": request_id,
                 "scope": scope.to_dict(),
                 "command": {
-                    "type": _enum_value(CommandType, command_type, "command"),
+                    "type": normalized_type,
                     "payload": payload,
                 },
                 "artifact_inputs": artifact_inputs or [],
             }
         )
         _reject_identity_injection(body["command"])
+        _validate_command_contract(normalized_type, payload, scope)
         return self._send("command", body)
 
     def query(
         self,
         *,
-        scope: Scope,
+        scope: QueryScope,
         query_type: QueryType | str,
         payload: Mapping[str, Any],
     ) -> JsonObject:
+        normalized_type = _enum_value(QueryType, query_type, "query")
+        _validate_query_contract(normalized_type, payload, scope)
         body = self._body(
             {
                 "schema_version": "rk.product.query.v1",
                 "scope": scope.to_dict(),
                 "query": {
-                    "type": _enum_value(QueryType, query_type, "query"),
+                    "type": normalized_type,
                     "payload": payload,
                 },
             }
@@ -236,4 +306,8 @@ class ResearchProductClient:
             normalized.get("schema_version"), str
         ):
             raise InvalidEnvelopeError(f"{operation} response has no schema_version")
+        if operation == "query" and normalized["schema_version"] != "rk.product.query_result.v1":
+            raise UnknownVariantError(
+                f"unknown query result schema {normalized['schema_version']!r}; upgrade the SDK"
+            )
         return normalized

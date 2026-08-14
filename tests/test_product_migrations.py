@@ -24,7 +24,13 @@ def test_project_baseline_has_stable_identity_and_owned_objects() -> None:
     plan = ProductMigrationRegistry(PROJECT_FRAGMENTS).plan()
 
     assert [(step.position, step.fragment.fragment_id) for step in plan] == [
-        (1, "D00a/product_activity")
+        (1, "D00a/product_activity"),
+        (2, "B01b/catalog"),
+        (3, "B02a/operations"),
+        (4, "B02b/activity_retention"),
+        (5, "B03/jobs"),
+        (6, "B04a/upload"),
+        (7, "B05a/identity"),
     ]
     assert {(item.kind, item.name) for item in plan[0].fragment.objects} == {
         ("TABLE", "product_activity_events"),
@@ -78,9 +84,7 @@ def test_business_fragment_cannot_claim_numbering_or_transaction(
 
 
 @pytest.mark.parametrize("kind", ["TABLE", "INDEX", "TRIGGER", "VIEW"])
-def test_schema_object_conflicts_are_rejected_case_insensitively(
-    tmp_path: Path, kind: str
-) -> None:
+def test_schema_object_conflicts_are_rejected_case_insensitively(tmp_path: Path, kind: str) -> None:
     if kind == "TABLE":
         first = "CREATE TABLE Shared(id INTEGER PRIMARY KEY) STRICT;"
         second = "CREATE TABLE shared(value TEXT) STRICT;"
@@ -124,9 +128,9 @@ def test_real_sqlite_empty_database_assembly_is_atomic_and_idempotent(tmp_path: 
         assert connection.execute("PRAGMA foreign_keys").fetchone() == (1,)
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
-        assert connection.execute(
-            "SELECT COUNT(*) FROM product_schema_fragments"
-        ).fetchone() == (1,)
+        assert connection.execute("SELECT COUNT(*) FROM product_schema_fragments").fetchone() == (
+            7,
+        )
 
         connection.execute(
             "INSERT INTO product_activity_events("
@@ -168,9 +172,7 @@ def test_applied_digest_drift_is_rejected_and_database_is_unchanged(tmp_path: Pa
     with sqlite3.connect(db_path, isolation_level=None) as connection:
         assembler = ProductMigrationAssembler(ProductMigrationRegistry(fragments))
         assembler.apply(connection)
-        path.write_text(
-            "CREATE TABLE catalog(id INTEGER, label TEXT) STRICT;", encoding="utf-8"
-        )
+        path.write_text("CREATE TABLE catalog(id INTEGER, label TEXT) STRICT;", encoding="utf-8")
 
         with pytest.raises(ProductMigrationError, match="has drifted"):
             assembler.apply(connection)

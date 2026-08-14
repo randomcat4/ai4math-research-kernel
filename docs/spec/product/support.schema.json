@@ -3,60 +3,366 @@
   "$id": "https://local.ai4math/rk/product/support.schema.json",
   "title": "RK product support objects v1",
   "oneOf": [
-    {"$ref": "#/$defs/session"}, {"$ref": "#/$defs/job"},
-    {"$ref": "#/$defs/revokePreview"}, {"$ref": "#/$defs/reviewTask"}
+    {
+      "$ref": "#/$defs/session"
+    },
+    {
+      "$ref": "#/$defs/job"
+    },
+    {
+      "$ref": "#/$defs/revokePreview"
+    },
+    {
+      "$ref": "#/$defs/reviewTask"
+    }
   ],
   "$defs": {
-    "uuid": {"type": "string", "format": "uuid"},
-    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "session": {
-      "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "session_id", "principal_subject_id", "role", "capability_id", "issued_at", "expires_at"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "session_id",
+        "principal_subject_id",
+        "role",
+        "capability_id",
+        "issued_at",
+        "expires_at"
+      ],
       "properties": {
-        "schema_version": {"const": "rk.product.session.v1"}, "session_id": {"$ref": "#/$defs/uuid"},
-        "principal_subject_id": {"type": "string", "minLength": 1},
-        "role": {"enum": ["MATHEMATICIAN", "MAIN", "WORKER", "MACHINE_VERIFIER", "PEER_REVIEWER", "PAPER_REVIEWER", "LITERATURE_REVIEWER", "PUBLICATION_WORKER", "ADMIN", "GATEWAY"]},
-        "capability_id": {"type": "string", "minLength": 1}, "issued_at": {"type": "string", "format": "date-time"},
-        "expires_at": {"type": "string", "format": "date-time"}
+        "schema_version": {
+          "const": "rk.product.session.v1"
+        },
+        "session_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "principal_subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "MATHEMATICIAN",
+            "MAIN",
+            "WORKER",
+            "MACHINE_VERIFIER",
+            "PEER_REVIEWER",
+            "PAPER_REVIEWER",
+            "LITERATURE_REVIEWER",
+            "PUBLICATION_WORKER",
+            "ADMIN",
+            "GATEWAY"
+          ]
+        },
+        "capability_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
     "job": {
-      "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "job_id", "request_id", "scope", "kind", "state", "created_at", "updated_at"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "job_id",
+        "request_id",
+        "scope",
+        "kind",
+        "state",
+        "created_at",
+        "updated_at"
+      ],
       "properties": {
-        "schema_version": {"const": "rk.product.job.v1"}, "job_id": {"$ref": "#/$defs/uuid"},
-        "request_id": {"$ref": "#/$defs/uuid"}, "scope": {"type": "object", "minProperties": 1},
-        "kind": {"type": "string", "minLength": 1},
-        "state": {"enum": ["QUEUED", "RUNNING", "PAUSED", "WAITING", "CANCEL_REQUESTED", "CANCELLED", "SUCCEEDED", "FAILED", "OUTCOME_UNKNOWN"]},
-        "checkpoint_artifact_id": {"$ref": "#/$defs/uuid"}, "created_at": {"type": "string", "format": "date-time"},
-        "updated_at": {"type": "string", "format": "date-time"}
+        "schema_version": {
+          "const": "rk.product.job.v1"
+        },
+        "job_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "scope": {
+          "type": "object",
+          "minProperties": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "enum": [
+            "QUEUED",
+            "RUNNING",
+            "PAUSED",
+            "WAITING",
+            "CANCEL_REQUESTED",
+            "CANCELLED",
+            "SUCCEEDED",
+            "FAILED",
+            "OUTCOME_UNKNOWN"
+          ]
+        },
+        "checkpoint_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
     "revokePreview": {
-      "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "preview_id", "run_id", "at_revision", "contract_version", "target_fact_id", "affected_fact_ids", "preserved_sibling_ids", "reopened_obligation_ids", "preview_digest", "expires_on_revision_change"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "preview_id",
+        "run_id",
+        "at_revision",
+        "contract_version",
+        "target_fact_id",
+        "affected_fact_ids",
+        "preserved_sibling_ids",
+        "reopened_obligation_ids",
+        "preview_digest",
+        "expires_on_revision_change"
+      ],
       "properties": {
-        "schema_version": {"const": "rk.product.revoke_preview.v1"}, "preview_id": {"$ref": "#/$defs/uuid"},
-        "run_id": {"$ref": "#/$defs/uuid"}, "at_revision": {"type": "integer", "minimum": 0},
-        "contract_version": {"type": "integer", "minimum": 1}, "target_fact_id": {"$ref": "#/$defs/uuid"},
-        "affected_fact_ids": {"type": "array", "items": {"$ref": "#/$defs/uuid"}, "uniqueItems": true},
-        "preserved_sibling_ids": {"type": "array", "items": {"$ref": "#/$defs/uuid"}, "uniqueItems": true},
-        "reopened_obligation_ids": {"type": "array", "items": {"$ref": "#/$defs/uuid"}, "uniqueItems": true},
-        "preview_digest": {"$ref": "#/$defs/hash"}, "expires_on_revision_change": {"const": true}
+        "schema_version": {
+          "const": "rk.product.revoke_preview.v1"
+        },
+        "preview_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "at_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contract_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_fact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "affected_fact_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/uuid"
+          },
+          "uniqueItems": true
+        },
+        "preserved_sibling_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/uuid"
+          },
+          "uniqueItems": true
+        },
+        "reopened_obligation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/uuid"
+          },
+          "uniqueItems": true
+        },
+        "preview_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "expires_on_revision_change": {
+          "const": true
+        }
       }
     },
     "reviewTask": {
-      "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "review_task_id", "review_type", "run_id", "assignee_subject_id", "author_subject_ids", "target_digest", "contract_version", "research_revision", "independence_required", "state", "created_at", "expires_at"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "review_task_id",
+        "review_type",
+        "run_id",
+        "assignee_subject_id",
+        "author_subject_ids",
+        "target_digest",
+        "contract_version",
+        "research_revision",
+        "independence_required",
+        "state",
+        "created_at",
+        "expires_at",
+        "independence_status"
+      ],
       "properties": {
-        "schema_version": {"const": "rk.product.review_task.v1"}, "review_task_id": {"$ref": "#/$defs/uuid"},
-        "review_type": {"enum": ["ATOMIC", "COMPOSITION", "PAPER"]}, "run_id": {"$ref": "#/$defs/uuid"},
-        "assignee_subject_id": {"type": "string", "minLength": 1},
-        "author_subject_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-        "target_digest": {"$ref": "#/$defs/hash"}, "contract_version": {"type": "integer", "minimum": 1},
-        "research_revision": {"type": "integer", "minimum": 0}, "independence_required": {"const": true},
-        "state": {"enum": ["OPEN", "CLAIMED", "SUBMITTED", "EXPIRED", "REASSIGNED", "INVALIDATED"]},
-        "created_at": {"type": "string", "format": "date-time"}, "expires_at": {"type": "string", "format": "date-time"}
+        "schema_version": {
+          "const": "rk.product.review_task.v1"
+        },
+        "review_task_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "review_type": {
+          "enum": [
+            "ATOMIC",
+            "COMPOSITION",
+            "PAPER"
+          ]
+        },
+        "run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "assignee_subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "author_subject_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "target_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "contract_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "research_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independence_required": {
+          "const": true
+        },
+        "state": {
+          "enum": [
+            "OPEN",
+            "CLAIMED",
+            "SUBMITTED",
+            "EXPIRED",
+            "REASSIGNED",
+            "INVALIDATED"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "independence_status": {
+          "enum": [
+            "PENDING",
+            "VERIFIED",
+            "FAILED"
+          ]
+        },
+        "signed_artifact_ref": {
+          "$ref": "#/$defs/artifactRef"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "SUBMITTED"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "signed_artifact_ref"
+            ],
+            "properties": {
+              "independence_status": {
+                "const": "VERIFIED"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "OPEN",
+                  "CLAIMED",
+                  "REASSIGNED"
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "independence_status": {
+                "const": "PENDING"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "artifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "byte_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     }
   }

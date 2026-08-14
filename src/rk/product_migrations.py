@@ -133,7 +133,9 @@ class ProductMigrationRegistry:
         return tuple(fragments)
 
     def plan(self) -> tuple[AssemblyStep, ...]:
-        fragments = sorted(self.discover(), key=lambda item: (item.package, item.slug))
+        fragments = sorted(
+            self.discover(), key=lambda item: (item.package != "D00a", item.package, item.slug)
+        )
         return tuple(
             AssemblyStep(position=position, fragment=fragment)
             for position, fragment in enumerate(fragments, start=1)

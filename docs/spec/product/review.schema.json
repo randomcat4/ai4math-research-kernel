@@ -1,64 +1,144 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.ai4math/rk/product/review.schema.json",
-  "title": "RK independent verifier artifacts v1",
+  "title": "RK signed independent review artifacts v1",
   "oneOf": [
     {"$ref": "#/$defs/atomic"}, {"$ref": "#/$defs/composition"}, {"$ref": "#/$defs/paper"}
   ],
   "$defs": {
     "uuid": {"type": "string", "format": "uuid"},
     "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "evidenceRef": {"type": "string", "minLength": 1},
+    "attestedCheck": {
+      "type": "object", "additionalProperties": false,
+      "required": ["passed", "status", "conclusion", "evidence_refs"],
+      "properties": {
+        "passed": {"type": "boolean"},
+        "status": {"const": "HUMAN_ATTESTED"},
+        "conclusion": {"type": "string", "minLength": 1},
+        "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/evidenceRef"}}
+      }
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["run_id", "kernel_revision", "contract_version", "target_id", "target_digest"],
+      "properties": {
+        "run_id": {"$ref": "#/$defs/uuid"},
+        "kernel_revision": {"type": "integer", "minimum": 0},
+        "contract_version": {"type": "integer", "minimum": 1},
+        "target_id": {"$ref": "#/$defs/uuid"},
+        "target_digest": {"$ref": "#/$defs/hash"},
+        "selected_subgraph_digest": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "independence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["blind_review", "author_subject_ids", "saw_other_verdicts"],
+      "properties": {
+        "blind_review": {"const": true},
+        "author_subject_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "saw_other_verdicts": {"const": false}
+      }
+    },
+    "signature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["algorithm", "key_id", "signed_payload_sha256", "value"],
+      "properties": {
+        "algorithm": {"enum": ["ED25519", "HMAC_SHA256"]},
+        "key_id": {"type": "string", "minLength": 1},
+        "signed_payload_sha256": {"$ref": "#/$defs/hash"},
+        "value": {"type": "string", "minLength": 1}
+      }
+    },
     "base": {
       "type": "object",
-      "required": ["schema_version", "review_type", "review_task_id", "reviewer_subject_id", "author_subject_ids", "run_id", "contract_version", "research_revision", "target_digest", "verdict", "signed_at"],
+      "required": ["schema_version", "review_id", "review_type", "review_task_id", "verifier_identity_id", "reviewer_subject_id", "binding", "independence", "verdict", "issued_at", "signature"],
       "properties": {
-        "schema_version": {"const": "rk.product.review.v1"}, "review_type": {"enum": ["ATOMIC", "COMPOSITION", "PAPER"]},
-        "review_task_id": {"$ref": "#/$defs/uuid"}, "reviewer_subject_id": {"type": "string", "minLength": 1},
-        "author_subject_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-        "run_id": {"$ref": "#/$defs/uuid"}, "contract_version": {"type": "integer", "minimum": 1},
-        "research_revision": {"type": "integer", "minimum": 0}, "target_digest": {"$ref": "#/$defs/hash"},
+        "schema_version": {"const": "rk.product.review.v1"},
+        "review_id": {"$ref": "#/$defs/uuid"},
+        "review_type": {"enum": ["ATOMIC", "COMPOSITION", "PAPER"]},
+        "review_task_id": {"$ref": "#/$defs/uuid"},
+        "verifier_identity_id": {"type": "string", "minLength": 1},
+        "reviewer_subject_id": {"type": "string", "minLength": 1},
+        "binding": {"$ref": "#/$defs/binding"},
+        "independence": {"$ref": "#/$defs/independence"},
         "verdict": {"enum": ["ACCEPT", "REJECT", "NEEDS_REVISION"]},
-        "signed_at": {"type": "string", "format": "date-time"}
+        "issued_at": {"type": "string", "format": "date-time"},
+        "signature": {"$ref": "#/$defs/signature"}
+      }
+    },
+    "atomicChecks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["statement_correct", "proof_valid", "dependency_scope_valid", "evidence_sufficient"],
+      "properties": {
+        "statement_correct": {"$ref": "#/$defs/attestedCheck"},
+        "proof_valid": {"$ref": "#/$defs/attestedCheck"},
+        "dependency_scope_valid": {"$ref": "#/$defs/attestedCheck"},
+        "evidence_sufficient": {"$ref": "#/$defs/attestedCheck"}
+      }
+    },
+    "compositionChecks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["proof_checked", "scope_checked", "coverage", "compatibility", "invariant", "progress", "boundary", "simultaneous_choice"],
+      "properties": {
+        "proof_checked": {"$ref": "#/$defs/attestedCheck"},
+        "scope_checked": {"$ref": "#/$defs/attestedCheck"},
+        "coverage": {"$ref": "#/$defs/attestedCheck"},
+        "compatibility": {"$ref": "#/$defs/attestedCheck"},
+        "invariant": {"$ref": "#/$defs/attestedCheck"},
+        "progress": {"$ref": "#/$defs/attestedCheck"},
+        "boundary": {"$ref": "#/$defs/attestedCheck"},
+        "simultaneous_choice": {"$ref": "#/$defs/attestedCheck"}
+      }
+    },
+    "paperChecks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["statement_alignment", "proof_completeness", "citation_accuracy", "novelty_boundary", "artifact_binding", "outcome_alignment"],
+      "properties": {
+        "statement_alignment": {"$ref": "#/$defs/attestedCheck"},
+        "proof_completeness": {"$ref": "#/$defs/attestedCheck"},
+        "citation_accuracy": {"$ref": "#/$defs/attestedCheck"},
+        "novelty_boundary": {"$ref": "#/$defs/attestedCheck"},
+        "artifact_binding": {"$ref": "#/$defs/attestedCheck"},
+        "outcome_alignment": {"$ref": "#/$defs/attestedCheck"}
       }
     },
     "atomic": {
+      "unevaluatedProperties": false,
       "allOf": [
         {"$ref": "#/$defs/base"},
-        {"type": "object", "additionalProperties": false,
-         "required": ["schema_version", "review_type", "review_task_id", "reviewer_subject_id", "author_subject_ids", "run_id", "contract_version", "research_revision", "target_digest", "verdict", "signed_at", "claim_id", "statement_correct", "proof_valid", "dependency_scope_valid", "evidence_sufficient"],
-         "properties": {
-           "schema_version": {}, "review_type": {"const": "ATOMIC"}, "review_task_id": {}, "reviewer_subject_id": {}, "author_subject_ids": {}, "run_id": {}, "contract_version": {}, "research_revision": {}, "target_digest": {}, "verdict": {}, "signed_at": {},
-           "claim_id": {"$ref": "#/$defs/uuid"}, "statement_correct": {"type": "boolean"}, "proof_valid": {"type": "boolean"},
-           "dependency_scope_valid": {"type": "boolean"}, "evidence_sufficient": {"type": "boolean"}
-         }}
+        {"type": "object", "required": ["review_type", "checks"], "properties": {"review_type": {"const": "ATOMIC"}, "checks": {"$ref": "#/$defs/atomicChecks"}}},
+        {"$ref": "#/$defs/acceptAtomic"}
       ]
     },
     "composition": {
+      "unevaluatedProperties": false,
       "allOf": [
         {"$ref": "#/$defs/base"},
-        {"type": "object", "additionalProperties": false,
-         "required": ["schema_version", "review_type", "review_task_id", "reviewer_subject_id", "author_subject_ids", "run_id", "contract_version", "research_revision", "target_digest", "verdict", "signed_at", "closure_witness_id", "proof_scope_valid", "coverage", "compatibility", "invariant", "progress", "boundary", "simultaneous_choice"],
-         "properties": {
-           "schema_version": {}, "review_type": {"const": "COMPOSITION"}, "review_task_id": {}, "reviewer_subject_id": {}, "author_subject_ids": {}, "run_id": {}, "contract_version": {}, "research_revision": {}, "target_digest": {}, "verdict": {}, "signed_at": {},
-           "closure_witness_id": {"$ref": "#/$defs/uuid"}, "proof_scope_valid": {"type": "boolean"},
-           "coverage": {"type": "boolean"}, "compatibility": {"type": "boolean"}, "invariant": {"type": "boolean"},
-           "progress": {"type": "boolean"}, "boundary": {"type": "boolean"}, "simultaneous_choice": {"type": "boolean"}
-         }}
+        {"type": "object", "required": ["review_type", "closure_witness_id", "checks"], "properties": {"review_type": {"const": "COMPOSITION"}, "closure_witness_id": {"$ref": "#/$defs/uuid"}, "checks": {"$ref": "#/$defs/compositionChecks"}}},
+        {"type": "object", "properties": {"binding": {"required": ["selected_subgraph_digest"]}}},
+        {"$ref": "#/$defs/acceptComposition"}
       ]
     },
     "paper": {
+      "unevaluatedProperties": false,
       "allOf": [
         {"$ref": "#/$defs/base"},
-        {"type": "object", "additionalProperties": false,
-         "required": ["schema_version", "review_type", "review_task_id", "reviewer_subject_id", "author_subject_ids", "run_id", "contract_version", "research_revision", "target_digest", "verdict", "signed_at", "candidate_tex_artifact_id", "terminal_root_digest", "dependency_closure_digest", "statement_alignment", "proof_completeness", "citation_accuracy", "novelty_boundary", "artifact_binding", "outcome_alignment"],
-         "properties": {
-           "schema_version": {}, "review_type": {"const": "PAPER"}, "review_task_id": {}, "reviewer_subject_id": {}, "author_subject_ids": {}, "run_id": {}, "contract_version": {}, "research_revision": {}, "target_digest": {}, "verdict": {}, "signed_at": {},
-           "candidate_tex_artifact_id": {"$ref": "#/$defs/uuid"}, "terminal_root_digest": {"$ref": "#/$defs/hash"},
-           "dependency_closure_digest": {"$ref": "#/$defs/hash"}, "statement_alignment": {"type": "boolean"},
-           "proof_completeness": {"type": "boolean"}, "citation_accuracy": {"type": "boolean"},
-           "novelty_boundary": {"type": "boolean"}, "artifact_binding": {"type": "boolean"}, "outcome_alignment": {"type": "boolean"}
-         }}
+        {"type": "object", "required": ["review_type", "candidate_tex_artifact_id", "terminal_root_digest", "dependency_closure_digest", "checks"], "properties": {"review_type": {"const": "PAPER"}, "candidate_tex_artifact_id": {"$ref": "#/$defs/uuid"}, "terminal_root_digest": {"$ref": "#/$defs/hash"}, "dependency_closure_digest": {"$ref": "#/$defs/hash"}, "checks": {"$ref": "#/$defs/paperChecks"}}},
+        {"$ref": "#/$defs/acceptPaper"}
       ]
+    },
+    "acceptAtomic": {
+      "if": {"properties": {"verdict": {"const": "ACCEPT"}}, "required": ["verdict"]},
+      "then": {"properties": {"checks": {"properties": {"statement_correct": {"properties": {"passed": {"const": true}}}, "proof_valid": {"properties": {"passed": {"const": true}}}, "dependency_scope_valid": {"properties": {"passed": {"const": true}}}, "evidence_sufficient": {"properties": {"passed": {"const": true}}}}}}}
+    },
+    "acceptComposition": {
+      "if": {"properties": {"verdict": {"const": "ACCEPT"}}, "required": ["verdict"]},
+      "then": {"properties": {"checks": {"properties": {"proof_checked": {"properties": {"passed": {"const": true}}}, "scope_checked": {"properties": {"passed": {"const": true}}}, "coverage": {"properties": {"passed": {"const": true}}}, "compatibility": {"properties": {"passed": {"const": true}}}, "invariant": {"properties": {"passed": {"const": true}}}, "progress": {"properties": {"passed": {"const": true}}}, "boundary": {"properties": {"passed": {"const": true}}}, "simultaneous_choice": {"properties": {"passed": {"const": true}}}}}}}
+    },
+    "acceptPaper": {
+      "if": {"properties": {"verdict": {"const": "ACCEPT"}}, "required": ["verdict"]},
+      "then": {"properties": {"checks": {"properties": {"statement_alignment": {"properties": {"passed": {"const": true}}}, "proof_completeness": {"properties": {"passed": {"const": true}}}, "citation_accuracy": {"properties": {"passed": {"const": true}}}, "novelty_boundary": {"properties": {"passed": {"const": true}}}, "artifact_binding": {"properties": {"passed": {"const": true}}}, "outcome_alignment": {"properties": {"passed": {"const": true}}}}}}}
     }
   }
 }
