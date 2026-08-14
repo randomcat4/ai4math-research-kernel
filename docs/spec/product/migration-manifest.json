@@ -165,6 +165,11 @@
       "release_position": 32,
       "fragment_id": "B03b/job_requests",
       "sha256": "01254ac13ce74947aaec86b3ba716d9fe42aaa0a6f65623b5988a89702f82ea2"
+    },
+    {
+      "release_position": 33,
+      "fragment_id": "B05c/identity_roles",
+      "sha256": "eb1a35c42dfcf1c78f61718318f24d8e24c5de0865bd5ab0dc64fbb74610f30a"
     }
   ]
 }
