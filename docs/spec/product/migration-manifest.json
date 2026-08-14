@@ -155,6 +155,11 @@
       "release_position": 30,
       "fragment_id": "B17/problem_pool",
       "sha256": "660848ee9f01383ef472af75df2cb8a165ebc3ab85ccd981e0ea837242077191"
+    },
+    {
+      "release_position": 31,
+      "fragment_id": "B16c/backup",
+      "sha256": "72fb523667271c32f618cbbfffcdd1e0fba6de2a5e3420fad359d863ad818f84"
     }
   ]
 }
