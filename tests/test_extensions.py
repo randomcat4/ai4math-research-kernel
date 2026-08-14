@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Mapping
+from dataclasses import replace
+from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import Any
 
@@ -18,7 +20,13 @@ from rk.extensions import (
     ProductCommandContext,
     ToolReceipt,
 )
-from rk.projector import ProjectionContext
+from rk.guard import TransitionGuard
+from rk.projector import ProjectionContext, ProjectionError, ProjectionWriter
+
+
+class _Ids:
+    def new(self) -> str:
+        return "generated-id"
 
 
 def _capability() -> VerifiedCapability:
@@ -231,3 +239,122 @@ def test_missing_singleton_and_malformed_mutation_fail_before_business_work() ->
             ),
             MappingProxyType({}),
         )
+
+
+def test_guard_consumes_registered_command_after_generic_authority_gates() -> None:
+    calls: list[str] = []
+
+    def handler(context: ProductCommandContext) -> Decision:
+        calls.append(context.run_id)
+        return Decision(
+            accepted=True,
+            event_intents=(frozen_mapping({"type": "PRODUCT_APPLIED"}),),
+            projection_mutations=(frozen_mapping({"op": "PRODUCT_APPEND"}),),
+        )
+
+    registry = ExtensionRegistry().register_command_handler("ProductApply", handler)
+    guard = TransitionGuard(registry)
+    snapshot = {
+        "run_id": "run-1",
+        "revision": 4,
+        "current_contract_version": 2,
+        "status": "RUNNING",
+        "projection": {"contract_versions": {"2": {"status": "FROZEN"}}},
+    }
+    accepted = guard.decide(
+        now_utc=datetime(2026, 8, 13, 1, tzinfo=UTC),
+        snapshot=snapshot,
+        command=TypedCommand("ProductApply", frozen_mapping({})),
+        evidence_summary=frozen_mapping({}),
+        capability=_capability(),
+        policy_snapshot=frozen_mapping({}),
+        expected_revision=4,
+    )
+    assert accepted.accepted
+    assert calls == ["run-1"]
+
+    conflict = guard.decide(
+        now_utc=datetime(2026, 8, 13, 1, tzinfo=UTC),
+        snapshot=snapshot,
+        command=TypedCommand("ProductApply", frozen_mapping({})),
+        evidence_summary=frozen_mapping({}),
+        capability=_capability(),
+        policy_snapshot=frozen_mapping({}),
+        expected_revision=3,
+    )
+    assert not conflict.accepted
+    assert conflict.rejection_code == "REVISION_CONFLICT"
+    assert calls == ["run-1"]
+
+
+def test_closed_product_command_requires_exact_registered_subject_role() -> None:
+    def handler(context: ProductCommandContext) -> Decision:
+        del context
+        return Decision(accepted=True)
+
+    registry = (
+        ExtensionRegistry()
+        .register_command_handler("GenerateCandidateTex", handler)
+        .register_closed_run_permission(
+            ClosedRunPermission("GenerateCandidateTex", frozenset({"PUBLICATION_WORKER"}))
+        )
+    )
+    guard = TransitionGuard(registry)
+    snapshot = {
+        "run_id": "run-1",
+        "revision": 4,
+        "current_contract_version": 2,
+        "status": "CLOSED",
+        "projection": {},
+    }
+    arguments = {
+        "now_utc": datetime(2026, 8, 13, 1, tzinfo=UTC),
+        "snapshot": snapshot,
+        "command": TypedCommand("GenerateCandidateTex", frozen_mapping({})),
+        "evidence_summary": frozen_mapping({}),
+        "capability": _capability(),
+        "expected_revision": 4,
+    }
+    rejected = guard.decide(**arguments, policy_snapshot=frozen_mapping({}))
+    assert rejected.rejection_code == "RUN_CLOSED"
+    arguments["capability"] = replace(
+        _capability(), subject_role="PUBLICATION_WORKER"
+    )
+    allowed = guard.decide(**arguments, policy_snapshot=frozen_mapping({}))
+    assert allowed.accepted
+
+
+def test_projection_writer_dispatches_only_registered_unknown_opcodes() -> None:
+    observed: list[str] = []
+
+    def mutation(
+        connection: sqlite3.Connection,
+        context: ProjectionContext,
+        value: Mapping[str, Any],
+    ) -> None:
+        del connection, context
+        observed.append(str(value["op"]))
+
+    registry = ExtensionRegistry().register_projection_mutation("PRODUCT_APPEND", mutation)
+    writer = ProjectionWriter(_Ids(), registry)
+    context = ProjectionContext(
+        run_id="run-1",
+        command_id="command-1",
+        event_id="event-1",
+        revision=5,
+        contract_version=2,
+        command=TypedCommand("Product", frozen_mapping({})),
+        capability_id="cap-1",
+        recorded_at="2026-08-13T00:00:00Z",
+        artifacts_by_name=MappingProxyType({}),
+        generated_artifact_ids=MappingProxyType({}),
+    )
+    connection = sqlite3.connect(":memory:")
+    mutation_value = frozen_mapping({"op": "PRODUCT_APPEND"})
+    assert writer.supports((mutation_value,))
+    writer.apply(connection, context, (mutation_value,))
+    assert observed == ["PRODUCT_APPEND"]
+    unknown = frozen_mapping({"op": "UNREGISTERED"})
+    assert not writer.supports((unknown,))
+    with pytest.raises(ProjectionError, match="UNREGISTERED"):
+        writer.apply(connection, context, (unknown,))

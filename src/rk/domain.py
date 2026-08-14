@@ -159,6 +159,7 @@ class VerifiedCapability:
     run_scope: frozenset[str]
     issued_at: str
     expires_at: str
+    subject_role: str | None = None
 
     def allows(self, action: str, run_id: str | None = None) -> bool:
         action_allowed = action in self.allowed_actions or "*" in self.allowed_actions

@@ -12,10 +12,12 @@ import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from types import MappingProxyType
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from rk.domain import Decision, TypedCommand, VerifiedCapability
-from rk.projector import ProjectionContext
+
+if TYPE_CHECKING:
+    from rk.projector import ProjectionContext
 
 JsonObject = Mapping[str, Any]
 

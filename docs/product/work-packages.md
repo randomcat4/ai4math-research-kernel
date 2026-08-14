@@ -596,16 +596,19 @@ verifier→拒绝修复→回图/检索复用→组合义务/ClosureWitness read
 | 工作包 | 状态 | 当前证据 | 未闭合边界 |
 |---|---|---|---|
 | C00 | `SPEC_ONLY / IN_PROGRESS` | 36 项命令、56 项查询/64 scope 分支、三类签名审查、严格 envelope；Python/TS 四操作客户端与无损往返 | `LIST_RESEARCH/ACTION_ITEMS/GraphSlice` 已加重；其余查询结果仍须从通用投影收紧为领域对象，故不得标完成 |
-| S00 | `SPEC_ONLY` | `src/rk/extensions.py`；`tests/test_extensions.py` | 接缝协议与冲突拒绝已验收；尚未由旧核心挂载并被真实产品消费 |
+| S00 | `BACKEND_ONLY / IN_PROGRESS` | `extensions.py` 已由 `kernel/guard/projector/component_runtime` 挂载；命令活动与旧内核事务同成败 | command/projection/activity/tool receipt 已真实消费；wire/orchestrator invalidation/placement 仍待接入，故不得标完成 |
 | D00a | `BACKEND_ONLY` | `src/rk/product_migrations.py`；`schema_fragments/D00a/`；`tests/test_product_migrations.py` | 真实 SQLite 注册、冲突、漂移与原子回滚已验收；尚未进入发行迁移序列 |
 | P00a | `SPEC_ONLY` | `src/rk/http_shell.py`；`tests/test_http_shell.py` | 装配协议、路由冲突和错误映射已验收；尚无发布 app 或真实业务 router |
-| B01a | `BACKEND_ONLY / IN_PROGRESS` | `src/rk/product/api.py`、`facade.py`、`authority.py`、`adapters.py`、`command_service.py` | 唯一四接口、CLI/HTTP 同翻译链、私有内核权威与持久命令协调已验收；S00 尚未挂入旧核心，发布 router 未装配 |
+| B01a | `BACKEND_ONLY / IN_PROGRESS` | `src/rk/product/api.py`、`facade.py`、`authority.py`、`adapters.py`、`command_service.py` | 唯一四接口、CLI/HTTP 同翻译链、私有内核权威与持久命令协调已验收；发布 router 尚未装配 |
 | B01b | `BACKEND_ONLY / IN_PROGRESS` | `listing.py`、`summary.py`、`action_items.py`；`schema_fragments/B01b/` | 真实目录、正交摘要、权威行动项和 fence cursor 已验收；尚未接 facade/query router |
 | B02a | `BACKEND_ONLY` | `operations.py`、`activity_store.py`；`schema_fragments/B02a/` | 同摘要幂等、异摘要冲突、三态回执、共享 cursor、receipt+job 原子提交已验收；待发布装配 |
 | B02b | `BACKEND_ONLY` | `receipt_query.py`、`activity_stream.py`；`schema_fragments/B02b/` | 最新回执、JOB 单真值、backlog/heartbeat/Last-Event-ID/CURSOR_EXPIRED 已验收；待 SSE router 装配 |
 | B03 | `BACKEND_ONLY` | `jobs.py`、`supervisor.py`；`schema_fragments/B03/` | durable job/checkpoint/generation lease/恢复/取消回执门已验收；真实受管进程由 B12b 接入 |
 | B04a | `BACKEND_ONLY` | `artifact_upload.py`；`schema_fragments/B04a/` | 分段、续传、真实 100 MiB、现有 CAS commit 与崩溃恢复已验收；待 artifact router 装配 |
+| B04b | `BACKEND_ONLY / IN_PROGRESS` | `artifact_read.py`、`log_tail.py`；`schema_fragments/B04b/` | 真实 CAS Range、查看器元数据、持久 byte cursor 日志与封口工件已验收；流式 HTTP router 正在装配 |
 | B05a | `BACKEND_ONLY` | `identity.py`、`sessions.py`；`schema_fragments/B05a/` | 单组织四窄身份、双身份切换、session 派生 capability 与伪造负链已验收；待 session router 装配 |
+| B05b | `BACKEND_ONLY` | `reviews.py`、`attestation_import.py`；`schema_fragments/B05b/` | 三类签名审查、精确 binding、独立性与逐项否决负链已验收；待 review router 装配 |
+| B06a | `BACKEND_ONLY` | `graph_index.py`；`schema_fragments/B06a/` | 可重建 FTS/邻接索引、cursor/revision watermark、追赶与 PROJECTION_LAG 已验收；不构成第二事实真值 |
 | 其余 D/P/B/F/I/R | `NOT_STARTED` | 无新产品完成证据 | 依本文拓扑推进 |
 
 `SPEC_ONLY` 只表示冻结契约或接缝已有可执行校验，不表示 ResearchProduct、后端、前端或产品 E2E 已完成。

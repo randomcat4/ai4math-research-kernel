@@ -178,6 +178,7 @@ class SessionStore:
             run_scope=frozenset({run_id}) if run_id is not None else frozenset({"*"}),
             issued_at=str(row[4]),
             expires_at=str(row[5]),
+            subject_role=identity.role,
         )
 
     def _resolved(self, session_id: str, now: str) -> tuple[tuple[object, ...], ProductIdentity]:

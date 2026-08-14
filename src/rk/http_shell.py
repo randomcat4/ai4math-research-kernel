@@ -8,7 +8,7 @@ single ``ResearchProduct`` facade.
 from __future__ import annotations
 
 import re
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from types import MappingProxyType
@@ -52,6 +52,18 @@ class HttpResponse:
 
 
 @dataclass(frozen=True, slots=True)
+class HttpStreamResponse:
+    """A transport response whose bytes are pulled incrementally by the HTTP server."""
+
+    status: int
+    body: Iterable[bytes]
+    headers: HeaderMap
+
+
+type HttpResult = HttpResponse | HttpStreamResponse
+
+
+@dataclass(frozen=True, slots=True)
 class SessionPrincipal:
     """Identity established by the session adapter, never by request JSON."""
 
@@ -66,8 +78,8 @@ class SessionRequest:
     principal: SessionPrincipal
 
 
-HttpHandler = Callable[[SessionRequest], Awaitable[HttpResponse]]
-AnonymousHttpHandler = Callable[[HttpRequest], Awaitable[HttpResponse]]
+HttpHandler = Callable[[SessionRequest], Awaitable[HttpResult]]
+AnonymousHttpHandler = Callable[[HttpRequest], Awaitable[HttpResult]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,7 +117,7 @@ class ErrorMiddlewareProtocol(Protocol):
 
 
 class HttpApplicationProtocol(Protocol):
-    async def __call__(self, request: HttpRequest) -> HttpResponse: ...
+    async def __call__(self, request: HttpRequest) -> HttpResult: ...
 
 
 class AppFactoryProtocol(Protocol):
@@ -158,7 +170,9 @@ class HttpErrorClass(StrEnum):
     NOT_FOUND = "NOT_FOUND"
     CONFLICT = "CONFLICT"
     BUSINESS_GATE = "BUSINESS_GATE"
+    GONE = "GONE"
     UNAVAILABLE = "UNAVAILABLE"
+    RANGE = "RANGE"
 
 
 _STATUS_BY_ERROR_CLASS: Mapping[HttpErrorClass, int] = MappingProxyType(
@@ -169,7 +183,9 @@ _STATUS_BY_ERROR_CLASS: Mapping[HttpErrorClass, int] = MappingProxyType(
         HttpErrorClass.NOT_FOUND: 404,
         HttpErrorClass.CONFLICT: 409,
         HttpErrorClass.BUSINESS_GATE: 422,
+        HttpErrorClass.GONE: 410,
         HttpErrorClass.UNAVAILABLE: 503,
+        HttpErrorClass.RANGE: 416,
     }
 )
 
@@ -227,6 +243,8 @@ __all__ = [
     "HttpHandler",
     "HttpRequest",
     "HttpResponse",
+    "HttpResult",
+    "HttpStreamResponse",
     "ProductHttpError",
     "RouteRegistrationError",
     "RouteRegistry",
