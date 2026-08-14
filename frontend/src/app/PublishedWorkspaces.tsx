@@ -1,28 +1,33 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { AdminCenter } from "../features/admin";
 import { ClaimWorkbench } from "../features/claim";
 import { ComputeWorkspace } from "../features/compute";
 import { GraphWorkspace } from "../features/graph";
 import { IdentitySwitcher, type ProductRole, type SessionView } from "../features/identity";
+import { ProblemPoolWorkspace } from "../features/problem-pool";
 import { PublicationWorkspace } from "../features/publication";
 import { ReviewWorkbench } from "../features/review";
 import { RevocationWorkbench } from "../features/revocation";
 import { WorkWorkspace } from "../features/work";
-import { productApi, type ProductSession, type ResearchSummary } from "./api";
+import type { ProductMeta, ProductSession, ResearchSummary } from "./api";
+import { usePublishedProjections } from "./usePublishedProjections";
 
 interface Props {
   activeNav: string;
   research?: ResearchSummary;
   session: ProductSession | null;
+  meta: ProductMeta | null;
+  onReload: () => Promise<void>;
 }
 
-function unavailable(text: string) {
-  return <div className="feature-connection-empty" role="status">UNAVAILABLE · {text}</div>;
+function stateNotice(phase: string, text: string) {
+  const label = phase === "unpublished" ? "UNAVAILABLE" : phase === "empty" ? "EMPTY" : "QUERY";
+  return <div className="feature-connection-empty" role="status">{label} · {text}</div>;
 }
 
 function reviewSession(session: ProductSession | null): SessionView | undefined {
-  if (!session || !(["MAIN", "WORKER", "REVIEWER", "ADMIN"] as string[]).includes(session.role)) return undefined;
+  if (!session || !(["MAIN", "LITERATURE_REVIEWER", "WORKER", "MACHINE_VERIFIER", "PEER_REVIEWER", "PAPER_REVIEWER", "PUBLICATION_WORKER", "ADMIN"] as string[]).includes(session.role)) return undefined;
   return {
     sessionId: session.session_id,
     principalSubjectId: session.principal_subject_id,
@@ -36,23 +41,10 @@ function reviewSession(session: ProductSession | null): SessionView | undefined 
   };
 }
 
-export function PublishedWorkspaces({ activeNav, research, session }: Props) {
+export function PublishedWorkspaces({ activeNav, research, session, meta, onReload }: Props) {
   const [factsView, setFactsView] = useState<"graph" | "claim" | "revocation">("graph");
-  const [deploymentId, setDeploymentId] = useState<string>();
-  useEffect(() => {
-    if (activeNav !== "admin") return;
-    let active = true;
-    productApi.meta()
-      .then((meta) => {
-        if (active) setDeploymentId(meta.deployment_id);
-      })
-      .catch(() => {
-        if (active) setDeploymentId(undefined);
-      });
-    return () => {
-      active = false;
-    };
-  }, [activeNav]);
+  const [adminView, setAdminView] = useState<"deployment" | "pool">("deployment");
+  const projections = usePublishedProjections(research, meta, onReload);
   if (!["routes", "facts", "tools", "review", "dossier", "admin"].includes(activeNav)) return null;
 
   if (activeNav === "review") return <div className="feature-mount feature-stack">
@@ -60,11 +52,28 @@ export function PublishedWorkspaces({ activeNav, research, session }: Props) {
     <ReviewWorkbench session={reviewSession(session)} />
   </div>;
 
-  if (activeNav === "admin") return deploymentId
-    ? <div className="feature-mount"><AdminCenter deploymentId={deploymentId} /></div>
-    : unavailable("正在读取真实 deployment identity；尚未构造管理命令。");
+  if (activeNav === "admin") return meta ? <div className="feature-stack">
+    <div className="research-subnav" aria-label="管理二级视图">
+      <button aria-current={adminView === "deployment" ? "page" : undefined} onClick={() => setAdminView("deployment")} type="button">部署与健康</button>
+      <button aria-current={adminView === "pool" ? "page" : undefined} onClick={() => setAdminView("pool")} type="button">题池与科研谱系</button>
+    </div>
+    {adminView === "deployment" ? <div className="feature-mount">
+      <AdminCenter deploymentId={meta.deployment_id} deploymentRevision={projections.deploymentRevision} />
+    </div> : research ? <div className="feature-mount feature-stack">
+      {projections.pool.phase !== "ready" ? stateNotice(projections.pool.phase, projections.pool.detail) : null}
+      <ProblemPoolWorkspace
+        deploymentId={meta.deployment_id}
+        runId={research.run_id}
+        researchRevision={research.research_revision}
+        contractVersion={research.contract_version}
+        pool={projections.problemPool}
+        lineages={projections.lineages}
+        confirmations={[]}
+      />
+    </div> : stateNotice("empty", "选择真实研究后读取题池、批任务与科研谱系。")}
+  </div> : stateNotice("error", "尚未读取到真实 deployment identity。");
 
-  if (!research) return unavailable("选择真实研究后才能读取此页的服务端投影。");
+  if (!research) return stateNotice("empty", "选择真实研究后才能读取此页的服务端投影。");
 
   const run = {
     runId: research.run_id,
@@ -85,17 +94,43 @@ export function PublishedWorkspaces({ activeNav, research, session }: Props) {
   </div>;
 
   if (activeNav === "routes") return <div className="feature-mount feature-stack">
-    {unavailable("ROUTE_PLAN / WORKFLOW 聚合投影尚未发布；不以页面样例填充路线和工作项。")}
-    <WorkWorkspace runId={run.runId} researchRevision={run.revision} contractVersion={run.contractVersion} lastCursor={run.lastCursor} routePlanId="" planDigest="" routes={[]} activeItems={[]} historyItems={[]} />
+    {projections.work.phase !== "ready" ? stateNotice(projections.work.phase, projections.work.detail) : null}
+    <WorkWorkspace
+      runId={run.runId}
+      researchRevision={run.revision}
+      contractVersion={run.contractVersion}
+      lastCursor={run.lastCursor}
+      routePlanId={projections.routePlanId}
+      planDigest={projections.planDigest}
+      routes={projections.routes}
+      activeItems={projections.activeItems}
+      historyItems={projections.historyItems}
+    />
   </div>;
 
   if (activeNav === "tools") return <div className="feature-mount feature-stack">
-    {unavailable("COMPUTE / TOOL_CATALOG 聚合投影尚未发布；能力、运行和回执保持空集。")}
-    <ComputeWorkspace runId={run.runId} researchRevision={run.revision} contractVersion={run.contractVersion} capabilities={[]} runs={[]} tools={[]} toolRuns={[]} />
+    {projections.compute.phase !== "ready" ? stateNotice(projections.compute.phase, projections.compute.detail) : null}
+    <ComputeWorkspace
+      runId={run.runId}
+      researchRevision={run.revision}
+      contractVersion={run.contractVersion}
+      capabilities={projections.capabilities}
+      runs={projections.computeRuns}
+      tools={projections.tools}
+      toolRuns={projections.toolRuns}
+    />
   </div>;
 
-  if (activeNav === "dossier") return <div className="feature-mount">
-    <PublicationWorkspace runId={run.runId} researchRevision={run.revision} contractVersion={run.contractVersion} sessionRole={session?.role ?? "NO_SESSION"} subjectId={session?.principal_subject_id ?? ""} />
+  if (activeNav === "dossier") return <div className="feature-mount feature-stack">
+    {projections.publication.phase !== "ready" ? stateNotice(projections.publication.phase, projections.publication.detail) : null}
+    <PublicationWorkspace
+      runId={run.runId}
+      researchRevision={run.revision}
+      contractVersion={run.contractVersion}
+      sessionRole={session?.role ?? "NO_SESSION"}
+      subjectId={session?.principal_subject_id ?? ""}
+      publication={projections.publicationView}
+    />
   </div>;
 
   return null;

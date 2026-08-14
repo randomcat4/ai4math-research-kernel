@@ -1,7 +1,7 @@
 import {type FormEvent,useEffect,useMemo,useState} from "react";
 import type {SessionView} from "../identity/model.js";
 import {ReviewApiError,ReviewGateway} from "./api.js";
-import {CHECKS,canReview,explainError,type DraftCheck,type FeatureFailure,type ReviewTask,type ReviewType,type SignedArtifactRef} from "./model.js";
+import {CHECKS,canReview,canReviewTask,explainError,type DraftCheck,type FeatureFailure,type ReviewTask,type ReviewType,type SignedArtifactRef} from "./model.js";
 import "./review.css";
 export interface ReviewWorkbenchProps{session?:SessionView;baseUrl?:string}
 export function ReviewWorkbench({session,baseUrl=""}:ReviewWorkbenchProps){
@@ -9,11 +9,11 @@ export function ReviewWorkbench({session,baseUrl=""}:ReviewWorkbenchProps){
  const [selected,setSelected]=useState<ReviewTask>(),[failure,setFailure]=useState<FeatureFailure>(),[busy,setBusy]=useState(false);
  useEffect(()=>{if(canReview(session))void load()},[session]);
  async function act<T>(fn:()=>Promise<T>){setBusy(true);setFailure(undefined);try{return await fn()}catch(error){setFailure(error instanceof ReviewApiError?error.toFailure():explainError(String(error)));return undefined}finally{setBusy(false)}}
- async function load(){const result=await act(()=>gateway.inbox());if(result)setTasks(result)}
+ async function load(){const result=await act(()=>gateway.inbox());if(result)setTasks(result.filter((task)=>canReviewTask(session,task.type)))}
  async function claim(task:ReviewTask){const result=await act(()=>gateway.claim(task.id));if(result){setSelected(result);setTasks((all)=>all.map((item)=>item.id===result.id?result:item))}}
- if(session?.role!=="REVIEWER")return <main className="review-shell"><header className="review-hero"><p>INDEPENDENT REVIEW</p><h1>独立审查台</h1></header>
+ if(!session||!canReview(session))return <main className="review-shell"><header className="review-hero"><p>INDEPENDENT REVIEW</p><h1>独立审查台</h1></header>
   <section className="review-denied"><b>当前 principal：{session?.role??"NO SESSION"}</b><p>Main、Worker 与 Admin 没有构造、领取或提交签名审查的入口。</p>
-   <span>请在同一 session 中认证并切换到独立 Reviewer 身份。</span></section></main>;
+   <span>请切换到 PEER_REVIEWER 或 PAPER_REVIEWER；LITERATURE_REVIEWER 只进入材料与文献审查。</span></section></main>;
  return <main className="review-shell"><header className="review-hero"><div><p>INDEPENDENT REVIEW</p><h1>审查收件箱与签名提交</h1>
   <span>当前 Reviewer：{session?.principalSubjectId}</span></div><button onClick={load} disabled={busy}>刷新真实收件箱</button></header>
   {failure&&<Failure failure={failure}/>}
