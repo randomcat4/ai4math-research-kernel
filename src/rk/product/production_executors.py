@@ -26,6 +26,7 @@ from rk.product.durable_runtime import DurableExecutor, TypedExecution
 from rk.product.jobs import DurableJob
 from rk.product.literature_connectors import LiteratureConnector
 from rk.product.managed_python import ManagedPythonExecutor, ManagedPythonRequest
+from rk.product.production_managed_python import ManagedBindingRejected
 from rk.product.publication import PublicationArtifactService
 from rk.product.research_lineage import LineageMode, ResearchLineageStore
 from rk.product.restore import RestoreRunner
@@ -34,7 +35,9 @@ from rk.product.upgrade import UpgradeRunner
 
 type SessionResolver = Callable[[str], ProductSession]
 type ExactArtifactResolver = Callable[[Mapping[str, object]], ExactArtifactRef]
-type ManagedRequestResolver = Callable[[DurableJob, Mapping[str, object]], ManagedPythonRequest]
+type ManagedRequestResolver = Callable[
+    [DurableJob, Mapping[str, object], Any], ManagedPythonRequest
+]
 type LeaseResolver = Callable[[DurableJob], Any]
 type LineageFenceResolver = Callable[[DurableJob, Mapping[str, object]], Mapping[str, object]]
 type FrozenAblationResolver = Callable[[DurableJob, Mapping[str, object]], FrozenAblationConfig]
@@ -73,6 +76,9 @@ class ProductionExecutorDependencies:
     finalized_snapshot: FinalizedSnapshotResolver | None = None
     abstract_resolver: Callable[[DurableJob, Mapping[str, object]], str] | None = None
     unknown_upstream_resolver: DurableExecutor | None = None
+    batch_create_port: DurableExecutor | None = None
+    assign_ablation_port: DurableExecutor | None = None
+    import_lineage_port: DurableExecutor | None = None
 
 
 def build_production_executor_ports(
@@ -100,9 +106,9 @@ def build_production_executor_ports(
         resume_research=_KernelLifecycle(dependencies, "RESUME_RESEARCH"),
         run_literature_query=live,
         replay_source_snapshot=replay,
-        batch_create_research=_BatchCreate(dependencies),
-        assign_ablation=_AssignAblation(dependencies),
-        import_research_lineage=_ImportLineage(dependencies),
+        batch_create_research=dependencies.batch_create_port or _BatchCreate(dependencies),
+        assign_ablation=dependencies.assign_ablation_port or _AssignAblation(dependencies),
+        import_research_lineage=(dependencies.import_lineage_port or _ImportLineage(dependencies)),
         create_compute_task=_ManagedCompute(dependencies, "CREATE_COMPUTE_TASK"),
         run_tool=_ManagedCompute(dependencies, "RUN_TOOL"),
         generate_candidate_tex=_GenerateTex(dependencies),
@@ -321,7 +327,12 @@ class _ManagedCompute:
         lease_resolver = self.dependencies.active_lease
         if executor is None or resolver is None or lease_resolver is None:
             return rejected_execution(request=request, code="MANAGED_PYTHON_PROFILE_NOT_DEPLOYED")
-        result = executor.execute(resolver(job, _payload(request)), lease_resolver(job))
+        lease = lease_resolver(job)
+        try:
+            managed_request = resolver(job, request, lease)
+        except ManagedBindingRejected as error:
+            return rejected_execution(request=request, code=error.code)
+        result = executor.execute(managed_request, lease)
         refs = tuple(
             frozen_json(
                 {

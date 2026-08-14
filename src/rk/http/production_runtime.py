@@ -48,6 +48,8 @@ from rk.product.authority import (
 )
 from rk.product.backup import BackupService, CasBackupArtifactReader
 from rk.product.bridge_opportunities import BridgeOpportunityStore
+from rk.product.case_import import HistoricalCaseImporter
+from rk.product.claims import ClaimStore
 from rk.product.command_routes import command_router_factory
 from rk.product.command_service import CommandPlan, ExecutionClass, ProductCommandService
 from rk.product.contract_materials import ContractMaterialService
@@ -85,6 +87,7 @@ from rk.product.literature_connectors import (
     UrllibTransport,
 )
 from rk.product.log_tail import PublicLogStore
+from rk.product.managed_python import ManagedPythonExecutor, ManagedPythonProfileStore
 from rk.product.materials import MaterialStore
 from rk.product.operational_queries import OperationalFenceSource, OperationalQueries
 from rk.product.operations import OperationStore
@@ -94,6 +97,11 @@ from rk.product.production_executors import (
     ProductionUnknownUpstreamReconciler,
     build_production_executor_ports,
 )
+from rk.product.production_managed_python import (
+    ActiveLeaseResolver,
+    PersistentManagedRequestResolver,
+)
+from rk.product.production_research_ports import build_research_production_ports
 from rk.product.publication import PublicationArtifactService
 from rk.product.published_app import PublishedAppConfig, PublishedHttpApplication
 from rk.product.query_routes import query_router_factory
@@ -167,7 +175,23 @@ class ProductionRuntime:
     daemon: ProductHttpDaemon
     sessions: SessionStore
     config: PublishedAppConfig
-    job_pump: DurableJobPump | None
+    job_pump: _ManagedReceiptPump | None
+
+
+@dataclass(frozen=True, slots=True)
+class _ManagedReceiptPump:
+    inner: DurableJobPump
+    managed_python: ManagedPythonExecutor
+    clock: Callable[[], str]
+
+    @property
+    def kinds(self) -> frozenset[str]:
+        return self.inner.kinds
+
+    def run_once(self) -> bool:
+        worked = self.inner.run_once()
+        self.managed_python.recover_receipts(now=self.clock())
+        return worked
 
 
 class _CommandProduct:
@@ -211,8 +235,7 @@ def _session_resolver(
             connection.execute("PRAGMA foreign_keys = ON")
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
-                "SELECT identity_id FROM product_identities "
-                "WHERE subject_id=? AND enabled=1",
+                "SELECT identity_id FROM product_identities WHERE subject_id=? AND enabled=1",
                 (subject_id,),
             ).fetchone()
             if row is None:
@@ -258,9 +281,7 @@ def _session_resolver(
     return resolve
 
 
-def _lifecycle_payload(
-    job: DurableJob, payload: Mapping[str, object]
-) -> Mapping[str, object]:
+def _lifecycle_payload(job: DurableJob, payload: Mapping[str, object]) -> Mapping[str, object]:
     required = {
         "START_RESEARCH": {"contract_version", "literature_plan_artifact_id", "budget_policy"},
         "RESUME_RESEARCH": {"checkpoint_artifact_id", "lease_preflight", "budget_preflight"},
@@ -593,7 +614,33 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
     capabilities = SessionCapabilitySource(sessions, now)
     kernel_authority = ProductAuthority(kernel, capabilities, product_kernel_bindings())
     publisher = _CasPublisher(cas, registry, clock)
+    tool_catalog = ToolCatalogStore(db_path, busy_timeout_ms=config.busy_timeout_ms)
     tool_runs = ToolRunStore(db_path, jobs, busy_timeout_ms=config.busy_timeout_ms)
+    managed_profiles = ManagedPythonProfileStore(
+        db_path, artifact_reader, busy_timeout_ms=config.busy_timeout_ms
+    )
+    managed_python = ManagedPythonExecutor(
+        db_path=db_path,
+        workspace_root=root / "managed-python",
+        artifacts=artifact_reader,
+        publisher=publisher,
+        profiles=managed_profiles,
+        jobs=jobs,
+        tool_runs=tool_runs,
+        clock=now,
+        busy_timeout_ms=config.busy_timeout_ms,
+        defer_b03_resolution=True,
+    )
+    managed_python.recover_receipts(now=now())
+    managed_python.abandon_orphaned_processes(now=now())
+    managed_request = PersistentManagedRequestResolver(
+        jobs=jobs,
+        catalog=tool_catalog,
+        tool_runs=tool_runs,
+        profiles=managed_profiles,
+        artifacts=artifact_reader,
+        clock=now,
+    )
     invalidations = AuthorityInvalidationEngine(
         db_path, now, busy_timeout_ms=config.busy_timeout_ms
     )
@@ -700,6 +747,35 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
         clock=clock.now,
         busy_timeout_ms=config.busy_timeout_ms,
     )
+    managed_sessions = _session_resolver(db_path, sessions, now, ids.new, config.organization_id)
+    lineage = ResearchLineageStore(
+        db_path=db_path,
+        artifacts=artifact_reader,
+        busy_timeout_ms=config.busy_timeout_ms,
+    )
+    research_ports = build_research_production_ports(
+        db_path=db_path,
+        clock=now,
+        artifacts=artifact_reader,
+        problem_pools=problem_pools,
+        sessions=managed_sessions,
+        lineage=lineage,
+        historical_importer=HistoricalCaseImporter(
+            db_path=db_path,
+            artifacts=artifact_reader,
+            lineage=lineage,
+            materials=materials,
+            contracts=contracts,
+            claims=ClaimStore(
+                db_path,
+                ids.new,
+                now,
+                busy_timeout_ms=config.busy_timeout_ms,
+            ),
+            busy_timeout_ms=config.busy_timeout_ms,
+        ),
+        snapshots=snapshots,
+    )
     durable_executors = build_durable_executors(
         build_production_executor_ports(
             ProductionExecutorDependencies(
@@ -715,16 +791,13 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
                 },
                 publication=publication,
                 authority=kernel_authority,
-                sessions=_session_resolver(
-                    db_path, sessions, now, ids.new, config.organization_id
-                ),
+                sessions=managed_sessions,
                 lifecycle_payload=_lifecycle_payload,
                 artifact_ref=_artifact_resolver(artifact_reader),
-                lineage=ResearchLineageStore(
-                    db_path=db_path,
-                    artifacts=artifact_reader,
-                    busy_timeout_ms=config.busy_timeout_ms,
-                ),
+                managed_python=managed_python,
+                managed_request=managed_request,
+                active_lease=ActiveLeaseResolver(db_path),
+                lineage=lineage,
                 backup=backup,
                 restore=restore,
                 upgrade=upgrade,
@@ -732,6 +805,9 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
                 finalized_snapshot=_finalized_snapshot(kernel),
                 abstract_resolver=_publication_abstract(db_path),
                 unknown_upstream_resolver=ProductionUnknownUpstreamReconciler(),
+                batch_create_port=research_ports.batch_create,
+                assign_ablation_port=research_ports.assign_ablation,
+                import_lineage_port=research_ports.import_lineage,
             )
         )
     )
@@ -751,14 +827,21 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
         clock=now,
         authorizer=capabilities,
     )
+    research_ports.commands.bind(commands)
     job_pump = (
-        DurableJobPump(
-            supervisor=supervisor,
-            jobs=jobs,
-            resolver=DurableJobResolver(db_path, ids.new, busy_timeout_ms=config.busy_timeout_ms),
-            executors=durable_executors,
-            clock=now,
-            process_tokens=ids.new,
+        _ManagedReceiptPump(
+            DurableJobPump(
+                supervisor=supervisor,
+                jobs=jobs,
+                resolver=DurableJobResolver(
+                    db_path, ids.new, busy_timeout_ms=config.busy_timeout_ms
+                ),
+                executors=durable_executors,
+                clock=now,
+                process_tokens=ids.new,
+            ),
+            managed_python,
+            now,
         )
         if durable_executors
         else None
@@ -785,14 +868,10 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
             clock=now,
             busy_timeout_ms=config.busy_timeout_ms,
         ),
-        tool_catalog=ToolCatalogStore(db_path, busy_timeout_ms=config.busy_timeout_ms),
+        tool_catalog=tool_catalog,
         tool_runs=tool_runs,
         problem_pools=problem_pools,
-        lineages=ResearchLineageStore(
-            db_path=db_path,
-            artifacts=artifact_reader,
-            busy_timeout_ms=config.busy_timeout_ms,
-        ),
+        lineages=lineage,
         cursor_secret=hashlib.sha256((config.deployment_id + ":query").encode()).digest(),
         busy_timeout_ms=config.busy_timeout_ms,
     )

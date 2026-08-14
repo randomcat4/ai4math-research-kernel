@@ -20,7 +20,7 @@ from rk.product.compute import (
     ToolAvailability,
     ToolFunctionSpec,
 )
-from rk.product.jobs import JobState, JobStore
+from rk.product.jobs import JobLease, JobState, JobStore
 from rk.wire import canonical_json_bytes
 
 
@@ -259,6 +259,56 @@ class ToolRunStore:
             connection.commit()
         return self.get(tool_run_id)
 
+    def create_for_active_lease(
+        self,
+        *,
+        tool_run_id: str,
+        run_id: str,
+        research_revision: int,
+        contract_version: int,
+        request_id: str,
+        requested_by: str,
+        invocation: PreparedToolInvocation,
+        attempt_id: str,
+        job_kind: str,
+        lease: JobLease,
+        now: str,
+    ) -> ToolRun:
+        """Idempotently bind an invocation recovered after the B03 claim boundary."""
+
+        if job_kind not in {"CREATE_COMPUTE_TASK", "RUN_TOOL"}:
+            raise ToolRunError("managed attempt job kind is unsupported")
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            active = connection.execute(
+                "SELECT holder_id,process_token,expires_at FROM product_job_leases "
+                "WHERE lease_id=? AND job_id=? AND lease_generation=? AND state='ACTIVE'",
+                (lease.lease_id, lease.job_id, lease.lease_generation),
+            ).fetchone()
+            if active is None or tuple(str(value) for value in active) != (
+                lease.holder_id,
+                lease.process_token,
+                lease.expires_at,
+            ):
+                raise ToolRunError("managed attempt requires the exact active B03 lease")
+            self._create_bound_in_transaction(
+                connection,
+                tool_run_id=tool_run_id,
+                run_id=run_id,
+                research_revision=research_revision,
+                contract_version=contract_version,
+                request_id=request_id,
+                requested_by=requested_by,
+                invocation=invocation,
+                attempt_id=attempt_id,
+                job_id=lease.job_id,
+                expected_job_kind=job_kind,
+                expected_job_state="RUNNING",
+                now=now,
+            )
+            connection.commit()
+        return self.get(tool_run_id)
+
     def create_in_transaction(
         self,
         connection: sqlite3.Connection,
@@ -276,6 +326,39 @@ class ToolRunStore:
     ) -> None:
         if not connection.in_transaction:
             raise ToolRunError("atomic tool-run creation requires an active transaction")
+        self._create_bound_in_transaction(
+            connection,
+            tool_run_id=tool_run_id,
+            run_id=run_id,
+            research_revision=research_revision,
+            contract_version=contract_version,
+            request_id=request_id,
+            requested_by=requested_by,
+            invocation=invocation,
+            attempt_id=attempt_id,
+            job_id=job_id,
+            expected_job_kind="RUN_TOOL",
+            expected_job_state="QUEUED",
+            now=now,
+        )
+
+    def _create_bound_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        tool_run_id: str,
+        run_id: str,
+        research_revision: int,
+        contract_version: int,
+        request_id: str,
+        requested_by: str,
+        invocation: PreparedToolInvocation,
+        attempt_id: str,
+        job_id: str,
+        expected_job_kind: str,
+        expected_job_state: str,
+        now: str,
+    ) -> None:
         if research_revision < 0 or contract_version < 1:
             raise ToolRunError("invalid revision or contract binding")
         spec = invocation.spec
@@ -301,9 +384,16 @@ class ToolRunStore:
             "FROM product_jobs WHERE job_id=?",
             (job_id,),
         ).fetchone()
-        expected_job = ("RUN", run_id, "RUN_TOOL", requested_by, request_id, "QUEUED")
+        expected_job = (
+            "RUN",
+            run_id,
+            expected_job_kind,
+            requested_by,
+            request_id,
+            expected_job_state,
+        )
         if job is None or tuple(str(value) for value in job) != expected_job:
-            raise ToolRunError("tool attempt requires an exact queued B03 RUN_TOOL job")
+            raise ToolRunError("tool attempt does not match its exact B03 job fence")
         digest = _invocation_digest(
             run_id, research_revision, contract_version, requested_by, invocation
         )

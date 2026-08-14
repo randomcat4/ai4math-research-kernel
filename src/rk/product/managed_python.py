@@ -239,6 +239,7 @@ class ManagedPythonExecutor:
         monotonic: Callable[[], float] = time.monotonic,
         poll_seconds: float = 0.05,
         busy_timeout_ms: int = 5_000,
+        defer_b03_resolution: bool = False,
     ) -> None:
         if poll_seconds <= 0:
             raise ValueError("poll_seconds must be positive")
@@ -254,6 +255,7 @@ class ManagedPythonExecutor:
         self._monotonic = monotonic
         self._poll_seconds = poll_seconds
         self._busy_timeout_ms = busy_timeout_ms
+        self._defer_b03_resolution = defer_b03_resolution
 
     def execute(
         self,
@@ -580,6 +582,16 @@ class ManagedPythonExecutor:
             "failure_adjustment": failure.to_dict() if failure is not None else None,
         }
         self._stage_receipt(request.execution_id, encoded)
+        result = ManagedPythonResult(
+            execution_id=request.execution_id,
+            outcome=outcome,
+            output_artifacts=outputs,
+            public_log_artifact=log_ref,
+            resource_usage=usage,
+            failure_adjustment=failure,
+        )
+        if self._defer_b03_resolution:
+            return result
         self._jobs.record_execution(
             lease,
             ExecutionReceipt(
@@ -600,14 +612,7 @@ class ManagedPythonExecutor:
         )
         self._tool_runs.record_receipt(receipt, now=self._clock())
         self._finish(request.execution_id, artifact_ids, encoded, self._clock())
-        return ManagedPythonResult(
-            execution_id=request.execution_id,
-            outcome=outcome,
-            output_artifacts=outputs,
-            public_log_artifact=log_ref,
-            resource_usage=usage,
-            failure_adjustment=failure,
-        )
+        return result
 
     def _reserve(self, request: ManagedPythonRequest, job_id: str, now: str) -> None:
         encoded_inputs = _json(
