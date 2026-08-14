@@ -3812,7 +3812,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -3835,6 +3836,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainResearchOverview"
                     }
                   }
                 }
@@ -3898,7 +3902,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -3921,6 +3926,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainContract"
                     }
                   }
                 }
@@ -3984,7 +3992,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -4007,6 +4016,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainContractImpact"
                     }
                   }
                 }
@@ -4073,7 +4085,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -4114,6 +4127,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainMaterial"
                     }
                   }
                 }
@@ -4180,7 +4196,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -4221,6 +4238,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainMaterialExtraction"
                     }
                   }
                 }
@@ -4287,7 +4307,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -4328,6 +4349,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainCitationAnchor"
                     }
                   }
                 }
@@ -4394,7 +4418,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -4435,6 +4460,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainExtractionDiff"
                     }
                   }
                 }
@@ -4501,7 +4529,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -4542,6 +4571,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainLiteratureQuery"
                     }
                   }
                 }
@@ -4608,7 +4640,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -4649,6 +4682,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainSourceSnapshot"
                     }
                   }
                 }
@@ -4715,7 +4751,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -4756,6 +4793,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainLiteratureSource"
                     }
                   }
                 }
@@ -4826,7 +4866,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -4867,6 +4908,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainLiteratureGraph"
                       }
                     }
                   }
@@ -4937,7 +4981,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -4978,6 +5023,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainTheoremApplicability"
                     }
                   }
                 }
@@ -5044,7 +5092,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -5085,6 +5134,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainPriorArtComparison"
                     }
                   }
                 }
@@ -5151,7 +5203,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -5192,6 +5245,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainNoveltyReview"
                     }
                   }
                 }
@@ -5257,7 +5313,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -5298,6 +5355,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainProblemPool"
                     }
                   }
                 }
@@ -5359,7 +5419,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -5400,6 +5461,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainProblemCandidate"
                     }
                   }
                 }
@@ -5465,7 +5529,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -5506,6 +5571,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainSourceVersionHistory"
                       }
                     }
                   }
@@ -5571,7 +5639,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -5612,6 +5681,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainBatchResearchJob"
                     }
                   }
                 }
@@ -5671,7 +5743,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -5694,6 +5767,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainRoutePlan"
                     }
                   }
                 }
@@ -5764,7 +5840,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -5805,6 +5882,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainBridgeOpportunities"
                       }
                     }
                   }
@@ -5875,7 +5955,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -5916,6 +5997,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainAblationPlan"
                     }
                   }
                 }
@@ -5986,7 +6070,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -6027,6 +6112,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainAblationResults"
                       }
                     }
                   }
@@ -6094,7 +6182,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6117,6 +6206,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainWorkflow"
                     }
                   }
                 }
@@ -6184,7 +6276,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -6207,6 +6300,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainWorkItem"
                       }
                     }
                   }
@@ -6278,7 +6374,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -6301,6 +6398,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainWorkerRun"
                       }
                     }
                   }
@@ -6368,7 +6468,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6391,6 +6492,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainCheckpoint"
                     }
                   }
                 }
@@ -6454,7 +6558,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6477,6 +6582,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainClaim"
                     }
                   }
                 }
@@ -6544,7 +6652,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -6567,6 +6676,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainClaimHistory"
                       }
                     }
                   }
@@ -6634,7 +6746,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6657,6 +6770,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainAvailableActions"
                     }
                   }
                 }
@@ -6770,7 +6886,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -6793,6 +6910,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainGraphSearch"
                       }
                     }
                   }
@@ -6864,7 +6984,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -6887,6 +7008,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainDependencyClosure"
                       }
                     }
                   }
@@ -6958,7 +7082,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -6981,6 +7106,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainReverseClosure"
                       }
                     }
                   }
@@ -7048,7 +7176,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7071,6 +7200,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainRevokePreview"
                     }
                   }
                 }
@@ -7134,7 +7266,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7157,6 +7290,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainComputeTask"
                     }
                   }
                 }
@@ -7223,7 +7359,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -7246,6 +7383,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainToolCatalog"
                       }
                     }
                   }
@@ -7309,7 +7449,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7332,6 +7473,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainToolRun"
                     }
                   }
                 }
@@ -7399,7 +7543,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -7422,6 +7567,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainGuidanceInbox"
                       }
                     }
                   }
@@ -7489,7 +7637,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7512,6 +7661,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainHint"
                     }
                   }
                 }
@@ -7579,7 +7731,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -7602,6 +7755,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainReviewInbox"
                       }
                     }
                   }
@@ -7669,7 +7825,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7692,6 +7849,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainReviewTask"
                     }
                   }
                 }
@@ -7755,7 +7915,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7778,6 +7939,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainDossier"
                     }
                   }
                 }
@@ -7841,7 +8005,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7864,6 +8029,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainPublicationStatus"
                     }
                   }
                 }
@@ -7931,7 +8099,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -7954,6 +8123,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainArtifactIndex"
                       }
                     }
                   }
@@ -8024,7 +8196,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8065,6 +8238,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainResearchCaseLineage"
                     }
                   }
                 }
@@ -8131,7 +8307,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8172,6 +8349,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainCleanRoomInputManifest"
                     }
                   }
                 }
@@ -8238,7 +8418,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8279,6 +8460,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainCertificateImportReport"
                     }
                   }
                 }
@@ -8454,7 +8638,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8477,6 +8662,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainProductReceipt"
                     }
                   }
                 }
@@ -8539,7 +8727,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8562,6 +8751,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainProductReceipt"
                     }
                   }
                 }
@@ -8620,7 +8812,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8643,6 +8836,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainProductReceipt"
                     }
                   }
                 }
@@ -8702,7 +8898,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8725,6 +8922,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainJob"
                     }
                   }
                 }
@@ -8787,7 +8987,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8810,6 +9011,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainJob"
                     }
                   }
                 }
@@ -8868,7 +9072,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8891,6 +9096,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainJob"
                     }
                   }
                 }
@@ -8949,7 +9157,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8972,6 +9181,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainDeploymentStatus"
                     }
                   }
                 }
@@ -9030,7 +9242,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9053,6 +9266,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainDeploymentJob"
                     }
                   }
                 }
@@ -9111,7 +9327,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9134,6 +9351,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainBackupStatus"
                     }
                   }
                 }
@@ -9192,7 +9412,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9215,6 +9436,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainAdminHealth"
                     }
                   }
                 }
@@ -9277,7 +9501,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -9300,6 +9525,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainUsage"
                       }
                     }
                   }
@@ -9369,7 +9597,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -9410,6 +9639,9 @@
                         "items": {
                           "$ref": "#/$defs/uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/resultDomainLiteratureGraph"
                       }
                     }
                   }
@@ -9475,7 +9707,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9516,6 +9749,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainLiteratureQuery"
                     }
                   }
                 }
@@ -9577,7 +9813,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9618,6 +9855,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainLiteratureSource"
                     }
                   }
                 }
@@ -9679,7 +9919,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9720,6 +9961,9 @@
                       "items": {
                         "$ref": "#/$defs/uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/resultDomainSourceSnapshot"
                     }
                   }
                 }
@@ -9734,6 +9978,1664 @@
           }
         }
       ]
+    },
+    "resultDomainResearchOverview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "outcome_state",
+        "execution_state",
+        "authority_state",
+        "publication_state"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "outcome_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publication_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resultDomainContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "contract_version",
+        "contract_state",
+        "content_digest"
+      ],
+      "properties": {
+        "contract_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "contract_version": {
+          "$ref": "#/$defs/nat"
+        },
+        "contract_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainContractImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "impact_preview_id",
+        "base_contract_version",
+        "affected_object_ids",
+        "impact_digest"
+      ],
+      "properties": {
+        "impact_preview_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "base_contract_version": {
+          "$ref": "#/$defs/nat"
+        },
+        "affected_object_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "impact_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainMaterial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_id",
+        "original_artifact_id",
+        "media_type",
+        "ingest_state",
+        "ocr_state"
+      ],
+      "properties": {
+        "material_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "original_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ingest_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ocr_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resultDomainMaterialExtraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extraction_id",
+        "material_id",
+        "extractor_profile_id",
+        "output_artifact_id",
+        "extraction_digest"
+      ],
+      "properties": {
+        "extraction_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "material_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "extractor_profile_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "output_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "extraction_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainCitationAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anchor_id",
+        "material_id",
+        "source_artifact_id",
+        "locator",
+        "extraction_digest"
+      ],
+      "properties": {
+        "anchor_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "material_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "source_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extraction_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainExtractionDiff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "diff_id",
+        "before_extraction_id",
+        "after_extraction_id",
+        "changed_regions",
+        "diff_digest"
+      ],
+      "properties": {
+        "diff_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "before_extraction_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "after_extraction_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "changed_regions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "diff_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainLiteratureQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "literature_query_id",
+        "source_mode",
+        "snapshot_id",
+        "query_digest",
+        "coverage_boundary"
+      ],
+      "properties": {
+        "literature_query_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "source_mode": {
+          "enum": [
+            "LIVE_QUERY",
+            "REPLAYED_SNAPSHOT"
+          ]
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "query_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "coverage_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resultDomainSourceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "source_mode",
+        "corpus_digest",
+        "retrieved_at",
+        "coverage_boundary"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "source_mode": {
+          "enum": [
+            "LIVE_QUERY",
+            "REPLAYED_SNAPSHOT"
+          ]
+        },
+        "corpus_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "retrieved_at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resultDomainLiteratureSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "literature_source_id",
+        "stable_source_id",
+        "source_version",
+        "source_kind",
+        "content_digest"
+      ],
+      "properties": {
+        "literature_source_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "stable_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_version": {
+          "$ref": "#/$defs/nat"
+        },
+        "source_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainLiteratureGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "literature_graph_id",
+        "node_count",
+        "edge_count",
+        "source_kinds",
+        "graph_digest"
+      ],
+      "properties": {
+        "literature_graph_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "node_count": {
+          "$ref": "#/$defs/nat"
+        },
+        "edge_count": {
+          "$ref": "#/$defs/nat"
+        },
+        "source_kinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "graph_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainTheoremApplicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicability_review_id",
+        "theorem_id",
+        "claim_id",
+        "verdict",
+        "review_artifact_id"
+      ],
+      "properties": {
+        "applicability_review_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "theorem_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "claim_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "verdict": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "resultDomainPriorArtComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparison_id",
+        "claim_id",
+        "literature_source_id",
+        "relationship",
+        "comparison_digest"
+      ],
+      "properties": {
+        "comparison_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "claim_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "literature_source_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "relationship": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comparison_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainNoveltyReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "novelty_review_id",
+        "claim_id",
+        "verdict",
+        "coverage_snapshot_ids",
+        "review_artifact_id"
+      ],
+      "properties": {
+        "novelty_review_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "claim_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "verdict": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage_snapshot_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "review_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "resultDomainProblemPool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "problem_pool_id",
+        "pool_revision",
+        "candidate_count",
+        "source_snapshot_ids",
+        "selection_digest"
+      ],
+      "properties": {
+        "problem_pool_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "pool_revision": {
+          "$ref": "#/$defs/nat"
+        },
+        "candidate_count": {
+          "$ref": "#/$defs/nat"
+        },
+        "source_snapshot_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "selection_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainProblemCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "problem_candidate_id",
+        "problem_pool_id",
+        "statement_digest",
+        "candidate_state",
+        "source_anchor_ids"
+      ],
+      "properties": {
+        "problem_candidate_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "problem_pool_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "statement_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "candidate_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_anchor_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        }
+      }
+    },
+    "resultDomainSourceVersionHistory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_source_id",
+        "source_version",
+        "content_digest",
+        "supersedes_version",
+        "snapshot_id"
+      ],
+      "properties": {
+        "stable_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_version": {
+          "$ref": "#/$defs/nat"
+        },
+        "content_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "supersedes_version": {
+          "$ref": "#/$defs/nat"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "resultDomainBatchResearchJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "batch_job_id",
+        "job_state",
+        "total_count",
+        "succeeded_count",
+        "failed_count"
+      ],
+      "properties": {
+        "batch_job_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "job_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "total_count": {
+          "$ref": "#/$defs/nat"
+        },
+        "succeeded_count": {
+          "$ref": "#/$defs/nat"
+        },
+        "failed_count": {
+          "$ref": "#/$defs/nat"
+        }
+      }
+    },
+    "resultDomainRoutePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_plan_id",
+        "plan_revision",
+        "plan_state",
+        "route_ids",
+        "contract_version"
+      ],
+      "properties": {
+        "route_plan_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "plan_revision": {
+          "$ref": "#/$defs/nat"
+        },
+        "plan_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "contract_version": {
+          "$ref": "#/$defs/nat"
+        }
+      }
+    },
+    "resultDomainBridgeOpportunities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id",
+        "source_domain",
+        "target_domain",
+        "distance_microunits",
+        "death_test_state"
+      ],
+      "properties": {
+        "opportunity_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "source_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "distance_microunits": {
+          "$ref": "#/$defs/nat"
+        },
+        "death_test_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resultDomainAblationPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ablation_plan_id",
+        "opportunity_id",
+        "baseline_digest",
+        "variant_digests",
+        "plan_state"
+      ],
+      "properties": {
+        "ablation_plan_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "opportunity_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "baseline_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "variant_digests": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/hash"
+          }
+        },
+        "plan_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resultDomainAblationResults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ablation_result_id",
+        "ablation_plan_id",
+        "baseline_metric_microunits",
+        "variant_metric_microunits",
+        "result_artifact_id"
+      ],
+      "properties": {
+        "ablation_result_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "ablation_plan_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "baseline_metric_microunits": {
+          "$ref": "#/$defs/nat"
+        },
+        "variant_metric_microunits": {
+          "$ref": "#/$defs/nat"
+        },
+        "result_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "resultDomainWorkflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_id",
+        "phase",
+        "workflow_state",
+        "active_work_item_ids",
+        "workflow_digest"
+      ],
+      "properties": {
+        "workflow_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workflow_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "active_work_item_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "workflow_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainWorkItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_item_id",
+        "work_kind",
+        "work_state",
+        "route_id",
+        "input_digest"
+      ],
+      "properties": {
+        "work_item_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "work_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "work_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "input_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainWorkerRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worker_run_id",
+        "work_item_id",
+        "worker_subject_id",
+        "run_state",
+        "input_digest"
+      ],
+      "properties": {
+        "worker_run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "work_item_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "worker_subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainCheckpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint_id",
+        "route_id",
+        "checkpoint_revision",
+        "checkpoint_state",
+        "checkpoint_digest"
+      ],
+      "properties": {
+        "checkpoint_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "route_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "checkpoint_revision": {
+          "$ref": "#/$defs/nat"
+        },
+        "checkpoint_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "stable_label",
+        "lifecycle",
+        "machine_state",
+        "semantic_state",
+        "statement_digest"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "stable_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lifecycle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "machine_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "statement_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainClaimHistory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "claim_revision",
+        "lifecycle",
+        "statement_digest",
+        "supersedes_claim_id"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "claim_revision": {
+          "$ref": "#/$defs/nat"
+        },
+        "lifecycle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "statement_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "supersedes_claim_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "resultDomainAvailableActions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_set_id",
+        "allowed_command_types",
+        "expected_revision",
+        "expected_contract_version",
+        "guard_digest"
+      ],
+      "properties": {
+        "action_set_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "allowed_command_types": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/nat"
+        },
+        "expected_contract_version": {
+          "$ref": "#/$defs/nat"
+        },
+        "guard_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainGraphSearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "graph_mode",
+        "dependable",
+        "distance",
+        "statement_digest"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "graph_mode": {
+          "enum": [
+            "VERIFIED",
+            "RESEARCH_HISTORY"
+          ]
+        },
+        "dependable": {
+          "type": "boolean"
+        },
+        "distance": {
+          "$ref": "#/$defs/nat"
+        },
+        "statement_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainDependencyClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "graph_mode",
+        "dependable",
+        "distance",
+        "boundary_digest"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "graph_mode": {
+          "enum": [
+            "VERIFIED",
+            "RESEARCH_HISTORY"
+          ]
+        },
+        "dependable": {
+          "type": "boolean"
+        },
+        "distance": {
+          "$ref": "#/$defs/nat"
+        },
+        "boundary_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainReverseClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "graph_mode",
+        "dependable",
+        "distance",
+        "boundary_digest"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "graph_mode": {
+          "enum": [
+            "VERIFIED",
+            "RESEARCH_HISTORY"
+          ]
+        },
+        "dependable": {
+          "type": "boolean"
+        },
+        "distance": {
+          "$ref": "#/$defs/nat"
+        },
+        "boundary_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainRevokePreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revoke_preview_id",
+        "target_claim_id",
+        "target_digest",
+        "closure_digest",
+        "affected_claim_ids"
+      ],
+      "properties": {
+        "revoke_preview_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "target_claim_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "target_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "closure_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "affected_claim_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        }
+      }
+    },
+    "resultDomainComputeTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compute_task_id",
+        "task_type",
+        "task_state",
+        "input_digest",
+        "output_artifact_ids"
+      ],
+      "properties": {
+        "compute_task_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "task_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "output_artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        }
+      }
+    },
+    "resultDomainToolCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_profile_id",
+        "profile_version",
+        "tool_state",
+        "capabilities",
+        "authority_ceiling"
+      ],
+      "properties": {
+        "tool_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_version": {
+          "$ref": "#/$defs/nat"
+        },
+        "tool_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "authority_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resultDomainToolRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_run_id",
+        "tool_profile_id",
+        "run_state",
+        "execution_receipt_id",
+        "output_artifact_ids"
+      ],
+      "properties": {
+        "tool_run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "tool_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_receipt_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "output_artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        }
+      }
+    },
+    "resultDomainGuidanceInbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hint_id",
+        "hint_kind",
+        "hint_state",
+        "checkpoint_id",
+        "target_digest"
+      ],
+      "properties": {
+        "hint_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "hint_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hint_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "target_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainHint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hint_id",
+        "hint_kind",
+        "hint_state",
+        "checkpoint_id",
+        "target_digest"
+      ],
+      "properties": {
+        "hint_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "hint_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hint_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "target_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainReviewInbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_task_id",
+        "review_type",
+        "review_state",
+        "target_id",
+        "target_digest"
+      ],
+      "properties": {
+        "review_task_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "review_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "target_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainReviewTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_task_id",
+        "review_type",
+        "review_state",
+        "target_id",
+        "signed_review_artifact_id"
+      ],
+      "properties": {
+        "review_task_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "review_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "signed_review_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "resultDomainDossier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dossier_id",
+        "dossier_state",
+        "observed_revision",
+        "dossier_artifact_id",
+        "dossier_digest"
+      ],
+      "properties": {
+        "dossier_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "dossier_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_revision": {
+          "$ref": "#/$defs/nat"
+        },
+        "dossier_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "dossier_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainPublicationStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication_id",
+        "finalized_revision",
+        "final_outcome",
+        "review_state",
+        "final_pdf_artifact_id"
+      ],
+      "properties": {
+        "publication_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "finalized_revision": {
+          "$ref": "#/$defs/nat"
+        },
+        "final_outcome": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "final_pdf_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "resultDomainArtifactIndex": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "artifact_digest",
+        "byte_count",
+        "media_type",
+        "ingest_state"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "artifact_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "byte_count": {
+          "$ref": "#/$defs/nat"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ingest_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resultDomainResearchCaseLineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lineage_id",
+        "lineage_mode",
+        "source_version",
+        "lineage_state",
+        "lineage_digest"
+      ],
+      "properties": {
+        "lineage_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "lineage_mode": {
+          "enum": [
+            "CLEAN_ROOM_REDISCOVERY",
+            "CERTIFICATE_IMPORT",
+            "N2_HISTORICAL_MIGRATION"
+          ]
+        },
+        "source_version": {
+          "$ref": "#/$defs/nat"
+        },
+        "lineage_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineage_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainCleanRoomInputManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_id",
+        "lineage_id",
+        "input_artifact_ids",
+        "manifest_digest",
+        "lineage_mode"
+      ],
+      "properties": {
+        "manifest_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "lineage_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "input_artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "manifest_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "lineage_mode": {
+          "enum": [
+            "CLEAN_ROOM_REDISCOVERY",
+            "CERTIFICATE_IMPORT",
+            "N2_HISTORICAL_MIGRATION"
+          ]
+        }
+      }
+    },
+    "resultDomainCertificateImportReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_id",
+        "lineage_id",
+        "certificate_artifact_id",
+        "verifier_profile_id",
+        "verification_outcome"
+      ],
+      "properties": {
+        "report_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "lineage_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "certificate_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "verifier_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification_outcome": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resultDomainProductReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "receipt_state",
+        "request_id",
+        "receipt_version",
+        "revision_after"
+      ],
+      "properties": {
+        "receipt_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "receipt_state": {
+          "enum": [
+            "PENDING",
+            "DECIDED",
+            "OUTCOME_UNKNOWN"
+          ]
+        },
+        "request_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "receipt_version": {
+          "$ref": "#/$defs/nat"
+        },
+        "revision_after": {
+          "$ref": "#/$defs/nat"
+        }
+      }
+    },
+    "resultDomainJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "job_type",
+        "job_state",
+        "retry_safety",
+        "result_receipt_id"
+      ],
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "job_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "job_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retry_safety": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result_receipt_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "resultDomainDeploymentStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deployment_id",
+        "deployment_state",
+        "probe_run_id",
+        "capability_keys",
+        "fault_codes"
+      ],
+      "properties": {
+        "deployment_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "deployment_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probe_run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "capability_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "fault_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "resultDomainDeploymentJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deployment_job_id",
+        "deployment_id",
+        "job_type",
+        "job_state",
+        "execution_receipt_id"
+      ],
+      "properties": {
+        "deployment_job_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "job_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "job_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_receipt_id": {
+          "$ref": "#/$defs/uuid"
+        }
+      }
+    },
+    "resultDomainBackupStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backup_id",
+        "deployment_id",
+        "backup_state",
+        "backup_artifact_id",
+        "backup_digest"
+      ],
+      "properties": {
+        "backup_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "backup_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backup_artifact_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "backup_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "resultDomainAdminHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "health_report_id",
+        "deployment_id",
+        "overall_state",
+        "probe_run_id",
+        "fault_codes"
+      ],
+      "properties": {
+        "health_report_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "overall_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probe_run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "fault_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "resultDomainUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "usage_bucket_id",
+        "period_start",
+        "period_end",
+        "resource_type",
+        "quantity_microunits"
+      ],
+      "properties": {
+        "usage_bucket_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period_start": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period_end": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity_microunits": {
+          "$ref": "#/$defs/nat"
+        }
+      }
     }
   },
   "oneOf": [

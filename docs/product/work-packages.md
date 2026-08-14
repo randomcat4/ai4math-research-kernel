@@ -595,9 +595,10 @@ verifier→拒绝修复→回图/检索复用→组合义务/ClosureWitness read
 
 | 工作包 | 状态 | 当前证据 | 未闭合边界 |
 |---|---|---|---|
-| C00 | `SPEC_ONLY / IN_PROGRESS` | 36 项命令、56 项查询/64 scope 分支、三类签名审查、严格 envelope；Python/TS 四操作客户端与无损往返 | `LIST_RESEARCH/ACTION_ITEMS/GraphSlice` 已加重；其余查询结果仍须从通用投影收紧为领域对象，故不得标完成 |
+| C00 | `SPEC_ONLY` | 36项命令、56项查询/64 scope分支、三类签名审查；全部QueryResult为严格领域对象，Python/TS运行时校验 | 契约完整不代表每个后端variant已发布 |
 | S00 | `BACKEND_ONLY` | 深接缝已由kernel/guard/projector/component_runtime/wire/orchestrator/scheduler消费 | 命令活动同事务；失效先核验kernel commit；placement保持B13精确质量，无旁路降级 |
 | D00a | `BACKEND_ONLY` | `src/rk/product_migrations.py`；`schema_fragments/D00a/`；`tests/test_product_migrations.py` | 真实 SQLite 注册、冲突、漂移与原子回滚已验收；尚未进入发行迁移序列 |
+| D00b | `BACKEND_ONLY` | 30片段发行manifest与digest锁 | 空库、旧29库追加、失败回滚、幂等和漂移拒绝已验收；R00前仍可版本化追加 |
 | P00a | `BACKEND_ONLY` | `http_shell.py`、`published_app.py`；17 条唯一真实路由 | session/command/query/artifact/SSE/identity/review/meta 已装配；尚未完成外部发布部署验收 |
 | P00b | `BACKEND_ONLY` | 单一发布composition root与真实daemon | 空根管理员session、无重复路由、启动停止重启、health与chunked stream已验收 |
 | B01a | `BACKEND_ONLY` | 四接口、私有内核权威、持久命令协调与 published app | 登录→命令→Receipt/Job 真实落库已验收；尚未完成产品 E2E |
@@ -630,6 +631,8 @@ verifier→拒绝修复→回图/检索复用→组合义务/ClosureWitness read
 | B15a | `BACKEND_ONLY` | 唯一ROOT/Finalize与CLOSED发布白名单 | 窄身份、精确revision/ROOT/closure/TeX/generation绑定；mutation仅写发布投影 |
 | B15b | `BACKEND_ONLY` | 确定性TeX、签名审查、真实PDF与卷宗 | pdflatex失败返修、新摘要强制重审；主页不泄露候选TeX |
 | B16a | `BACKEND_ONLY` | 真实部署probe与类型化诊断 | CPU/RAM/SQLite/CAS/ROCm/HTTP逐项状态、公开活动白名单及重启回执已验收 |
+| B16b | `BACKEND_ONLY` | 参数化service/Tauri生命周期与可复现发布档案 | daemon真实后台继续；Windows原生安装仍诚实标REQUIRES_WINDOWS_RUNNER |
+| B17 | `BACKEND_ONLY` | 真实arXiv题池与正式GLOBAL批创建 | 完整分母、版本/撤稿边界、重启幂等；专家未到保持EXTERNAL_CONFIRMATION_PENDING |
 | B18 | `BACKEND_ONLY` | Zhao双模式与N2_AJT5历史迁移 | 净室无历史证据且诚实NO_REDISCOVERY；证书逐件核验；N2未验证候选不入图 |
 | 其余 D/P/B/F/I/R | `NOT_STARTED` | 无新产品完成证据 | 依本文拓扑推进 |
 

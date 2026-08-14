@@ -5,9 +5,16 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
-from .types import COMMAND_CONTRACTS, QUERY_CONTRACTS, ArtifactOperationType, CommandType, QueryType
+from .types import (
+    COMMAND_CONTRACTS,
+    QUERY_CONTRACTS,
+    QUERY_RESULT_CONTRACTS,
+    ArtifactOperationType,
+    CommandType,
+    QueryType,
+)
 
 type JsonScalar = bool | int | str | None
 type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
@@ -206,6 +213,85 @@ def _validate_query_contract(
         raise InvalidEnvelopeError(f"{query_type} payload has unknown fields {sorted(unknown)}")
 
 
+def _exact_fields(value: JsonObject, required: set[str], allowed: set[str], label: str) -> None:
+    actual = set(value)
+    if missing := required - actual:
+        raise InvalidEnvelopeError(f"{label} is missing fields {sorted(missing)}")
+    if unknown := actual - allowed:
+        raise InvalidEnvelopeError(f"{label} has unknown fields {sorted(unknown)}")
+
+
+def _validate_query_result(
+    value: JsonObject, *, expected_type: str, expected_scope_kind: str
+) -> None:
+    result_type = value.get("result_type")
+    if not isinstance(result_type, str) or result_type not in QUERY_RESULT_CONTRACTS:
+        raise UnknownVariantError(f"unknown query result variant {result_type!r}; upgrade the SDK")
+    if result_type != expected_type:
+        raise InvalidEnvelopeError(
+            f"query returned {result_type}, expected exact result {expected_type}"
+        )
+    contract = QUERY_RESULT_CONTRACTS[result_type]
+    if value.get("scope_kind") != expected_scope_kind:
+        raise InvalidEnvelopeError("query result scope fence does not match the request")
+    base = {
+        "schema_version",
+        "result_type",
+        "stable_entity_id",
+        "scope_kind",
+        "last_cursor",
+        "result",
+    }
+    fences = {
+        "RUN": {"run_id", "research_revision", "contract_version"},
+        "GLOBAL": {"deployment_id", "catalog_revision"},
+        "DEPLOYMENT": {"deployment_id", "deployment_revision"},
+    }[expected_scope_kind]
+    _exact_fields(value, base | fences, base | fences, "query result envelope")
+    result = value.get("result")
+    if not isinstance(result, dict):
+        raise InvalidEnvelopeError("query result payload must be an object")
+    kind = contract["result_kind"]
+    if kind == "graph":
+        projections = [result]
+    elif kind == "entity":
+        _exact_fields(result, {"entity"}, {"entity"}, "entity result")
+        entity = result.get("entity")
+        if not isinstance(entity, dict):
+            raise InvalidEnvelopeError("entity result must contain an object")
+        projections = [entity]
+    else:
+        _exact_fields(result, {"items", "page"}, {"items", "page"}, "list result")
+        items = result.get("items")
+        if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+            raise InvalidEnvelopeError("list result items must be objects")
+        page = result.get("page")
+        if not isinstance(page, dict):
+            raise InvalidEnvelopeError("list result page must be an object")
+        _exact_fields(
+            page,
+            {"returned", "total", "truncated"},
+            {"returned", "total", "truncated", "next_cursor"},
+            "query result page",
+        )
+        projections = cast(list[JsonObject], items)
+    required = set(contract["required_projection_fields"])
+    allowed = set(contract["projection_fields"])
+    for projection in projections:
+        _exact_fields(projection, required, allowed, f"{result_type} projection")
+        domain_required = set(contract["required_domain_fields"])
+        if domain_required:
+            domain = projection.get("domain")
+            if not isinstance(domain, dict):
+                raise InvalidEnvelopeError(f"{result_type} projection has no domain object")
+            _exact_fields(
+                domain,
+                domain_required,
+                set(contract["domain_fields"]),
+                f"{result_type} domain",
+            )
+
+
 class ResearchProductClient:
     """Only the four frozen ResearchProduct operation families."""
 
@@ -258,7 +344,13 @@ class ResearchProductClient:
             }
         )
         _reject_identity_injection(body["query"])
-        return self._send("query", body)
+        response = self._send("query", body)
+        _validate_query_result(
+            response,
+            expected_type=normalized_type,
+            expected_scope_kind=str(scope.to_dict()["kind"]),
+        )
+        return response
 
     def subscribe(
         self, *, run_id: str, after_cursor: int, event_types: list[str] | None = None

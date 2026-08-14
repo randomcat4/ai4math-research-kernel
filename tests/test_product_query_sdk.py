@@ -88,6 +88,7 @@ def test_unknown_query_result_schema_explicitly_requires_upgrade() -> None:
 
 def test_product_generator_is_diff_clean_for_query_outputs() -> None:
     paths = [
+        PRODUCT / "query.schema.json",
         PRODUCT / "envelope.schema.json",
         ROOT / "sdk/python/rk_product/types.py",
         ROOT / "sdk/typescript/src/types.ts",
@@ -102,3 +103,96 @@ def test_product_generator_is_diff_clean_for_query_outputs() -> None:
     before = digest()
     subprocess.run([sys.executable, str(ROOT / "scripts/rkgenerateproduct.py")], check=True)
     assert digest() == before
+
+
+def material_result() -> dict[str, Any]:
+    return {
+        "schema_version": "rk.product.query_result.v1",
+        "result_type": "MATERIAL",
+        "stable_entity_id": UUID,
+        "scope_kind": "RUN",
+        "last_cursor": 7,
+        "run_id": UUID,
+        "research_revision": 4,
+        "contract_version": 2,
+        "result": {
+            "entity": {
+                "schema_version": "rk.product.projection.v1",
+                "stable_entity_id": UUID,
+                "projection_type": "MATERIAL",
+                "status": "CURRENT",
+                "artifact_ids": [],
+                "evidence_class": "ENGINEERING_REQUIRED",
+                "authority_effect": "NO_FACT_GRAPH_WRITE",
+                "source_artifact_ids": [],
+                "domain": {
+                    "material_id": UUID,
+                    "original_artifact_id": UUID,
+                    "media_type": "application/pdf",
+                    "ingest_state": "COMMITTED",
+                    "ocr_state": "PENDING_REVIEW",
+                },
+            }
+        },
+    }
+
+
+def test_python_sdk_runtime_validates_exact_result_variant_scope_and_domain() -> None:
+    response = material_result()
+    client = ResearchProductClient(lambda _operation, _body: response)
+    assert (
+        client.query(
+            scope=QueryRunScope(UUID), query_type="MATERIAL", payload={"material_id": UUID}
+        )
+        == response
+    )
+
+    missing = material_result()
+    del missing["result"]["entity"]["domain"]["ocr_state"]
+    with pytest.raises(InvalidEnvelopeError, match="MATERIAL domain is missing"):
+        ResearchProductClient(lambda _operation, _body: missing).query(
+            scope=QueryRunScope(UUID), query_type="MATERIAL", payload={"material_id": UUID}
+        )
+
+    drift = material_result()
+    drift["result"]["entity"]["private_page_state"] = True
+    with pytest.raises(InvalidEnvelopeError, match="projection has unknown"):
+        ResearchProductClient(lambda _operation, _body: drift).query(
+            scope=QueryRunScope(UUID), query_type="MATERIAL", payload={"material_id": UUID}
+        )
+
+    unknown = material_result()
+    unknown["result_type"] = "MATERIAL_V2"
+    with pytest.raises(UnknownVariantError, match="upgrade the SDK"):
+        ResearchProductClient(lambda _operation, _body: unknown).query(
+            scope=QueryRunScope(UUID), query_type="MATERIAL", payload={"material_id": UUID}
+        )
+
+
+def test_typescript_runtime_rejects_unknown_query_result_variant() -> None:
+    sdk = ROOT / "sdk/typescript"
+    subprocess.run(["npm", "run", "build"], cwd=sdk, check=True)
+    program = """
+import {ResearchProductClient, UnknownVariantError} from './dist/client.js';
+const transport = {
+  request: async () => ({
+    schema_version: 'rk.product.query_result.v1',
+    result_type: 'PRIVATE_V2',
+  }),
+};
+const client = new ResearchProductClient(transport);
+try {
+  await client.query({
+    scope: {kind: 'RUN', run_id: '7f857a15-bddb-4238-aa88-6dbeaec50f7a'},
+    type: 'MATERIAL',
+    payload: {material_id: '7f857a15-bddb-4238-aa88-6dbeaec50f7a'},
+  });
+  process.exit(2);
+} catch (error) {
+  if (
+    !(error instanceof UnknownVariantError)
+    || !error.message.includes('upgrade the SDK')
+  ) process.exit(3);
+}
+"""
+    subprocess.run(["node", "--input-type=module", "--eval", program], cwd=sdk, check=True)

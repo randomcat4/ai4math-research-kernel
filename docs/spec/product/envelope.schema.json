@@ -5826,7 +5826,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -5849,6 +5850,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainResearchOverview"
                     }
                   }
                 }
@@ -5912,7 +5916,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -5935,6 +5940,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainContract"
                     }
                   }
                 }
@@ -5998,7 +6006,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6021,6 +6030,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainContractImpact"
                     }
                   }
                 }
@@ -6087,7 +6099,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6128,6 +6141,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainMaterial"
                     }
                   }
                 }
@@ -6194,7 +6210,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6235,6 +6252,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainMaterialExtraction"
                     }
                   }
                 }
@@ -6301,7 +6321,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6342,6 +6363,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainCitationAnchor"
                     }
                   }
                 }
@@ -6408,7 +6432,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6449,6 +6474,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainExtractionDiff"
                     }
                   }
                 }
@@ -6515,7 +6543,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6556,6 +6585,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainLiteratureQuery"
                     }
                   }
                 }
@@ -6622,7 +6654,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6663,6 +6696,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainSourceSnapshot"
                     }
                   }
                 }
@@ -6729,7 +6765,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6770,6 +6807,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainLiteratureSource"
                     }
                   }
                 }
@@ -6840,7 +6880,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -6881,6 +6922,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainLiteratureGraph"
                       }
                     }
                   }
@@ -6951,7 +6995,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -6992,6 +7037,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainTheoremApplicability"
                     }
                   }
                 }
@@ -7058,7 +7106,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7099,6 +7148,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainPriorArtComparison"
                     }
                   }
                 }
@@ -7165,7 +7217,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7206,6 +7259,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainNoveltyReview"
                     }
                   }
                 }
@@ -7271,7 +7327,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7312,6 +7369,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainProblemPool"
                     }
                   }
                 }
@@ -7373,7 +7433,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7414,6 +7475,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainProblemCandidate"
                     }
                   }
                 }
@@ -7479,7 +7543,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -7520,6 +7585,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainSourceVersionHistory"
                       }
                     }
                   }
@@ -7585,7 +7653,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7626,6 +7695,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainBatchResearchJob"
                     }
                   }
                 }
@@ -7685,7 +7757,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7708,6 +7781,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainRoutePlan"
                     }
                   }
                 }
@@ -7778,7 +7854,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -7819,6 +7896,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainBridgeOpportunities"
                       }
                     }
                   }
@@ -7889,7 +7969,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -7930,6 +8011,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainAblationPlan"
                     }
                   }
                 }
@@ -8000,7 +8084,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -8041,6 +8126,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainAblationResults"
                       }
                     }
                   }
@@ -8108,7 +8196,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8131,6 +8220,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainWorkflow"
                     }
                   }
                 }
@@ -8198,7 +8290,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -8221,6 +8314,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainWorkItem"
                       }
                     }
                   }
@@ -8292,7 +8388,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -8315,6 +8412,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainWorkerRun"
                       }
                     }
                   }
@@ -8382,7 +8482,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8405,6 +8506,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainCheckpoint"
                     }
                   }
                 }
@@ -8468,7 +8572,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8491,6 +8596,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainClaim"
                     }
                   }
                 }
@@ -8558,7 +8666,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -8581,6 +8690,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainClaimHistory"
                       }
                     }
                   }
@@ -8648,7 +8760,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -8671,6 +8784,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainAvailableActions"
                     }
                   }
                 }
@@ -8784,7 +8900,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -8807,6 +8924,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainGraphSearch"
                       }
                     }
                   }
@@ -8878,7 +8998,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -8901,6 +9022,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainDependencyClosure"
                       }
                     }
                   }
@@ -8972,7 +9096,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -8995,6 +9120,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainReverseClosure"
                       }
                     }
                   }
@@ -9062,7 +9190,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9085,6 +9214,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainRevokePreview"
                     }
                   }
                 }
@@ -9148,7 +9280,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9171,6 +9304,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainComputeTask"
                     }
                   }
                 }
@@ -9237,7 +9373,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -9260,6 +9397,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainToolCatalog"
                       }
                     }
                   }
@@ -9323,7 +9463,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9346,6 +9487,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainToolRun"
                     }
                   }
                 }
@@ -9413,7 +9557,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -9436,6 +9581,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainGuidanceInbox"
                       }
                     }
                   }
@@ -9503,7 +9651,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9526,6 +9675,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainHint"
                     }
                   }
                 }
@@ -9593,7 +9745,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -9616,6 +9769,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainReviewInbox"
                       }
                     }
                   }
@@ -9683,7 +9839,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9706,6 +9863,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainReviewTask"
                     }
                   }
                 }
@@ -9769,7 +9929,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9792,6 +9953,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainDossier"
                     }
                   }
                 }
@@ -9855,7 +10019,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -9878,6 +10043,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainPublicationStatus"
                     }
                   }
                 }
@@ -9945,7 +10113,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -9968,6 +10137,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainArtifactIndex"
                       }
                     }
                   }
@@ -10038,7 +10210,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10079,6 +10252,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainResearchCaseLineage"
                     }
                   }
                 }
@@ -10145,7 +10321,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10186,6 +10363,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainCleanRoomInputManifest"
                     }
                   }
                 }
@@ -10252,7 +10432,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10293,6 +10474,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainCertificateImportReport"
                     }
                   }
                 }
@@ -10468,7 +10652,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10491,6 +10676,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainProductReceipt"
                     }
                   }
                 }
@@ -10553,7 +10741,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10576,6 +10765,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainProductReceipt"
                     }
                   }
                 }
@@ -10634,7 +10826,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10657,6 +10850,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainProductReceipt"
                     }
                   }
                 }
@@ -10716,7 +10912,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10739,6 +10936,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainJob"
                     }
                   }
                 }
@@ -10801,7 +11001,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10824,6 +11025,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainJob"
                     }
                   }
                 }
@@ -10882,7 +11086,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10905,6 +11110,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainJob"
                     }
                   }
                 }
@@ -10963,7 +11171,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -10986,6 +11195,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainDeploymentStatus"
                     }
                   }
                 }
@@ -11044,7 +11256,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -11067,6 +11280,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainDeploymentJob"
                     }
                   }
                 }
@@ -11125,7 +11341,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -11148,6 +11365,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainBackupStatus"
                     }
                   }
                 }
@@ -11206,7 +11426,8 @@
                     "stable_entity_id",
                     "projection_type",
                     "status",
-                    "artifact_ids"
+                    "artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -11229,6 +11450,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainAdminHealth"
                     }
                   }
                 }
@@ -11291,7 +11515,8 @@
                       "stable_entity_id",
                       "projection_type",
                       "status",
-                      "artifact_ids"
+                      "artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -11314,6 +11539,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainUsage"
                       }
                     }
                   }
@@ -11383,7 +11611,8 @@
                       "artifact_ids",
                       "evidence_class",
                       "authority_effect",
-                      "source_artifact_ids"
+                      "source_artifact_ids",
+                      "domain"
                     ],
                     "properties": {
                       "schema_version": {
@@ -11424,6 +11653,9 @@
                         "items": {
                           "$ref": "#/$defs/query_uuid"
                         }
+                      },
+                      "domain": {
+                        "$ref": "#/$defs/query_resultDomainLiteratureGraph"
                       }
                     }
                   }
@@ -11489,7 +11721,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -11530,6 +11763,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainLiteratureQuery"
                     }
                   }
                 }
@@ -11591,7 +11827,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -11632,6 +11869,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainLiteratureSource"
                     }
                   }
                 }
@@ -11693,7 +11933,8 @@
                     "artifact_ids",
                     "evidence_class",
                     "authority_effect",
-                    "source_artifact_ids"
+                    "source_artifact_ids",
+                    "domain"
                   ],
                   "properties": {
                     "schema_version": {
@@ -11734,6 +11975,9 @@
                       "items": {
                         "$ref": "#/$defs/query_uuid"
                       }
+                    },
+                    "domain": {
+                      "$ref": "#/$defs/query_resultDomainSourceSnapshot"
                     }
                   }
                 }
@@ -14016,6 +14260,1664 @@
           }
         }
       ]
+    },
+    "query_resultDomainResearchOverview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "outcome_state",
+        "execution_state",
+        "authority_state",
+        "publication_state"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "outcome_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publication_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "query_resultDomainContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "contract_version",
+        "contract_state",
+        "content_digest"
+      ],
+      "properties": {
+        "contract_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "contract_version": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "contract_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainContractImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "impact_preview_id",
+        "base_contract_version",
+        "affected_object_ids",
+        "impact_digest"
+      ],
+      "properties": {
+        "impact_preview_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "base_contract_version": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "affected_object_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        },
+        "impact_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainMaterial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_id",
+        "original_artifact_id",
+        "media_type",
+        "ingest_state",
+        "ocr_state"
+      ],
+      "properties": {
+        "material_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "original_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ingest_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ocr_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "query_resultDomainMaterialExtraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extraction_id",
+        "material_id",
+        "extractor_profile_id",
+        "output_artifact_id",
+        "extraction_digest"
+      ],
+      "properties": {
+        "extraction_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "material_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "extractor_profile_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "output_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "extraction_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainCitationAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anchor_id",
+        "material_id",
+        "source_artifact_id",
+        "locator",
+        "extraction_digest"
+      ],
+      "properties": {
+        "anchor_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "material_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "source_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extraction_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainExtractionDiff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "diff_id",
+        "before_extraction_id",
+        "after_extraction_id",
+        "changed_regions",
+        "diff_digest"
+      ],
+      "properties": {
+        "diff_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "before_extraction_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "after_extraction_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "changed_regions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "diff_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainLiteratureQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "literature_query_id",
+        "source_mode",
+        "snapshot_id",
+        "query_digest",
+        "coverage_boundary"
+      ],
+      "properties": {
+        "literature_query_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "source_mode": {
+          "enum": [
+            "LIVE_QUERY",
+            "REPLAYED_SNAPSHOT"
+          ]
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "query_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "coverage_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "query_resultDomainSourceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "source_mode",
+        "corpus_digest",
+        "retrieved_at",
+        "coverage_boundary"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "source_mode": {
+          "enum": [
+            "LIVE_QUERY",
+            "REPLAYED_SNAPSHOT"
+          ]
+        },
+        "corpus_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "retrieved_at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage_boundary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "query_resultDomainLiteratureSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "literature_source_id",
+        "stable_source_id",
+        "source_version",
+        "source_kind",
+        "content_digest"
+      ],
+      "properties": {
+        "literature_source_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "stable_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_version": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "source_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainLiteratureGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "literature_graph_id",
+        "node_count",
+        "edge_count",
+        "source_kinds",
+        "graph_digest"
+      ],
+      "properties": {
+        "literature_graph_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "node_count": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "edge_count": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "source_kinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "graph_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainTheoremApplicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicability_review_id",
+        "theorem_id",
+        "claim_id",
+        "verdict",
+        "review_artifact_id"
+      ],
+      "properties": {
+        "applicability_review_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "theorem_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "verdict": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        }
+      }
+    },
+    "query_resultDomainPriorArtComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparison_id",
+        "claim_id",
+        "literature_source_id",
+        "relationship",
+        "comparison_digest"
+      ],
+      "properties": {
+        "comparison_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "literature_source_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "relationship": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comparison_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainNoveltyReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "novelty_review_id",
+        "claim_id",
+        "verdict",
+        "coverage_snapshot_ids",
+        "review_artifact_id"
+      ],
+      "properties": {
+        "novelty_review_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "verdict": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage_snapshot_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        },
+        "review_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        }
+      }
+    },
+    "query_resultDomainProblemPool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "problem_pool_id",
+        "pool_revision",
+        "candidate_count",
+        "source_snapshot_ids",
+        "selection_digest"
+      ],
+      "properties": {
+        "problem_pool_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "pool_revision": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "candidate_count": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "source_snapshot_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        },
+        "selection_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainProblemCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "problem_candidate_id",
+        "problem_pool_id",
+        "statement_digest",
+        "candidate_state",
+        "source_anchor_ids"
+      ],
+      "properties": {
+        "problem_candidate_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "problem_pool_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "statement_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "candidate_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_anchor_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        }
+      }
+    },
+    "query_resultDomainSourceVersionHistory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_source_id",
+        "source_version",
+        "content_digest",
+        "supersedes_version",
+        "snapshot_id"
+      ],
+      "properties": {
+        "stable_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_version": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "content_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "supersedes_version": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/query_uuid"
+        }
+      }
+    },
+    "query_resultDomainBatchResearchJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "batch_job_id",
+        "job_state",
+        "total_count",
+        "succeeded_count",
+        "failed_count"
+      ],
+      "properties": {
+        "batch_job_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "job_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "total_count": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "succeeded_count": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "failed_count": {
+          "$ref": "#/$defs/query_nat"
+        }
+      }
+    },
+    "query_resultDomainRoutePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_plan_id",
+        "plan_revision",
+        "plan_state",
+        "route_ids",
+        "contract_version"
+      ],
+      "properties": {
+        "route_plan_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "plan_revision": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "plan_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        },
+        "contract_version": {
+          "$ref": "#/$defs/query_nat"
+        }
+      }
+    },
+    "query_resultDomainBridgeOpportunities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id",
+        "source_domain",
+        "target_domain",
+        "distance_microunits",
+        "death_test_state"
+      ],
+      "properties": {
+        "opportunity_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "source_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "distance_microunits": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "death_test_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "query_resultDomainAblationPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ablation_plan_id",
+        "opportunity_id",
+        "baseline_digest",
+        "variant_digests",
+        "plan_state"
+      ],
+      "properties": {
+        "ablation_plan_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "opportunity_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "baseline_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "variant_digests": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_hash"
+          }
+        },
+        "plan_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "query_resultDomainAblationResults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ablation_result_id",
+        "ablation_plan_id",
+        "baseline_metric_microunits",
+        "variant_metric_microunits",
+        "result_artifact_id"
+      ],
+      "properties": {
+        "ablation_result_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "ablation_plan_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "baseline_metric_microunits": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "variant_metric_microunits": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "result_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        }
+      }
+    },
+    "query_resultDomainWorkflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_id",
+        "phase",
+        "workflow_state",
+        "active_work_item_ids",
+        "workflow_digest"
+      ],
+      "properties": {
+        "workflow_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workflow_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "active_work_item_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        },
+        "workflow_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainWorkItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_item_id",
+        "work_kind",
+        "work_state",
+        "route_id",
+        "input_digest"
+      ],
+      "properties": {
+        "work_item_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "work_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "work_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "input_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainWorkerRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worker_run_id",
+        "work_item_id",
+        "worker_subject_id",
+        "run_state",
+        "input_digest"
+      ],
+      "properties": {
+        "worker_run_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "work_item_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "worker_subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainCheckpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint_id",
+        "route_id",
+        "checkpoint_revision",
+        "checkpoint_state",
+        "checkpoint_digest"
+      ],
+      "properties": {
+        "checkpoint_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "route_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "checkpoint_revision": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "checkpoint_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "stable_label",
+        "lifecycle",
+        "machine_state",
+        "semantic_state",
+        "statement_digest"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "stable_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lifecycle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "machine_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "statement_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainClaimHistory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "claim_revision",
+        "lifecycle",
+        "statement_digest",
+        "supersedes_claim_id"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "claim_revision": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "lifecycle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "statement_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "supersedes_claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        }
+      }
+    },
+    "query_resultDomainAvailableActions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_set_id",
+        "allowed_command_types",
+        "expected_revision",
+        "expected_contract_version",
+        "guard_digest"
+      ],
+      "properties": {
+        "action_set_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "allowed_command_types": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "expected_contract_version": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "guard_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainGraphSearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "graph_mode",
+        "dependable",
+        "distance",
+        "statement_digest"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "graph_mode": {
+          "enum": [
+            "VERIFIED",
+            "RESEARCH_HISTORY"
+          ]
+        },
+        "dependable": {
+          "type": "boolean"
+        },
+        "distance": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "statement_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainDependencyClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "graph_mode",
+        "dependable",
+        "distance",
+        "boundary_digest"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "graph_mode": {
+          "enum": [
+            "VERIFIED",
+            "RESEARCH_HISTORY"
+          ]
+        },
+        "dependable": {
+          "type": "boolean"
+        },
+        "distance": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "boundary_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainReverseClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "graph_mode",
+        "dependable",
+        "distance",
+        "boundary_digest"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "graph_mode": {
+          "enum": [
+            "VERIFIED",
+            "RESEARCH_HISTORY"
+          ]
+        },
+        "dependable": {
+          "type": "boolean"
+        },
+        "distance": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "boundary_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainRevokePreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revoke_preview_id",
+        "target_claim_id",
+        "target_digest",
+        "closure_digest",
+        "affected_claim_ids"
+      ],
+      "properties": {
+        "revoke_preview_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "target_claim_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "target_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "closure_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "affected_claim_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        }
+      }
+    },
+    "query_resultDomainComputeTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compute_task_id",
+        "task_type",
+        "task_state",
+        "input_digest",
+        "output_artifact_ids"
+      ],
+      "properties": {
+        "compute_task_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "task_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "output_artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        }
+      }
+    },
+    "query_resultDomainToolCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_profile_id",
+        "profile_version",
+        "tool_state",
+        "capabilities",
+        "authority_ceiling"
+      ],
+      "properties": {
+        "tool_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_version": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "tool_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "authority_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "query_resultDomainToolRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_run_id",
+        "tool_profile_id",
+        "run_state",
+        "execution_receipt_id",
+        "output_artifact_ids"
+      ],
+      "properties": {
+        "tool_run_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "tool_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_receipt_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "output_artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        }
+      }
+    },
+    "query_resultDomainGuidanceInbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hint_id",
+        "hint_kind",
+        "hint_state",
+        "checkpoint_id",
+        "target_digest"
+      ],
+      "properties": {
+        "hint_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "hint_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hint_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "target_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainHint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hint_id",
+        "hint_kind",
+        "hint_state",
+        "checkpoint_id",
+        "target_digest"
+      ],
+      "properties": {
+        "hint_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "hint_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hint_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "target_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainReviewInbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_task_id",
+        "review_type",
+        "review_state",
+        "target_id",
+        "target_digest"
+      ],
+      "properties": {
+        "review_task_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "review_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "target_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainReviewTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_task_id",
+        "review_type",
+        "review_state",
+        "target_id",
+        "signed_review_artifact_id"
+      ],
+      "properties": {
+        "review_task_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "review_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "signed_review_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        }
+      }
+    },
+    "query_resultDomainDossier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dossier_id",
+        "dossier_state",
+        "observed_revision",
+        "dossier_artifact_id",
+        "dossier_digest"
+      ],
+      "properties": {
+        "dossier_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "dossier_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_revision": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "dossier_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "dossier_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainPublicationStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication_id",
+        "finalized_revision",
+        "final_outcome",
+        "review_state",
+        "final_pdf_artifact_id"
+      ],
+      "properties": {
+        "publication_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "finalized_revision": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "final_outcome": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "final_pdf_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        }
+      }
+    },
+    "query_resultDomainArtifactIndex": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "artifact_digest",
+        "byte_count",
+        "media_type",
+        "ingest_state"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "artifact_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "byte_count": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ingest_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "query_resultDomainResearchCaseLineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lineage_id",
+        "lineage_mode",
+        "source_version",
+        "lineage_state",
+        "lineage_digest"
+      ],
+      "properties": {
+        "lineage_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "lineage_mode": {
+          "enum": [
+            "CLEAN_ROOM_REDISCOVERY",
+            "CERTIFICATE_IMPORT",
+            "N2_HISTORICAL_MIGRATION"
+          ]
+        },
+        "source_version": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "lineage_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineage_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainCleanRoomInputManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_id",
+        "lineage_id",
+        "input_artifact_ids",
+        "manifest_digest",
+        "lineage_mode"
+      ],
+      "properties": {
+        "manifest_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "lineage_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "input_artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_uuid"
+          }
+        },
+        "manifest_digest": {
+          "$ref": "#/$defs/query_hash"
+        },
+        "lineage_mode": {
+          "enum": [
+            "CLEAN_ROOM_REDISCOVERY",
+            "CERTIFICATE_IMPORT",
+            "N2_HISTORICAL_MIGRATION"
+          ]
+        }
+      }
+    },
+    "query_resultDomainCertificateImportReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_id",
+        "lineage_id",
+        "certificate_artifact_id",
+        "verifier_profile_id",
+        "verification_outcome"
+      ],
+      "properties": {
+        "report_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "lineage_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "certificate_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "verifier_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification_outcome": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "query_resultDomainProductReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "receipt_state",
+        "request_id",
+        "receipt_version",
+        "revision_after"
+      ],
+      "properties": {
+        "receipt_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "receipt_state": {
+          "enum": [
+            "PENDING",
+            "DECIDED",
+            "OUTCOME_UNKNOWN"
+          ]
+        },
+        "request_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "receipt_version": {
+          "$ref": "#/$defs/query_nat"
+        },
+        "revision_after": {
+          "$ref": "#/$defs/query_nat"
+        }
+      }
+    },
+    "query_resultDomainJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "job_type",
+        "job_state",
+        "retry_safety",
+        "result_receipt_id"
+      ],
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "job_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "job_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retry_safety": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result_receipt_id": {
+          "$ref": "#/$defs/query_uuid"
+        }
+      }
+    },
+    "query_resultDomainDeploymentStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deployment_id",
+        "deployment_state",
+        "probe_run_id",
+        "capability_keys",
+        "fault_codes"
+      ],
+      "properties": {
+        "deployment_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "deployment_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probe_run_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "capability_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "fault_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "query_resultDomainDeploymentJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deployment_job_id",
+        "deployment_id",
+        "job_type",
+        "job_state",
+        "execution_receipt_id"
+      ],
+      "properties": {
+        "deployment_job_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "job_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "job_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_receipt_id": {
+          "$ref": "#/$defs/query_uuid"
+        }
+      }
+    },
+    "query_resultDomainBackupStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backup_id",
+        "deployment_id",
+        "backup_state",
+        "backup_artifact_id",
+        "backup_digest"
+      ],
+      "properties": {
+        "backup_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "backup_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backup_artifact_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "backup_digest": {
+          "$ref": "#/$defs/query_hash"
+        }
+      }
+    },
+    "query_resultDomainAdminHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "health_report_id",
+        "deployment_id",
+        "overall_state",
+        "probe_run_id",
+        "fault_codes"
+      ],
+      "properties": {
+        "health_report_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "overall_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probe_run_id": {
+          "$ref": "#/$defs/query_uuid"
+        },
+        "fault_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "query_resultDomainUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "usage_bucket_id",
+        "period_start",
+        "period_end",
+        "resource_type",
+        "quantity_microunits"
+      ],
+      "properties": {
+        "usage_bucket_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period_start": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period_end": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity_microunits": {
+          "$ref": "#/$defs/query_nat"
+        }
+      }
     }
   }
 }

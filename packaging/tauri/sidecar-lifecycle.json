@@ -1,0 +1,16 @@
+{
+  "schema_version": "rk.packaging.tauri_sidecar.v1",
+  "daemon_ownership": "SYSTEM_SERVICE",
+  "desktop_start": "CONNECT_OR_REQUEST_SERVICE_START",
+  "window_close": "DISCONNECT_ONLY",
+  "desktop_exit": "LEAVE_DAEMON_RUNNING",
+  "explicit_admin_stop": "REQUEST_SERVICE_STOP",
+  "endpoint_source": "DEPLOYMENT_CONFIG",
+  "capability_transport": "OPAQUE_SESSION_COOKIE_ONLY",
+  "forbidden": [
+    "KILL_DAEMON_ON_WINDOW_CLOSE",
+    "BROWSER_CAPABILITY_ID",
+    "HARDCODED_DATA_ROOT",
+    "HARDCODED_LISTEN_ADDRESS"
+  ]
+}

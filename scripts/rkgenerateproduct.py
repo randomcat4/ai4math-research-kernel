@@ -12,6 +12,7 @@ from rkcommandcontract import generate as generate_command_contract
 from rkcommandcontract import metadata as command_metadata
 from rkquerycontract import generate as generate_query_contract
 from rkquerycontract import metadata as query_metadata
+from rkquerycontract import result_metadata as query_result_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "docs" / "spec" / "product" / "catalog.json"
@@ -95,6 +96,20 @@ def main() -> None:
         + pprint.pformat(queries, width=88, sort_dicts=True)
         + "\n)\n",
     ]
+    result_contracts = query_result_metadata(ROOT)
+    py += [
+        "class QueryResultContract(TypedDict):",
+        "    scope_kinds: list[str]",
+        "    result_kind: str",
+        "    required_projection_fields: list[str]",
+        "    projection_fields: list[str]",
+        "    required_domain_fields: list[str]",
+        "    domain_fields: list[str]",
+        "",
+        "QUERY_RESULT_CONTRACTS: Final[dict[str, QueryResultContract]] = (\n"
+        + pprint.pformat(result_contracts, width=88, sort_dicts=True)
+        + "\n)\n",
+    ]
     ts.append("export interface QueryPayloadMap {")
     for query_type, spec in queries.items():
         members = [f"{field}: CommandFieldValue" for field in spec["required_payload_fields"]]
@@ -104,6 +119,12 @@ def main() -> None:
     ts.append(
         "export const QUERY_CONTRACTS = "
         + json.dumps(queries, ensure_ascii=False, indent=2, sort_keys=True)
+        + " as const;"
+    )
+    ts.append("")
+    ts.append(
+        "export const QUERY_RESULT_CONTRACTS = "
+        + json.dumps(result_contracts, ensure_ascii=False, indent=2, sort_keys=True)
         + " as const;"
     )
     ts.append("")

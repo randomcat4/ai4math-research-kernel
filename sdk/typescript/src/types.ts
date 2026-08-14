@@ -660,6 +660,2145 @@ export const QUERY_CONTRACTS = {
   }
 } as const;
 
+export const QUERY_RESULT_CONTRACTS = {
+  "ABLATION_PLAN": {
+    "domain_fields": [
+      "ablation_plan_id",
+      "opportunity_id",
+      "baseline_digest",
+      "variant_digests",
+      "plan_state"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "ablation_plan_id",
+      "opportunity_id",
+      "baseline_digest",
+      "variant_digests",
+      "plan_state"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "ABLATION_RESULTS": {
+    "domain_fields": [
+      "ablation_result_id",
+      "ablation_plan_id",
+      "baseline_metric_microunits",
+      "variant_metric_microunits",
+      "result_artifact_id"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "ablation_result_id",
+      "ablation_plan_id",
+      "baseline_metric_microunits",
+      "variant_metric_microunits",
+      "result_artifact_id"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "ACTION_ITEMS": {
+    "domain_fields": [],
+    "projection_fields": [
+      "stable_entity_id",
+      "run_id",
+      "command_type",
+      "target_ids",
+      "required_inputs",
+      "blocked_by",
+      "research_revision",
+      "contract_version"
+    ],
+    "required_domain_fields": [],
+    "required_projection_fields": [
+      "stable_entity_id",
+      "run_id",
+      "command_type",
+      "target_ids",
+      "required_inputs",
+      "blocked_by",
+      "research_revision",
+      "contract_version"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "GLOBAL"
+    ]
+  },
+  "ADMIN_HEALTH": {
+    "domain_fields": [
+      "health_report_id",
+      "deployment_id",
+      "overall_state",
+      "probe_run_id",
+      "fault_codes"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "health_report_id",
+      "deployment_id",
+      "overall_state",
+      "probe_run_id",
+      "fault_codes"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "DEPLOYMENT"
+    ]
+  },
+  "ARTIFACT_INDEX": {
+    "domain_fields": [
+      "artifact_id",
+      "artifact_digest",
+      "byte_count",
+      "media_type",
+      "ingest_state"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "artifact_id",
+      "artifact_digest",
+      "byte_count",
+      "media_type",
+      "ingest_state"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "AVAILABLE_ACTIONS": {
+    "domain_fields": [
+      "action_set_id",
+      "allowed_command_types",
+      "expected_revision",
+      "expected_contract_version",
+      "guard_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "action_set_id",
+      "allowed_command_types",
+      "expected_revision",
+      "expected_contract_version",
+      "guard_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "BACKUP_STATUS": {
+    "domain_fields": [
+      "backup_id",
+      "deployment_id",
+      "backup_state",
+      "backup_artifact_id",
+      "backup_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "backup_id",
+      "deployment_id",
+      "backup_state",
+      "backup_artifact_id",
+      "backup_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "DEPLOYMENT"
+    ]
+  },
+  "BATCH_RESEARCH_JOB": {
+    "domain_fields": [
+      "batch_job_id",
+      "job_state",
+      "total_count",
+      "succeeded_count",
+      "failed_count"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "batch_job_id",
+      "job_state",
+      "total_count",
+      "succeeded_count",
+      "failed_count"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "GLOBAL"
+    ]
+  },
+  "BRIDGE_OPPORTUNITIES": {
+    "domain_fields": [
+      "opportunity_id",
+      "source_domain",
+      "target_domain",
+      "distance_microunits",
+      "death_test_state"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "opportunity_id",
+      "source_domain",
+      "target_domain",
+      "distance_microunits",
+      "death_test_state"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "CERTIFICATE_IMPORT_REPORT": {
+    "domain_fields": [
+      "report_id",
+      "lineage_id",
+      "certificate_artifact_id",
+      "verifier_profile_id",
+      "verification_outcome"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "report_id",
+      "lineage_id",
+      "certificate_artifact_id",
+      "verifier_profile_id",
+      "verification_outcome"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "CHECKPOINT": {
+    "domain_fields": [
+      "checkpoint_id",
+      "route_id",
+      "checkpoint_revision",
+      "checkpoint_state",
+      "checkpoint_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "checkpoint_id",
+      "route_id",
+      "checkpoint_revision",
+      "checkpoint_state",
+      "checkpoint_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "CITATION_ANCHOR": {
+    "domain_fields": [
+      "anchor_id",
+      "material_id",
+      "source_artifact_id",
+      "locator",
+      "extraction_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "anchor_id",
+      "material_id",
+      "source_artifact_id",
+      "locator",
+      "extraction_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "CLAIM": {
+    "domain_fields": [
+      "claim_id",
+      "stable_label",
+      "lifecycle",
+      "machine_state",
+      "semantic_state",
+      "statement_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "claim_id",
+      "stable_label",
+      "lifecycle",
+      "machine_state",
+      "semantic_state",
+      "statement_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "CLAIM_HISTORY": {
+    "domain_fields": [
+      "claim_id",
+      "claim_revision",
+      "lifecycle",
+      "statement_digest",
+      "supersedes_claim_id"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "claim_id",
+      "claim_revision",
+      "lifecycle",
+      "statement_digest",
+      "supersedes_claim_id"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "CLEAN_ROOM_INPUT_MANIFEST": {
+    "domain_fields": [
+      "manifest_id",
+      "lineage_id",
+      "input_artifact_ids",
+      "manifest_digest",
+      "lineage_mode"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "manifest_id",
+      "lineage_id",
+      "input_artifact_ids",
+      "manifest_digest",
+      "lineage_mode"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "COMPUTE_TASK": {
+    "domain_fields": [
+      "compute_task_id",
+      "task_type",
+      "task_state",
+      "input_digest",
+      "output_artifact_ids"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "compute_task_id",
+      "task_type",
+      "task_state",
+      "input_digest",
+      "output_artifact_ids"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "CONTRACT": {
+    "domain_fields": [
+      "contract_id",
+      "contract_version",
+      "contract_state",
+      "content_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "contract_id",
+      "contract_version",
+      "contract_state",
+      "content_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "CONTRACT_IMPACT": {
+    "domain_fields": [
+      "impact_preview_id",
+      "base_contract_version",
+      "affected_object_ids",
+      "impact_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "impact_preview_id",
+      "base_contract_version",
+      "affected_object_ids",
+      "impact_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "DEPENDENCY_CLOSURE": {
+    "domain_fields": [
+      "claim_id",
+      "graph_mode",
+      "dependable",
+      "distance",
+      "boundary_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "claim_id",
+      "graph_mode",
+      "dependable",
+      "distance",
+      "boundary_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "DEPLOYMENT_JOB": {
+    "domain_fields": [
+      "deployment_job_id",
+      "deployment_id",
+      "job_type",
+      "job_state",
+      "execution_receipt_id"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "deployment_job_id",
+      "deployment_id",
+      "job_type",
+      "job_state",
+      "execution_receipt_id"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "DEPLOYMENT"
+    ]
+  },
+  "DEPLOYMENT_STATUS": {
+    "domain_fields": [
+      "deployment_id",
+      "deployment_state",
+      "probe_run_id",
+      "capability_keys",
+      "fault_codes"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "deployment_id",
+      "deployment_state",
+      "probe_run_id",
+      "capability_keys",
+      "fault_codes"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "DEPLOYMENT"
+    ]
+  },
+  "DOSSIER": {
+    "domain_fields": [
+      "dossier_id",
+      "dossier_state",
+      "observed_revision",
+      "dossier_artifact_id",
+      "dossier_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "dossier_id",
+      "dossier_state",
+      "observed_revision",
+      "dossier_artifact_id",
+      "dossier_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "EXTRACTION_DIFF": {
+    "domain_fields": [
+      "diff_id",
+      "before_extraction_id",
+      "after_extraction_id",
+      "changed_regions",
+      "diff_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "diff_id",
+      "before_extraction_id",
+      "after_extraction_id",
+      "changed_regions",
+      "diff_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "GRAPH_SEARCH": {
+    "domain_fields": [
+      "claim_id",
+      "graph_mode",
+      "dependable",
+      "distance",
+      "statement_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "claim_id",
+      "graph_mode",
+      "dependable",
+      "distance",
+      "statement_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "GRAPH_SLICE": {
+    "domain_fields": [],
+    "projection_fields": [],
+    "required_domain_fields": [],
+    "required_projection_fields": [],
+    "result_kind": "graph",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "GUIDANCE_INBOX": {
+    "domain_fields": [
+      "hint_id",
+      "hint_kind",
+      "hint_state",
+      "checkpoint_id",
+      "target_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "hint_id",
+      "hint_kind",
+      "hint_state",
+      "checkpoint_id",
+      "target_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "HINT": {
+    "domain_fields": [
+      "hint_id",
+      "hint_kind",
+      "hint_state",
+      "checkpoint_id",
+      "target_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "hint_id",
+      "hint_kind",
+      "hint_state",
+      "checkpoint_id",
+      "target_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "JOB": {
+    "domain_fields": [
+      "job_id",
+      "job_type",
+      "job_state",
+      "retry_safety",
+      "result_receipt_id"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "job_id",
+      "job_type",
+      "job_state",
+      "retry_safety",
+      "result_receipt_id"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "DEPLOYMENT",
+      "GLOBAL",
+      "RUN"
+    ]
+  },
+  "LIST_RESEARCH": {
+    "domain_fields": [],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "run_id",
+      "title",
+      "question_summary",
+      "owner",
+      "labels",
+      "outcome_state",
+      "execution_state",
+      "authority_state",
+      "publication_state",
+      "phase",
+      "blockers",
+      "next_actions",
+      "budget",
+      "recent_activity_at",
+      "recent_activity_summary",
+      "research_revision",
+      "contract_version",
+      "last_cursor"
+    ],
+    "required_domain_fields": [],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "run_id",
+      "title",
+      "question_summary",
+      "owner",
+      "labels",
+      "outcome_state",
+      "execution_state",
+      "authority_state",
+      "publication_state",
+      "phase",
+      "blockers",
+      "next_actions",
+      "budget",
+      "recent_activity_at",
+      "recent_activity_summary",
+      "research_revision",
+      "contract_version",
+      "last_cursor"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "GLOBAL"
+    ]
+  },
+  "LITERATURE_GRAPH": {
+    "domain_fields": [
+      "literature_graph_id",
+      "node_count",
+      "edge_count",
+      "source_kinds",
+      "graph_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "literature_graph_id",
+      "node_count",
+      "edge_count",
+      "source_kinds",
+      "graph_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "DEPLOYMENT",
+      "RUN"
+    ]
+  },
+  "LITERATURE_QUERY": {
+    "domain_fields": [
+      "literature_query_id",
+      "source_mode",
+      "snapshot_id",
+      "query_digest",
+      "coverage_boundary"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "literature_query_id",
+      "source_mode",
+      "snapshot_id",
+      "query_digest",
+      "coverage_boundary"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "DEPLOYMENT",
+      "RUN"
+    ]
+  },
+  "LITERATURE_SOURCE": {
+    "domain_fields": [
+      "literature_source_id",
+      "stable_source_id",
+      "source_version",
+      "source_kind",
+      "content_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "literature_source_id",
+      "stable_source_id",
+      "source_version",
+      "source_kind",
+      "content_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "DEPLOYMENT",
+      "RUN"
+    ]
+  },
+  "MATERIAL": {
+    "domain_fields": [
+      "material_id",
+      "original_artifact_id",
+      "media_type",
+      "ingest_state",
+      "ocr_state"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "material_id",
+      "original_artifact_id",
+      "media_type",
+      "ingest_state",
+      "ocr_state"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "MATERIAL_EXTRACTION": {
+    "domain_fields": [
+      "extraction_id",
+      "material_id",
+      "extractor_profile_id",
+      "output_artifact_id",
+      "extraction_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "extraction_id",
+      "material_id",
+      "extractor_profile_id",
+      "output_artifact_id",
+      "extraction_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "NOVELTY_REVIEW": {
+    "domain_fields": [
+      "novelty_review_id",
+      "claim_id",
+      "verdict",
+      "coverage_snapshot_ids",
+      "review_artifact_id"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "novelty_review_id",
+      "claim_id",
+      "verdict",
+      "coverage_snapshot_ids",
+      "review_artifact_id"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "PRIOR_ART_COMPARISON": {
+    "domain_fields": [
+      "comparison_id",
+      "claim_id",
+      "literature_source_id",
+      "relationship",
+      "comparison_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "comparison_id",
+      "claim_id",
+      "literature_source_id",
+      "relationship",
+      "comparison_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "PROBLEM_CANDIDATE": {
+    "domain_fields": [
+      "problem_candidate_id",
+      "problem_pool_id",
+      "statement_digest",
+      "candidate_state",
+      "source_anchor_ids"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "problem_candidate_id",
+      "problem_pool_id",
+      "statement_digest",
+      "candidate_state",
+      "source_anchor_ids"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "GLOBAL"
+    ]
+  },
+  "PROBLEM_POOL": {
+    "domain_fields": [
+      "problem_pool_id",
+      "pool_revision",
+      "candidate_count",
+      "source_snapshot_ids",
+      "selection_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "problem_pool_id",
+      "pool_revision",
+      "candidate_count",
+      "source_snapshot_ids",
+      "selection_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "GLOBAL"
+    ]
+  },
+  "PRODUCT_RECEIPT": {
+    "domain_fields": [
+      "receipt_id",
+      "receipt_state",
+      "request_id",
+      "receipt_version",
+      "revision_after"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "receipt_id",
+      "receipt_state",
+      "request_id",
+      "receipt_version",
+      "revision_after"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "DEPLOYMENT",
+      "GLOBAL",
+      "RUN"
+    ]
+  },
+  "PUBLICATION_STATUS": {
+    "domain_fields": [
+      "publication_id",
+      "finalized_revision",
+      "final_outcome",
+      "review_state",
+      "final_pdf_artifact_id"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "publication_id",
+      "finalized_revision",
+      "final_outcome",
+      "review_state",
+      "final_pdf_artifact_id"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "RESEARCH_CASE_LINEAGE": {
+    "domain_fields": [
+      "lineage_id",
+      "lineage_mode",
+      "source_version",
+      "lineage_state",
+      "lineage_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "lineage_id",
+      "lineage_mode",
+      "source_version",
+      "lineage_state",
+      "lineage_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "RESEARCH_OVERVIEW": {
+    "domain_fields": [
+      "run_id",
+      "outcome_state",
+      "execution_state",
+      "authority_state",
+      "publication_state"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "run_id",
+      "outcome_state",
+      "execution_state",
+      "authority_state",
+      "publication_state"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "REVERSE_CLOSURE": {
+    "domain_fields": [
+      "claim_id",
+      "graph_mode",
+      "dependable",
+      "distance",
+      "boundary_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "claim_id",
+      "graph_mode",
+      "dependable",
+      "distance",
+      "boundary_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "REVIEW_INBOX": {
+    "domain_fields": [
+      "review_task_id",
+      "review_type",
+      "review_state",
+      "target_id",
+      "target_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "review_task_id",
+      "review_type",
+      "review_state",
+      "target_id",
+      "target_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "REVIEW_TASK": {
+    "domain_fields": [
+      "review_task_id",
+      "review_type",
+      "review_state",
+      "target_id",
+      "signed_review_artifact_id"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "review_task_id",
+      "review_type",
+      "review_state",
+      "target_id",
+      "signed_review_artifact_id"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "REVOKE_PREVIEW": {
+    "domain_fields": [
+      "revoke_preview_id",
+      "target_claim_id",
+      "target_digest",
+      "closure_digest",
+      "affected_claim_ids"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "revoke_preview_id",
+      "target_claim_id",
+      "target_digest",
+      "closure_digest",
+      "affected_claim_ids"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "ROUTE_PLAN": {
+    "domain_fields": [
+      "route_plan_id",
+      "plan_revision",
+      "plan_state",
+      "route_ids",
+      "contract_version"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "route_plan_id",
+      "plan_revision",
+      "plan_state",
+      "route_ids",
+      "contract_version"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "SOURCE_SNAPSHOT": {
+    "domain_fields": [
+      "snapshot_id",
+      "source_mode",
+      "corpus_digest",
+      "retrieved_at",
+      "coverage_boundary"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "snapshot_id",
+      "source_mode",
+      "corpus_digest",
+      "retrieved_at",
+      "coverage_boundary"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "DEPLOYMENT",
+      "RUN"
+    ]
+  },
+  "SOURCE_VERSION_HISTORY": {
+    "domain_fields": [
+      "stable_source_id",
+      "source_version",
+      "content_digest",
+      "supersedes_version",
+      "snapshot_id"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "stable_source_id",
+      "source_version",
+      "content_digest",
+      "supersedes_version",
+      "snapshot_id"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "GLOBAL"
+    ]
+  },
+  "THEOREM_APPLICABILITY": {
+    "domain_fields": [
+      "applicability_review_id",
+      "theorem_id",
+      "claim_id",
+      "verdict",
+      "review_artifact_id"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "applicability_review_id",
+      "theorem_id",
+      "claim_id",
+      "verdict",
+      "review_artifact_id"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "evidence_class",
+      "authority_effect",
+      "source_artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "TOOL_CATALOG": {
+    "domain_fields": [
+      "tool_profile_id",
+      "profile_version",
+      "tool_state",
+      "capabilities",
+      "authority_ceiling"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "tool_profile_id",
+      "profile_version",
+      "tool_state",
+      "capabilities",
+      "authority_ceiling"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "DEPLOYMENT"
+    ]
+  },
+  "TOOL_RUN": {
+    "domain_fields": [
+      "tool_run_id",
+      "tool_profile_id",
+      "run_state",
+      "execution_receipt_id",
+      "output_artifact_ids"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "tool_run_id",
+      "tool_profile_id",
+      "run_state",
+      "execution_receipt_id",
+      "output_artifact_ids"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "USAGE": {
+    "domain_fields": [
+      "usage_bucket_id",
+      "period_start",
+      "period_end",
+      "resource_type",
+      "quantity_microunits"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "usage_bucket_id",
+      "period_start",
+      "period_end",
+      "resource_type",
+      "quantity_microunits"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "DEPLOYMENT"
+    ]
+  },
+  "WORKER_RUN": {
+    "domain_fields": [
+      "worker_run_id",
+      "work_item_id",
+      "worker_subject_id",
+      "run_state",
+      "input_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "worker_run_id",
+      "work_item_id",
+      "worker_subject_id",
+      "run_state",
+      "input_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "WORKFLOW": {
+    "domain_fields": [
+      "workflow_id",
+      "phase",
+      "workflow_state",
+      "active_work_item_ids",
+      "workflow_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "workflow_id",
+      "phase",
+      "workflow_state",
+      "active_work_item_ids",
+      "workflow_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "entity",
+    "scope_kinds": [
+      "RUN"
+    ]
+  },
+  "WORK_ITEM": {
+    "domain_fields": [
+      "work_item_id",
+      "work_kind",
+      "work_state",
+      "route_id",
+      "input_digest"
+    ],
+    "projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "required_domain_fields": [
+      "work_item_id",
+      "work_kind",
+      "work_state",
+      "route_id",
+      "input_digest"
+    ],
+    "required_projection_fields": [
+      "schema_version",
+      "stable_entity_id",
+      "projection_type",
+      "status",
+      "artifact_ids",
+      "domain"
+    ],
+    "result_kind": "list",
+    "scope_kinds": [
+      "RUN"
+    ]
+  }
+} as const;
+
 export const COMMAND_CONTRACTS = {
   "AMEND_CONTRACT": {
     "authority_boundary": "KERNEL_GUARDED_INVALIDATION",

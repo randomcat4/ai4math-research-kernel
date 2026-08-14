@@ -186,6 +186,43 @@ def query_for(query_type: str, kind: str | None = None) -> dict[str, Any]:
     }
 
 
+def _sample(schema: dict[str, Any]) -> Any:
+    if "$ref" in schema:
+        return _sample(SCHEMA["$defs"][schema["$ref"].rsplit("/", 1)[1]])
+    if "const" in schema:
+        return schema["const"]
+    if "enum" in schema:
+        return schema["enum"][0]
+    if schema.get("type") == "object":
+        return {field: _sample(schema["properties"][field]) for field in schema.get("required", [])}
+    if schema.get("type") == "array":
+        return []
+    if schema.get("type") == "boolean":
+        return True
+    if schema.get("type") == "integer":
+        return max(0, int(schema.get("minimum", 0)))
+    if schema.get("format") == "uuid":
+        return ENTITY_ID
+    if schema.get("pattern") == "^[0-9a-f]{64}$":
+        return "a" * 64
+    return "value"
+
+
+def _domain_sample(query_type: str) -> dict[str, Any] | None:
+    for branch in SCHEMA["$defs"]["queryResult"]["oneOf"]:
+        if branch["properties"]["result_type"]["const"] != query_type:
+            continue
+        result = branch["properties"]["result"]
+        if "$ref" in result:
+            return None
+        projection_schema = result["properties"].get("entity")
+        if projection_schema is None:
+            projection_schema = result["properties"]["items"]["items"]
+        domain = projection_schema["properties"].get("domain")
+        return _sample(domain) if isinstance(domain, dict) else None
+    raise AssertionError(query_type)
+
+
 def projection(query_type: str) -> dict[str, Any]:
     if query_type == "ACTION_ITEMS":
         return {
@@ -241,6 +278,9 @@ def projection(query_type: str) -> dict[str, Any]:
                 "source_artifact_ids": [],
             }
         )
+    domain = _domain_sample(query_type)
+    if domain is not None:
+        base["domain"] = domain
     return base
 
 
@@ -465,3 +505,35 @@ def test_b01b_result_rejects_missing_authoritative_field(query_type: str, field:
     value = result_for(query_type)
     del value["result"]["items"][0][field]
     assert errors(value)
+
+
+def test_every_generic_domain_result_is_explicitly_weighted() -> None:
+    exempt = {"LIST_RESEARCH", "ACTION_ITEMS", "GRAPH_SLICE"}
+    observed: set[str] = set()
+    for branch in SCHEMA["$defs"]["queryResult"]["oneOf"]:
+        query_type = branch["properties"]["result_type"]["const"]
+        if query_type in exempt:
+            continue
+        result = branch["properties"]["result"]
+        projection_schema = result["properties"].get("entity")
+        if projection_schema is None:
+            projection_schema = result["properties"]["items"]["items"]
+        assert "domain" in projection_schema["required"]
+        domain_ref = projection_schema["properties"]["domain"]["$ref"]
+        domain = SCHEMA["$defs"][domain_ref.rsplit("/", 1)[1]]
+        assert domain["additionalProperties"] is False
+        assert len(domain["required"]) >= 4
+        observed.add(query_type)
+    assert observed == set(CATALOG["query_types"]) - exempt
+
+
+def test_source_modes_lineage_modes_and_receipt_states_cannot_conflate_authority() -> None:
+    literature = result_for("LITERATURE_QUERY")
+    literature["result"]["entity"]["domain"]["source_mode"] = "IMPLIED_CURRENT"
+    assert errors(literature)
+    lineage = result_for("RESEARCH_CASE_LINEAGE")
+    lineage["result"]["entity"]["domain"]["lineage_mode"] = "IMPORTED_AS_REDISCOVERED"
+    assert errors(lineage)
+    receipt = result_for("PRODUCT_RECEIPT")
+    receipt["result"]["entity"]["domain"]["receipt_state"] = "ACCEPTED"
+    assert errors(receipt)

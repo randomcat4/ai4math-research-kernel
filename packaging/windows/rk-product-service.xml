@@ -1,0 +1,18 @@
+<service>
+  <id>rk-product</id>
+  <name>RK Product Research Daemon</name>
+  <description>RK-PRODUCT-1.1 single-writer research daemon</description>
+  <executable>@RK_DAEMON_EXECUTABLE@</executable>
+  <arguments>@RK_DAEMON_ARGUMENTS@</arguments>
+  <workingdirectory>@RK_INSTALL_ROOT@</workingdirectory>
+  <logpath>@RK_SERVICE_LOG_ROOT@</logpath>
+  <stoptimeout>30000</stoptimeout>
+  <onfailure action="restart" delay="10 sec" />
+  <resetfailure>1 hour</resetfailure>
+  <serviceaccount>
+    <allowservicelogon>true</allowservicelogon>
+  </serviceaccount>
+  <env name="RK_DATA_ROOT" value="@RK_DATA_ROOT@" />
+  <env name="RK_LISTEN_HOST" value="@RK_LISTEN_HOST@" />
+  <env name="RK_LISTEN_PORT" value="@RK_LISTEN_PORT@" />
+</service>

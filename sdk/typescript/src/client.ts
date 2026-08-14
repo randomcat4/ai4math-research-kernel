@@ -1,4 +1,4 @@
-import {COMMAND_CONTRACTS, QUERY_CONTRACTS} from "./types.js";
+import {COMMAND_CONTRACTS, QUERY_CONTRACTS, QUERY_RESULT_CONTRACTS} from "./types.js";
 import type {ArtifactOperationType, CommandPayloadMap, CommandType, QueryPayloadMap, QueryType} from "./types.js";
 
 export const MAX_SAFE_CONTRACT_INTEGER = Number.MAX_SAFE_INTEGER;
@@ -92,6 +92,79 @@ function assertQueryContract(type: QueryType, payload: JsonObject, scope: QueryS
   if (unknown.length > 0) throw new InvalidEnvelopeError(`${type} payload has unknown fields ${unknown.join(",")}`);
 }
 
+function assertExactFields(
+  value: JsonObject, required: readonly string[], allowed: readonly string[], label: string,
+): void {
+  const keys = Object.keys(value);
+  const missing = required.filter((field) => !(field in value));
+  const unknown = keys.filter((field) => !allowed.includes(field));
+  if (missing.length > 0) throw new InvalidEnvelopeError(`${label} is missing fields ${missing.join(",")}`);
+  if (unknown.length > 0) throw new InvalidEnvelopeError(`${label} has unknown fields ${unknown.join(",")}`);
+}
+
+function assertQueryResult(value: JsonObject, expectedType: QueryType, scopeKind: QueryScope["kind"]): void {
+  const resultType = value.result_type;
+  if (typeof resultType !== "string" || !(resultType in QUERY_RESULT_CONTRACTS)) {
+    throw new UnknownVariantError(`unknown query result variant ${String(resultType)}; upgrade the SDK`);
+  }
+  if (resultType !== expectedType) {
+    throw new InvalidEnvelopeError(`query returned ${resultType}, expected exact result ${expectedType}`);
+  }
+  if (value.scope_kind !== scopeKind) {
+    throw new InvalidEnvelopeError("query result scope fence does not match the request");
+  }
+  const base = ["schema_version", "result_type", "stable_entity_id", "scope_kind", "last_cursor", "result"];
+  const fences = scopeKind === "RUN"
+    ? ["run_id", "research_revision", "contract_version"]
+    : scopeKind === "GLOBAL"
+      ? ["deployment_id", "catalog_revision"]
+      : ["deployment_id", "deployment_revision"];
+  assertExactFields(value, [...base, ...fences], [...base, ...fences], "query result envelope");
+  const payload = value.result;
+  if (payload === null || Array.isArray(payload) || typeof payload !== "object") {
+    throw new InvalidEnvelopeError("query result payload must be an object");
+  }
+  const contract = QUERY_RESULT_CONTRACTS[resultType as QueryType] as {
+    result_kind: string;
+    required_projection_fields: readonly string[];
+    projection_fields: readonly string[];
+    required_domain_fields: readonly string[];
+    domain_fields: readonly string[];
+  };
+  let projections: JsonObject[];
+  if (contract.result_kind === "graph") {
+    projections = [payload];
+  } else if (contract.result_kind === "entity") {
+    assertExactFields(payload, ["entity"], ["entity"], "entity result");
+    const entity = payload.entity;
+    if (entity === null || Array.isArray(entity) || typeof entity !== "object") {
+      throw new InvalidEnvelopeError("entity result must contain an object");
+    }
+    projections = [entity];
+  } else {
+    assertExactFields(payload, ["items", "page"], ["items", "page"], "list result");
+    if (!Array.isArray(payload.items) || payload.items.some((item) => item === null || Array.isArray(item) || typeof item !== "object")) {
+      throw new InvalidEnvelopeError("list result items must be objects");
+    }
+    const page = payload.page;
+    if (page === null || Array.isArray(page) || typeof page !== "object") {
+      throw new InvalidEnvelopeError("list result page must be an object");
+    }
+    assertExactFields(page, ["returned", "total", "truncated"], ["returned", "total", "truncated", "next_cursor"], "query result page");
+    projections = payload.items as JsonObject[];
+  }
+  for (const projection of projections) {
+    assertExactFields(projection, contract.required_projection_fields, contract.projection_fields, `${resultType} projection`);
+    if (contract.required_domain_fields.length > 0) {
+      const domain = projection.domain;
+      if (domain === null || Array.isArray(domain) || typeof domain !== "object") {
+        throw new InvalidEnvelopeError(`${resultType} projection has no domain object`);
+      }
+      assertExactFields(domain, contract.required_domain_fields, contract.domain_fields, `${resultType} domain`);
+    }
+  }
+}
+
 export class ResearchProductClient {
   constructor(private readonly transport: ProductTransport) {}
 
@@ -112,6 +185,9 @@ export class ResearchProductClient {
     return this.send("query", {
       schema_version: "rk.product.query.v1", scope: input.scope,
       query: {type: input.type, payload: input.payload},
+    }).then((response) => {
+      assertQueryResult(response, input.type, input.scope.kind);
+      return response;
     });
   }
 
