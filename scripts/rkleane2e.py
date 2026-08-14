@@ -31,8 +31,11 @@ from rk.domain import (
     VerifiedCapability,
     frozen_mapping,
 )
+from rk.host_execution import HostExecutionNotAuthoritative, HostExecutionReceiptService
 from rk.kernel import ResearchKernel
 from rk.ports import ExecutionAdapter
+from rk.runtime import SystemClock, Uuid7Generator
+from rk.storage import SQLiteStorage
 from rk.strategy import StrategyRunner, ToolInvocation
 
 
@@ -213,6 +216,7 @@ class RecordedRun:
 
     def invoke(
         self,
+        host: HostExecutionReceiptService,
         strategy: StrategyRunner,
         adapter_name: str,
         request: Mapping[str, Any],
@@ -277,19 +281,6 @@ class RecordedRun:
         )
         snapshot = self.kernel.inspect(self.run_id)
         assert isinstance(snapshot, RunSnapshot)
-        binding = next(
-            item
-            for item in snapshot.projection["bindings"]
-            if item["attempt_id"] == attempt_id
-        )
-        receipt_context = {
-            "run_id": self.run_id,
-            "attempt_id": attempt_id,
-            "binding_id": binding["binding_id"],
-            "environment_profile_id": environment_profile_id,
-            "source_commit": source_commit,
-            "invocation_nonce": binding["invocation_nonce"],
-        }
         reservations: dict[str, int] = {
             "WALL_SECOND": {
                 "leansearch": 60,
@@ -303,7 +294,9 @@ class RecordedRun:
             reservations.update(
                 {
                     "INPUT_TOKEN": 50_000 * 1_000_000,
-                    "OUTPUT_TOKEN": int(request.get("max_tokens", 0)) * 1_000_000,
+                    # OpenCode's provider config owns the exact generation cap; reserve the
+                    # contract's conservative per-call ceiling when the request omits one.
+                    "OUTPUT_TOKEN": int(request.get("max_tokens", 8_192)) * 1_000_000,
                 }
             )
         component = f"{adapter_name}:{environment_profile_id}"
@@ -336,10 +329,49 @@ class RecordedRun:
         lease_id = str(snapshot.projection["active_attempts"][-1]["lease_id"])
         invocation: ToolInvocation | None = None
         released = False
+        reservations_settled = False
         try:
-            invocation = strategy.invoke(
-                adapter_name, request, receipt_context=receipt_context
-            )
+            try:
+                executed = host.execute(
+                    run_id=self.run_id, attempt_id=attempt_id, request=request
+                )
+            except HostExecutionNotAuthoritative as error:
+                invocation = error.invocation
+                raw_result_path = request_path.with_name(
+                    request_path.name.replace(".request.json", ".rawresult.json")
+                )
+                write_json(raw_result_path, invocation.to_dict())
+                self.evidence(
+                    cap,
+                    "EXECUTION_LOG",
+                    "PROVENANCE_ONLY",
+                    [(raw_result_path, "application/json")],
+                    f"{adapter_name}:raw-result",
+                    "EXTERNAL_SOURCE",
+                    {
+                        "phase": "post-execution-non-authoritative",
+                        "status": invocation.status,
+                        "receipt_id": error.receipt_id,
+                        "block_reasons": list(error.reasons),
+                    },
+                )
+                for resource, amount in reservations.items():
+                    apply(
+                        self.kernel, self.operator, self.run_id, "RecordBudget",
+                        {
+                            "route_id": self.route_id, "attempt_id": attempt_id,
+                            "event_kind": "REFUND", "resource_kind": resource,
+                            "amount_microunits": amount, "unit": "microunit",
+                            "provider_usage": {
+                                "component": component,
+                                "settled": True,
+                                "non_authoritative": True,
+                            },
+                        },
+                    )
+                reservations_settled = True
+                raise
+            invocation = executed.invocation
             raw_result_path = request_path.with_name(
                 request_path.name.replace(".request.json", ".rawresult.json")
             )
@@ -353,7 +385,6 @@ class RecordedRun:
                 "EXTERNAL_SOURCE",
                 {"phase": "post-execution-pre-budget", "status": invocation.status},
             )
-            usage = dict(invocation.usage)
             for resource, amount in reservations.items():
                 apply(
                     self.kernel,
@@ -370,147 +401,7 @@ class RecordedRun:
                         "provider_usage": {"component": component, "settled": True},
                     },
                 )
-            if usage.get("input_tokens") is not None:
-                apply(
-                    self.kernel,
-                    self.operator,
-                    self.run_id,
-                    "RecordBudget",
-                    {
-                        "route_id": self.route_id,
-                        "attempt_id": attempt_id,
-                        "event_kind": "ACTUAL",
-                        "resource_kind": "INPUT_TOKEN",
-                        "amount_microunits": int(usage.get("input_tokens", 0)) * 1_000_000,
-                        "unit": "microtoken",
-                        "provider_usage": {
-                            "component": component,
-                            **{
-                                key: int(value)
-                                for key, value in usage.items()
-                                if key != "wall_time_ms"
-                                and isinstance(value, int)
-                                and not isinstance(value, bool)
-                            },
-                        },
-                    },
-                )
-                apply(
-                    self.kernel,
-                    self.operator,
-                    self.run_id,
-                    "RecordBudget",
-                    {
-                        "route_id": self.route_id,
-                        "attempt_id": attempt_id,
-                        "event_kind": "ACTUAL",
-                        "resource_kind": "OUTPUT_TOKEN",
-                        "amount_microunits": int(usage.get("output_tokens", 0)) * 1_000_000,
-                        "unit": "microtoken",
-                        "provider_usage": {"component": component},
-                    },
-                )
-            elif adapter_name == "leansearch":
-                for resource in ("INPUT_TOKEN", "API_MICRO_CURRENCY"):
-                    apply(
-                        self.kernel,
-                        self.operator,
-                        self.run_id,
-                        "RecordBudget",
-                        {
-                            "route_id": self.route_id,
-                            "attempt_id": attempt_id,
-                            "event_kind": "UNKNOWN_COST",
-                            "resource_kind": resource,
-                            "unit": "unknown",
-                            "provider_usage": {
-                                "component": component,
-                                "reason": "provider_omitted",
-                                "cost_unknown": True,
-                            },
-                        },
-                    )
-            if adapter_name == "opencode" and usage.get("cost_unknown") is not True:
-                apply(
-                    self.kernel,
-                    self.operator,
-                    self.run_id,
-                    "RecordBudget",
-                    {
-                        "route_id": self.route_id,
-                        "attempt_id": attempt_id,
-                        "event_kind": "UNKNOWN_COST",
-                        "resource_kind": "API_MICRO_CURRENCY",
-                        "unit": "unknown",
-                        "provider_usage": {
-                            "component": component,
-                            "reason": "provider_price_not_attested",
-                            "cost_unknown": True,
-                        },
-                    },
-                )
-            if adapter_name in {"jixia", "lean-replay"}:
-                apply(
-                    self.kernel,
-                    self.operator,
-                    self.run_id,
-                    "RecordBudget",
-                    {
-                        "route_id": self.route_id,
-                        "attempt_id": attempt_id,
-                        "event_kind": "UNKNOWN_COST",
-                        "resource_kind": "CPU_SECOND",
-                        "unit": "unknown",
-                        "provider_usage": {
-                            "component": component,
-                            "reason": "process_cpu_not_sampled",
-                            "cost_unknown": True,
-                        },
-                    },
-                )
-            if usage.get("cost_unknown") is True:
-                unknown_resources = {
-                    "opencode": ("INPUT_TOKEN", "OUTPUT_TOKEN", "API_MICRO_CURRENCY"),
-                    "jixia": ("CPU_SECOND",),
-                    "lean-replay": ("CPU_SECOND",),
-                }.get(adapter_name, ())
-                for resource in unknown_resources:
-                    apply(
-                        self.kernel,
-                        self.operator,
-                        self.run_id,
-                        "RecordBudget",
-                        {
-                            "route_id": self.route_id,
-                            "attempt_id": attempt_id,
-                            "event_kind": "UNKNOWN_COST",
-                            "resource_kind": resource,
-                            "unit": "unknown",
-                            "provider_usage": {
-                                "component": component,
-                                "reason": "execution_cost_unknown",
-                                "cost_unknown": True,
-                            },
-                        },
-                    )
-            apply(
-                self.kernel,
-                self.operator,
-                self.run_id,
-                "RecordBudget",
-                {
-                    "route_id": self.route_id,
-                    "attempt_id": attempt_id,
-                    "event_kind": "ACTUAL",
-                    "resource_kind": "WALL_SECOND",
-                    "amount_microunits": invocation.wall_time_ms * 1_000,
-                    "unit": "microsecond",
-                    "provider_usage": {
-                        "component": component,
-                        "wall_time_ms": invocation.wall_time_ms,
-                    },
-                },
-            )
+            reservations_settled = True
             terminal = "SUCCEEDED" if invocation.status == "COMPLETED" else "FAILED"
             apply(
                 self.kernel,
@@ -525,6 +416,20 @@ class RecordedRun:
             )
             released = True
         finally:
+            # Calls that fail before reaching the host never spend provider resources, but their
+            # reservation must still be released. Post-call non-authority is settled above.
+            if not reservations_settled:
+                for resource, amount in reservations.items():
+                    apply(
+                        self.kernel, self.operator, self.run_id, "RecordBudget",
+                        {
+                            "route_id": self.route_id, "attempt_id": attempt_id,
+                            "event_kind": "REFUND", "resource_kind": resource,
+                            "amount_microunits": amount, "unit": "microunit",
+                            "provider_usage": {"component": component, "settled": True},
+                        },
+                    )
+                reservations_settled = True
             if not released:
                 apply(
                     self.kernel,
@@ -559,6 +464,8 @@ def main() -> int:
     if not re.fullmatch(r"[a-z0-9_]{1,40}", run_name):
         raise RuntimeError("RK_E2E_RUN_NAME must be a short lowercase alphanumeric name")
     run_root = root / run_name
+    if run_root.exists():
+        raise RuntimeError("RK_E2E_RUN_NAME already exists; every run needs a fresh directory")
     state = run_root / "state"
     inbox = state / "inbox"
     outputs = run_root / "outputs"
@@ -568,8 +475,8 @@ def main() -> int:
 
     mathlib = Path(os.environ["RK_E2E_MATHLIB_ROOT"]).resolve()
     project = run_root / "project"
-    # The shared Mathlib Lake cache maps module names to object paths.  Include the run name so
-    # a new run cannot consume or collide with another run's jixia preflight object.
+    # Every generated object stays in this run's private Lake build directory.  The trusted
+    # Mathlib cache is only searched for dependencies and is never the output directory.
     source_relpath = f"RKLeanE2E/{run_name}/Main.lean"
     project_source = project / source_relpath
     toolchain = Path(os.environ["RK_E2E_TOOLCHAIN_ROOT"]).resolve()
@@ -633,7 +540,12 @@ def main() -> int:
             check=True,
             timeout=300,
         )
-        os.symlink(mathlib / ".lake", project / ".lake", target_is_directory=True)
+        (project / ".lake").mkdir()
+        os.symlink(
+            mathlib / ".lake" / "packages",
+            project / ".lake" / "packages",
+            target_is_directory=True,
+        )
     project_source.parent.mkdir(parents=True, exist_ok=True)
     if (project / "lean-toolchain").read_text(encoding="utf-8").strip() != toolchain_name:
         raise RuntimeError("Mathlib lean-toolchain drift")
@@ -642,10 +554,45 @@ def main() -> int:
     baseline_dirty = git_output(project, "status", "--short", "--untracked-files=no")
     if baseline_dirty:
         raise RuntimeError(f"Mathlib tracked worktree is dirty before execution: {baseline_dirty}")
-    dependency_inputs = [project / "lake-manifest.json", project / "lean-toolchain"]
-    dependency_closure_sha256 = hashlib.sha256(
-        b"".join(path.read_bytes() for path in dependency_inputs)
-    ).hexdigest()
+    dependency_root = (mathlib / ".lake").resolve()
+    closure_manifest_path = (
+        Path(__file__).parents[1]
+        / "docs/evidence/mathlib-5352afc-closure.json"
+    ).resolve()
+    pinned_closure_manifest_sha256 = (
+        "1b76ffcacf69f9df61a397e34c66e2bceaadc10df41d8b3a3a02ab3ee9e8a682"
+    )
+    if sha256_file(closure_manifest_path) != pinned_closure_manifest_sha256:
+        raise RuntimeError("versioned Mathlib closure manifest digest drift")
+    closure_manifest = json.loads(closure_manifest_path.read_text(encoding="utf-8"))
+    if closure_manifest.get("schema_version") != "rk.mathlib_closure_anchor.v1":
+        raise RuntimeError("Mathlib closure manifest schema is not trusted")
+    if closure_manifest.get("mathlib_commit") != mathlib_commit:
+        raise RuntimeError("Mathlib closure manifest commit drift")
+    if closure_manifest.get("toolchain") != toolchain_name:
+        raise RuntimeError("Mathlib closure manifest toolchain drift")
+    dependency_closure_sha256 = str(closure_manifest["dependency_closure_sha256"])
+    closure_manifest_sha256 = pinned_closure_manifest_sha256
+    anchored_search_roots: set[str] = set()
+    for relative in closure_manifest["olean_files"]:
+        parts = Path(relative).parts
+        try:
+            lean_index = next(
+                index
+                for index in range(len(parts) - 2)
+                if parts[index : index + 3] == ("build", "lib", "lean")
+            )
+        except StopIteration as error:
+            # Lake configuration objects are anchored for integrity but are not module roots.
+            if "config" in parts:
+                continue
+            raise RuntimeError(
+                "anchored olean is outside a registered Lean search root"
+            ) from error
+        anchored_search_roots.add(
+            str((dependency_root.joinpath(*parts[: lean_index + 3])).resolve())
+        )
+    dependency_search_path = os.pathsep.join(sorted(anchored_search_roots))
 
     verifier_id = str(uuid.uuid4())
     operator_id = str(uuid.uuid4())
@@ -697,7 +644,6 @@ def main() -> int:
                     "mathlib_commit": mathlib_commit,
                     "adapter_name": "lean-replay",
                     "binary_sha256": sha256_file(toolchain / "bin/lean"),
-                    "receipt_hmac_key_hex": replay_receipt_key.hex(),
                     "verifier_writer_capability_ids": [verifier_id],
                     "forbidden_submitter_subject_ids": ["candidate-writer"],
                 }
@@ -866,7 +812,7 @@ def main() -> int:
                     "source_commit": jixia_commit,
                     "timeout_seconds": 300,
                     "max_response_bytes": 32 * 1024 * 1024,
-                    "env_whitelist": ["PATH"],
+                    "env_whitelist": ["PATH", "LEAN_PATH"],
                     "argv_prefix": [str(toolchain / "bin/lake"), "env", str(jixia_bin)],
                     "preflight_argv_prefix": [
                         str(toolchain / "bin/lake"),
@@ -890,7 +836,7 @@ def main() -> int:
                     "source_commit": mathlib_commit,
                     "timeout_seconds": 300,
                     "max_response_bytes": 8 * 1024 * 1024,
-                    "env_whitelist": ["PATH"],
+                    "env_whitelist": ["PATH", "LEAN_PATH"],
                     "argv_prefix": [
                         str(toolchain / "bin/lake"),
                         "env",
@@ -906,8 +852,79 @@ def main() -> int:
             )
         ),
     }
-    strategy = StrategyRunner(
-        adapters, receipt_signing_keys={"lean-replay": replay_receipt_key}
+    strategy = StrategyRunner(adapters)
+    host = HostExecutionReceiptService(
+        storage=SQLiteStorage(config.db_path, config.busy_timeout_ms),
+        strategy=strategy,
+        signing_key_path=receipt_key_path,
+        capability=capability(
+            str(uuid.uuid4()), "host-execution-service", {"HostExecute"}
+        ),
+        id_generator=Uuid7Generator(),
+        clock=SystemClock(),
+        host_profiles={
+            "leansearch": {
+                "adapter_version": "v1",
+                "environment_profile_id": "public-v1",
+                "source_commit": search_commit,
+                "component": "leansearch:public-v1",
+            },
+            "opencode": {
+                "adapter_version": "v1",
+                "environment_profile_id": "deepseek-v4-pro",
+                "source_commit": sha256_file(opencode),
+                "component": "opencode:deepseek-v4-pro",
+                "token_meter_applicable": True,
+                "currency_meter_applicable": True,
+                "binary_path": str(opencode),
+                "binary_sha256": sha256_file(opencode),
+            },
+            "jixia": {
+                "adapter_version": "v1",
+                "environment_profile_id": "jixia-4.28",
+                "source_commit": jixia_commit,
+                "component": "jixia:jixia-4.28",
+                "toolchain": toolchain_name,
+                "binary_path": str(jixia_bin),
+                "binary_sha256": sha256_file(jixia_bin),
+                "execution_environment": {
+                    "PATH": path_value,
+                    "LEAN_PATH": dependency_search_path,
+                },
+            },
+            "lean-replay": {
+                "adapter_version": "v1",
+                "environment_profile_id": "lean-clean-4.28",
+                "source_commit": mathlib_commit,
+                "component": "lean-replay:lean-clean-4.28",
+                "toolchain": toolchain_name,
+                "binary_path": str(toolchain / "bin/lean"),
+                "binary_sha256": sha256_file(toolchain / "bin/lean"),
+                "source_result_path": str(project_source),
+                "output_result_path": str(
+                    inbox / "lean" / source_relpath.removesuffix(".lean").__add__(".olean")
+                ),
+                "dependency_closure_root": str(dependency_root),
+                "dependency_closure_sha256": dependency_closure_sha256,
+                "dependency_closure_manifest_path": str(closure_manifest_path),
+                "dependency_closure_manifest_sha256": closure_manifest_sha256,
+                "execution_environment": {
+                    "PATH": path_value,
+                    "LEAN_PATH": dependency_search_path,
+                },
+                "allowed_axioms": ["propext", "Classical.choice", "Quot.sound"],
+                "expected_declaration_types": {
+                    "rk_add_zero": "∀ (n : ℕ), n + 0 = n"  # noqa: RUF001
+                },
+                "expected_statement_hash": statement_hash,
+                "expected_declaration_module": f"RKLeanE2E.{run_name}.Main",
+            },
+        },
+        budget_limits={
+            "INPUT_TOKEN": 100_000_000_000,
+            "OUTPUT_TOKEN": 20_000_000_000,
+            "WALL_SECOND": 3_600_000_000,
+        },
     )
     invocations: list[dict[str, Any]] = []
 
@@ -918,6 +935,7 @@ def main() -> int:
         "retrieve_k": 50,
     }
     search, _ = recorded.invoke(
+        host,
         strategy,
         "leansearch",
         search_request,
@@ -959,6 +977,7 @@ def main() -> int:
         },
     }
     model_call, _ = recorded.invoke(
+        host,
         strategy,
         "opencode",
         model_request,
@@ -994,17 +1013,14 @@ def main() -> int:
         "MODEL",
         {"model": model},
     )
-    snapshot = kernel.inspect(handle.run_id)
-    assert isinstance(snapshot, RunSnapshot)
-    source_artifact_id = artifact_id_for_sha(snapshot, sha256_file(source_copy))
-
     jixia_request = {
         "source_relpath": source_relpath,
         "output_relpath": "run1",
         "include_initializers": True,
-        "environment": {"PATH": path_value},
+        "environment": {"PATH": path_value, "LEAN_PATH": dependency_search_path},
     }
     jixia_call, _ = recorded.invoke(
+        host,
         strategy,
         "jixia",
         jixia_request,
@@ -1042,11 +1058,12 @@ def main() -> int:
 
     lean_request = {
         "source_relpath": source_relpath,
-        "output_relpath": "Main.olean",
+        "output_relpath": source_relpath.removesuffix(".lean") + ".olean",
         "declarations": sorted(declaration_names & {"rk_add_zero"}),
-        "environment": {"PATH": path_value},
+        "environment": {"PATH": path_value, "LEAN_PATH": dependency_search_path},
     }
     lean_call, lean_attempt_id = recorded.invoke(
+        host,
         strategy,
         "lean-replay",
         lean_request,
@@ -1070,8 +1087,8 @@ def main() -> int:
     )
     if lean_call.status != "COMPLETED" or lean_call.result.get("kernel_verdict") != "REPLAY_PASS":
         raise RuntimeError(f"Lean replay did not pass: {lean_call.status}")
-    olean = inbox / "lean/Main.olean"
-    replay_receipt = recorded.evidence(
+    olean = inbox / "lean" / source_relpath.removesuffix(".lean").__add__(".olean")
+    recorded.evidence(
         verifier,
         "LEAN_REPLAY",
         "HARD_MACHINE",
@@ -1093,34 +1110,14 @@ def main() -> int:
         for item in snapshot.projection["evidence"]
         if item["artifact_id"] == output_artifact_id and item["evidence_type"] == "LEAN_REPLAY"
     )
-    apply(
-        kernel,
-        verifier,
-        handle.run_id,
-        "RecordLeanFeedback",
-        {
-            "claim_id": claim_id,
-            "attempt_id": lean_attempt_id,
-            "contract_version": 1,
-            "environment_profile_id": "lean-clean-4.28",
-            "toolchain": toolchain_name,
-            "mathlib_commit": mathlib_commit,
-            "source_artifact_id": source_artifact_id,
-            "output_artifact_id": output_artifact_id,
-            "feedback_kind": "REPLAY_PASS",
-            "diagnostic": {
-                "evidence_receipt": replay_receipt.command_id,
-                "axiom_dependencies": lean_call.result.get("axiom_dependencies", []),
-                "request_hash": lean_call.request_hash,
-                "result_hash": lean_call.result_hash,
-                "source_sha256": lean_call.result.get("source_sha256"),
-                "output_sha256": lean_call.result.get("output_sha256"),
-                "binary_sha256": sha256_file(toolchain / "bin/lean"),
-                "exit_code": lean_call.result.get("exit_code"),
-                "host_receipt": lean_call.host_receipt,
-            },
-        },
+    host_snapshot = kernel.inspect(handle.run_id)
+    assert isinstance(host_snapshot, RunSnapshot)
+    lean_host_receipt_id = next(
+        str(item["receipt_id"])
+        for item in host_snapshot.projection["host_execution_receipts"]
+        if item["attempt_id"] == lean_attempt_id
     )
+    host.consume_lean_replay(receipt_id=lean_host_receipt_id)
     apply(
         kernel,
         operator,
@@ -1163,6 +1160,7 @@ def main() -> int:
                 project, "status", "--short", "--untracked-files=no"
             ),
             "dependency_closure_sha256": dependency_closure_sha256,
+            "dependency_closure_manifest_sha256": closure_manifest_sha256,
             "lean_binary_sha256": sha256_file(toolchain / "bin/lean"),
             "jixia_commit": jixia_commit,
             "jixia_binary_sha256": sha256_file(jixia_bin),
