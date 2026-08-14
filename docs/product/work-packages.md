@@ -611,16 +611,21 @@ verifier→拒绝修复→回图/检索复用→组合义务/ClosureWitness read
 | B06a | `BACKEND_ONLY` | `graph_index.py`；`schema_fragments/B06a/` | 可重建 FTS/邻接索引、cursor/revision watermark、追赶与 PROJECTION_LAG 已验收；不构成第二事实真值 |
 | B06b | `BACKEND_ONLY` | `graph_query.py`；真实 10k/30k/深60工程基准 | 双图硬分区、search/slice/closures、stale cursor与跨路线承重前驱已验收 |
 | B07a | `BACKEND_ONLY` | `materials.py`、四类真实提取器与不可变修订谱系 | PDF/TeX/公式图片/文本、公式锚点、OCR符号错误修订及重启稳定性已验收 |
+| B07b | `BACKEND_ONLY` | 合同歧义、材料锚点、影响预览与局部修订 | 用户逐项确认OCR，B11a只失效受影响对象，崩溃恢复与历史确认审计已验收 |
 | B08a | `BACKEND_ONLY` | Matlas/OpenAlex/Crossref/arXiv connectors、SourceSnapshot与真实CAS响应 | 六类当前端点调用、exact版本上下文/PDF、断网重放及Apache-2.0归属已验收 |
+| B08b | `BACKEND_ONLY` | 多源文献图、适用性和独立新颖性审查 | 逐边来源/版本/锚点、精确arXiv上下文；NO_HIT/失败/薄客户端不得产生新颖性 |
 | B09a | `BACKEND_ONLY` | `work_activity.py`、orchestrator activity adapter | WorkerRun/attempt完整历史、重启恢复、单活动cursor与公开白名单已验收 |
 | B09b | `BACKEND_ONLY` | `route_plan.py`、route-control adapter | 三路线正式控制、STOP派生闸门、CAS/幂等与hint负链已验收 |
 | B10 | `BACKEND_ONLY` | `claims.py`、validation gateway、S00 handlers | 原子Claim、拒绝修复、必要子图及仅ResearchKernel晋级已验收 |
+| B10b | `BACKEND_ONLY` | 研究稿多Claim规范化、异质验证与义务adapter | 真实研究级拒绝修复、检索复用；仅kernel接受事件推进ClosureWitness readiness |
 | B11a | `BACKEND_ONLY` | 单一invalidation ledger/watermark | 强杀重启、projection lag、七类绑定追平与sibling保留已验收 |
 | B11b | `BACKEND_ONLY` | VERIFIED撤销预览与kernel事务重算 | 新下游/target/合同stale、完整级联与replacement恢复已验收 |
 | B12a | `BACKEND_ONLY` | ToolCatalog/ToolRun、`schema_fragments/B12a/` | SUCCEEDED/VALIDATION分栏、B03绑定、取消/重跑/比较与无图写已验收 |
 | B12b | `BACKEND_ONLY` | `managed_python.py`、固定环境profile | 真实受管进程、资源/超时/取消、只读输入/正式输出与SOFT权限已验收 |
 | B12c | `BACKEND_ONLY` | 统一tool/model adapter接缝与状态证据 | Z3/SymPy/枚举复测；未匹配profile/probe与外部阻塞保持不着绿 |
 | B13 | `BACKEND_ONLY` | kernel预算提交、真实硬件探测与稳定placement | CPU/ROCm同run真实并发执行、50非终态、预算恢复与稳定晋级已验收；API未配置保持UNCONFIGURED |
+| B14 | `BACKEND_ONLY` | 五态人工提示与orchestrator adapter | 有效提示真实改变后续WorkItem输入；路线停止仍须B09b正式动作，提示不写图 |
+| B15a | `BACKEND_ONLY` | 唯一ROOT/Finalize与CLOSED发布白名单 | 窄身份、精确revision/ROOT/closure/TeX/generation绑定；mutation仅写发布投影 |
 | B16a | `BACKEND_ONLY` | 真实部署probe与类型化诊断 | CPU/RAM/SQLite/CAS/ROCm/HTTP逐项状态、公开活动白名单及重启回执已验收 |
 | 其余 D/P/B/F/I/R | `NOT_STARTED` | 无新产品完成证据 | 依本文拓扑推进 |
 

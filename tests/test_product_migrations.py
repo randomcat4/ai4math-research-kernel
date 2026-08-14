@@ -35,16 +35,21 @@ def test_project_baseline_has_stable_identity_and_owned_objects() -> None:
         (9, "B05b/reviews"),
         (10, "B06a/graph_index"),
         (11, "B07a/materials"),
-        (12, "B08a/literature"),
-        (13, "B09a/work_activity"),
-        (14, "B09b/route_plan"),
-        (15, "B10/claims"),
-        (16, "B11a/invalidation"),
-        (17, "B11b/revocation"),
-        (18, "B12a/tool_runs"),
-        (19, "B12b/environments"),
-        (20, "B13/scheduling"),
-        (21, "B16a/deployment"),
+        (12, "B07b/contracts"),
+        (13, "B08a/literature"),
+        (14, "B08b/literature_graph"),
+        (15, "B09a/work_activity"),
+        (16, "B09b/route_plan"),
+        (17, "B10/claims"),
+        (18, "B10b/research_draft"),
+        (19, "B11a/invalidation"),
+        (20, "B11b/revocation"),
+        (21, "B12a/tool_runs"),
+        (22, "B12b/environments"),
+        (23, "B13/scheduling"),
+        (24, "B14/guidance"),
+        (25, "B15a/publication"),
+        (26, "B16a/deployment"),
     ]
     assert {(item.kind, item.name) for item in plan[0].fragment.objects} == {
         ("TABLE", "product_activity_events"),
@@ -143,7 +148,7 @@ def test_real_sqlite_empty_database_assembly_is_atomic_and_idempotent(tmp_path: 
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute("SELECT COUNT(*) FROM product_schema_fragments").fetchone() == (
-            21,
+            26,
         )
 
         connection.execute(
