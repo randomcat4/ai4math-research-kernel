@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
-from rk.domain import ApplyRequest, CreateRequest, VerifiedCapability
+from rk.domain import ApplyRequest, CreateRequest, RunSnapshot, VerifiedCapability
 from rk.kernel import ResearchKernel
 from rk.product.api import (
     GlobalScope,
@@ -157,6 +157,228 @@ def core_kernel_bindings() -> Mapping[str, KernelBinding]:
     }
 
 
+def product_kernel_bindings() -> Mapping[str, KernelBinding]:
+    """All product commands which are allowed to cross the sole kernel write port."""
+
+    bindings = dict(core_kernel_bindings())
+    bindings.update(
+        {
+            "AMEND_CONTRACT": KernelBinding("AmendContract", _mapped_amendment),
+            "CANCEL_RESEARCH": KernelBinding("Interrupt", _mapped_cancel),
+            "SUBMIT_CLAIM": KernelBinding(
+                "SUBMIT_CLAIM",
+                exact_payload(
+                    (
+                        "statement",
+                        "claim_kind",
+                        "proof_or_evidence_artifacts",
+                        "predecessor_fact_ids",
+                        "source_binding_artifact",
+                        "work_item_id",
+                        "worker_run_id",
+                        "attempt_id",
+                    ),
+                    ("route_id", "supersedes_claim_id", "public_summary"),
+                ),
+            ),
+            "IMPORT_VERIFICATION": KernelBinding(
+                "IMPORT_VERIFICATION",
+                exact_payload(
+                    (
+                        "review_task_id",
+                        "signed_review_artifact",
+                        "target_digest",
+                        "verifier_receipt_ids",
+                    )
+                ),
+            ),
+            "CONFIRM_REVOKE": KernelBinding("RevokeFact", _mapped_revoke),
+            "REGISTER_BRIDGE_SPEC": KernelBinding("RegisterBridge", _bridge_payload),
+            "SUBMIT_CLOSURE_WITNESS": KernelBinding("SubmitClosureWitness", _closure_payload),
+            "SUBMIT_PAPER_REVIEW": KernelBinding("SubmitPaperReview", _paper_review_payload),
+            "FINALIZE_RESEARCH": KernelBinding("Finalize", _finalize_payload),
+        }
+    )
+    return bindings
+
+
+def _mapped_amendment(payload: JsonObject) -> Mapping[str, object]:
+    required = {
+        "contract_version",
+        "amendment_artifact_id",
+        "impact_acknowledgement",
+        "replacement_contract",
+        "impact_analysis_artifact_id",
+        "approvals",
+    }
+    if set(payload) != required:
+        raise ValueError("AMEND_CONTRACT kernel payload fields are not exact")
+    return {
+        "base_version": payload["contract_version"],
+        "patch_artifact_id": payload["amendment_artifact_id"],
+        "impact_analysis_artifact_id": payload["impact_analysis_artifact_id"],
+        "replacement_contract": payload["replacement_contract"],
+        "approvals": payload["approvals"],
+        "impact_acknowledgement": payload["impact_acknowledgement"],
+    }
+
+
+def _mapped_cancel(payload: JsonObject) -> Mapping[str, object]:
+    if set(payload) != {"reason", "cancel_pending_external_attempts"}:
+        raise ValueError("CANCEL_RESEARCH kernel payload fields are not exact")
+    return {"reason_code": payload["reason"], "checkpoint_artifact_id": None}
+
+
+def _mapped_revoke(payload: JsonObject) -> Mapping[str, object]:
+    required = {"fact_id", "target_fact_digest", "affected_fact_ids", "reason_artifact"}
+    if set(payload) != required or not isinstance(payload["reason_artifact"], dict):
+        raise ValueError("CONFIRM_REVOKE kernel payload fields are not exact")
+    reason = payload["reason_artifact"].get("artifact_id")
+    if not isinstance(reason, str) or not reason:
+        raise ValueError("CONFIRM_REVOKE requires a reason ArtifactRef")
+    return {"fact_id": payload["fact_id"], "reason": reason}
+
+
+def _bridge_payload(payload: JsonObject) -> Mapping[str, object]:
+    required = {
+        "source_claim_id",
+        "target_claim_id",
+        "directionality",
+        "term_mapping",
+        "loss_accounting",
+        "bridge_spec",
+        "forward_obligations",
+        "reverse_obligations",
+        "target_audit_review_id",
+        "backtranslation_artifact_id",
+    }
+    if set(payload) != required:
+        raise ValueError("REGISTER_BRIDGE_SPEC kernel payload fields are not exact")
+    return dict(payload)
+
+
+def _closure_payload(payload: JsonObject) -> Mapping[str, object]:
+    required = {
+        "parent_claim_id",
+        "selected_subgraph",
+        "selected_subgraph_digest",
+        "obligations",
+        "closure_theorem_ref",
+        "review_task_id",
+        "signed_review_artifact",
+    }
+    if set(payload) != required:
+        raise ValueError("SUBMIT_CLOSURE_WITNESS kernel payload fields are not exact")
+    return dict(payload)
+
+
+def _paper_review_payload(payload: JsonObject) -> Mapping[str, object]:
+    required = {
+        "candidate_tex_artifact",
+        "paper_review_schema_version",
+        "review_task_id",
+        "signed_paper_review_artifact",
+        "reviewer_subject_id",
+        "generation_command_id",
+        "paper_review_id",
+        "verdict",
+        "terminal_root_id",
+        "terminal_root_digest",
+        "dependency_closure_digest",
+        "closure_witness_id",
+    }
+    if set(payload) != required:
+        raise ValueError("SUBMIT_PAPER_REVIEW kernel payload fields are not exact")
+    result = dict(payload)
+    result["signed_review_artifact"] = result.pop("signed_paper_review_artifact")
+    return result
+
+
+def _finalize_payload(payload: JsonObject) -> Mapping[str, object]:
+    required = {"closure_witness_id", "final_outcome", "terminal_root_id"}
+    if set(payload) != required:
+        raise ValueError("FINALIZE_RESEARCH kernel payload fields are not exact")
+    return {
+        "outcome": payload["final_outcome"],
+        "terminal_claim_ids": [payload["terminal_root_id"]],
+        "open_obligation_ids": [],
+        "dossier_spec": {
+            "closure_witness_id": payload["closure_witness_id"],
+            "include_raw_artifacts": False,
+        },
+    }
+
+
+class ResearchKernelRevocationAuthority:
+    """Use ResearchKernel's verified fact graph for every revocation closure."""
+
+    def __init__(self, kernel: ResearchKernel) -> None:
+        self._kernel = kernel
+
+    def preview(self, run_id: str, target_fact_id: str) -> Any:
+        from rk.product.revocation import RevocationClosure
+
+        snapshot = self._snapshot(run_id, target_fact_id)
+        graph = snapshot.projection.get("fact_graph")
+        if not isinstance(graph, list) or not graph:
+            raise ValueError("kernel returned no reverse closure")
+        facts = tuple(item for item in graph if isinstance(item, Mapping))
+        target = next((item for item in facts if item.get("fact_id") == target_fact_id), None)
+        if target is None:
+            raise ValueError("kernel reverse closure omitted its target")
+        digest = target.get("statement_hash")
+        metadata = snapshot.projection.get("revocation_metadata_by_fact", {})
+        bound = metadata.get(target_fact_id) if isinstance(metadata, Mapping) else None
+        if not isinstance(digest, str) or not isinstance(bound, Mapping):
+            raise ValueError("kernel revocation metadata is incomplete")
+        return RevocationClosure(
+            run_id=run_id,
+            research_revision=snapshot.revision,
+            contract_version=snapshot.current_contract_version,
+            target_fact_id=target_fact_id,
+            target_fact_digest=digest,
+            affected_fact_ids=tuple(sorted(str(item["fact_id"]) for item in facts)),
+            preserved_sibling_ids=_string_tuple(bound.get("preserved_sibling_ids")),
+            reopened_obligation_ids=_string_tuple(bound.get("reopened_obligation_ids")),
+        )
+
+    def recompute_in_transaction(self, connection: Any, preview: Any) -> Any:
+        del connection
+        return self.preview(preview.closure.run_id, preview.closure.target_fact_id)
+
+    def validate_replacement_in_transaction(self, connection: Any, receipt: Any) -> tuple[Any, ...]:
+        del connection
+        snapshot = self._kernel.inspect(
+            receipt.run_id,
+            fact_query={
+                "operation": "summary",
+                "fact_ids": [receipt.replacement_fact_id],
+            },
+        )
+        if not isinstance(snapshot, RunSnapshot):
+            raise ValueError("kernel replacement inspection returned an event page")
+        if snapshot.revision != receipt.kernel_revision:
+            raise ValueError("replacement receipt is not at current kernel revision")
+        return tuple(receipt.restored_objects)
+
+    def _snapshot(self, run_id: str, target_fact_id: str) -> RunSnapshot:
+        snapshot = self._kernel.inspect(
+            run_id,
+            fact_query={"operation": "reverse_closure", "fact_ids": [target_fact_id]},
+        )
+        if not isinstance(snapshot, RunSnapshot):
+            raise ValueError("kernel revocation inspection returned an event page")
+        return snapshot
+
+
+def _string_tuple(value: object) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)) or any(
+        not isinstance(item, str) or not item for item in value
+    ):
+        raise ValueError("kernel revocation metadata identities are invalid")
+    return tuple(value)
+
+
 def kernel_contract(request: ProductCommand) -> Mapping[str, object]:
     """Adapt the frozen product draft to the one canonical kernel contract shape."""
 
@@ -224,6 +446,8 @@ __all__ = [
     "CapabilitySource",
     "KernelBinding",
     "ProductAuthority",
+    "ResearchKernelRevocationAuthority",
     "core_kernel_bindings",
     "kernel_contract",
+    "product_kernel_bindings",
 ]
