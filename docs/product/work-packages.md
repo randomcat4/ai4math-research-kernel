@@ -596,9 +596,10 @@ verifier→拒绝修复→回图/检索复用→组合义务/ClosureWitness read
 | 工作包 | 状态 | 当前证据 | 未闭合边界 |
 |---|---|---|---|
 | C00 | `SPEC_ONLY / IN_PROGRESS` | 36 项命令、56 项查询/64 scope 分支、三类签名审查、严格 envelope；Python/TS 四操作客户端与无损往返 | `LIST_RESEARCH/ACTION_ITEMS/GraphSlice` 已加重；其余查询结果仍须从通用投影收紧为领域对象，故不得标完成 |
-| S00 | `BACKEND_ONLY / IN_PROGRESS` | `extensions.py` 已由 `kernel/guard/projector/component_runtime` 挂载；命令活动与旧内核事务同成败 | command/projection/activity/tool receipt 已真实消费；wire/orchestrator invalidation/placement 仍待接入，故不得标完成 |
+| S00 | `BACKEND_ONLY` | 深接缝已由kernel/guard/projector/component_runtime/wire/orchestrator/scheduler消费 | 命令活动同事务；失效先核验kernel commit；placement保持B13精确质量，无旁路降级 |
 | D00a | `BACKEND_ONLY` | `src/rk/product_migrations.py`；`schema_fragments/D00a/`；`tests/test_product_migrations.py` | 真实 SQLite 注册、冲突、漂移与原子回滚已验收；尚未进入发行迁移序列 |
 | P00a | `BACKEND_ONLY` | `http_shell.py`、`published_app.py`；17 条唯一真实路由 | session/command/query/artifact/SSE/identity/review/meta 已装配；尚未完成外部发布部署验收 |
+| P00b | `BACKEND_ONLY` | 单一发布composition root与真实daemon | 空根管理员session、无重复路由、启动停止重启、health与chunked stream已验收 |
 | B01a | `BACKEND_ONLY` | 四接口、私有内核权威、持久命令协调与 published app | 登录→命令→Receipt/Job 真实落库已验收；尚未完成产品 E2E |
 | B01b | `BACKEND_ONLY` | 目录/摘要/行动项、`query_service.py` 与 `query_routes.py` | 八类真实查询及 scope fence 已装配；其余 C00 查询仍按各业务包推进 |
 | B02a | `BACKEND_ONLY` | `operations.py`、`activity_store.py`；`schema_fragments/B02a/` | 同摘要幂等、异摘要冲突、三态回执、共享 cursor、receipt+job 原子提交已验收；待发布装配 |

@@ -13,10 +13,12 @@ import json
 import os
 import platform
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
+
+from rk.extensions import ExtensionRegistry
 
 UNKNOWN_DIGEST = "UNKNOWN"
 
@@ -168,6 +170,25 @@ class ScheduleDecision:
 
 class UnschedulablePlan(ValueError):
     """Raised when requested quality cannot be preserved by available hardware and services."""
+
+
+def place_registered_work(
+    registry: ExtensionRegistry,
+    request: Mapping[str, Any],
+    *,
+    placement_kind: str = "b13-research",
+) -> Mapping[str, Any]:
+    """Resolve B13 placement through S00 and verify its exact quality binding."""
+
+    required = ("work_item_id", "retrieval_top_k", "rerank_required", "verifier_required")
+    if any(key not in request for key in required):
+        raise UnschedulablePlan("registered placement request omits an exact quality field")
+    decision = registry.place(placement_kind, request)
+    if any(decision.get(key) != request[key] for key in required):
+        raise UnschedulablePlan("registered placement changed the exact B13 quality contract")
+    if decision.get("fallback_reason") is not None:
+        raise UnschedulablePlan("registered placement returned a quality fallback")
+    return decision
 
 
 _MODE_MINIMUMS = {

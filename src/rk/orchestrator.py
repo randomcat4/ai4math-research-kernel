@@ -27,12 +27,14 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+from rk.extensions import AuthorityInvalidation, ExtensionRegistry
 from rk.roles import MathRole
 from rk.runtime import SystemClock, Uuid7Generator, format_utc
 from rk.scheduler import (
     HardwareMode,
     ScheduleRequest,
     detect_local_inventory,
+    place_registered_work,
     schedule_research,
 )
 from rk.wire import canonical_json_bytes
@@ -659,6 +661,7 @@ class ResearchOrchestrator:
         kernel: ResearchKernel | None = None,
         capability: VerifiedCapability | None = None,
         environment: Mapping[str, str] | None = None,
+        extensions: ExtensionRegistry | None = None,
     ) -> None:
         self._runtime = runtime
         self._clock = clock or SystemClock()
@@ -668,6 +671,7 @@ class ResearchOrchestrator:
         self._kernel = kernel
         self._capability = capability
         self._environment = _frozen(environment)
+        self._extensions = extensions or ExtensionRegistry()
 
     @classmethod
     def from_config(
@@ -677,6 +681,7 @@ class ResearchOrchestrator:
         kernel: ResearchKernel,
         capability: VerifiedCapability,
         environment: Mapping[str, str],
+        extensions: ExtensionRegistry | None = None,
     ) -> ResearchOrchestrator:
         """Build the product adapter while keeping provider details outside orchestration logic."""
 
@@ -694,6 +699,7 @@ class ResearchOrchestrator:
             kernel=kernel,
             capability=capability,
             environment=environment,
+            extensions=extensions,
         )
 
     def start(self, plan: OrchestrationPlan | str) -> OrchestrationCheckpoint:
@@ -2850,6 +2856,44 @@ class ResearchOrchestrator:
             assert isinstance(snapshot, RunSnapshot)
         if snapshot.status not in {"RUNNING", "PAUSED"}:
             raise ValueError(f"研究当前状态为 {snapshot.status}，不能启动编排")
+
+    def place_work(self, request: Mapping[str, Any]) -> Mapping[str, Any]:
+        """Resolve one exact B13 work requirement through the shared S00 registry."""
+
+        return place_registered_work(self._extensions, request)
+
+    def consume_kernel_invalidation(self, invalidation: AuthorityInvalidation) -> None:
+        """Consume only an invalidation whose exact kernel event is durably visible."""
+
+        if self._kernel is None:
+            raise RuntimeError("kernel invalidation consumption requires from_config")
+        snapshot = self._kernel.inspect(invalidation.run_id)
+        revision = getattr(snapshot, "revision", None)
+        if not isinstance(revision, int) or revision < invalidation.research_revision:
+            raise RuntimeError(
+                "kernel invalidation event is not committed at the required revision"
+            )
+        cursor = 0
+        found = False
+        while True:
+            page = self._kernel.inspect(invalidation.run_id, after_cursor=cursor, limit=500)
+            events = getattr(page, "events", ())
+            if any(
+                event.get("event_id") == invalidation.kernel_event_id
+                and event.get("revision") == invalidation.research_revision
+                for event in events
+            ):
+                found = True
+                break
+            if not getattr(page, "has_more", False):
+                break
+            next_cursor = getattr(page, "next_cursor", None)
+            if not isinstance(next_cursor, int) or next_cursor <= cursor:
+                raise RuntimeError("kernel event pagination did not advance")
+            cursor = next_cursor
+        if not found:
+            raise RuntimeError("kernel invalidation event is not durably visible")
+        self._extensions.consume_invalidation("B11A_AUTHORITY_INVALIDATION", invalidation)
 
     def _apply_kernel(
         self,
