@@ -137,6 +137,15 @@ class RecoveryResult:
     unknown_job_ids: tuple[str, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class JobRequest:
+    job_id: str
+    receipt_id: str
+    value: Mapping[str, Any]
+    request_digest: str
+    created_at: str
+
+
 class JobStore:
     """Single-writer transactional store for durable product execution."""
 
@@ -166,6 +175,8 @@ class JobStore:
         idempotency_key: str | None,
         now: str,
         worker_run_ids: Sequence[str] = (),
+        request_value: Mapping[str, object] | None = None,
+        request_digest: str | None = None,
     ) -> DurableJob:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -183,6 +194,8 @@ class JobStore:
                 idempotency_key=idempotency_key,
                 now=now,
                 worker_run_ids=worker_run_ids,
+                request_value=request_value,
+                request_digest=request_digest,
             )
             connection.commit()
         return self.get(job_id)
@@ -203,6 +216,8 @@ class JobStore:
         idempotency_key: str | None,
         now: str,
         worker_run_ids: Sequence[str] = (),
+        request_value: Mapping[str, object] | None = None,
+        request_digest: str | None = None,
     ) -> None:
         """Bind a receipt and job in the caller's transaction.
 
@@ -222,7 +237,7 @@ class JobStore:
                 raise JobStoreError("request is already bound to another durable job")
             return
         receipt = connection.execute(
-            "SELECT state,receipt_json FROM product_receipts WHERE receipt_id=?",
+            "SELECT state,receipt_json,request_digest FROM product_receipts WHERE receipt_id=?",
             (receipt_id,),
         ).fetchone()
         if receipt is None or receipt[0] != "PENDING":
@@ -252,6 +267,17 @@ class JobStore:
                 now,
             ),
         )
+        if (request_value is None) != (request_digest is None):
+            raise JobStoreError("durable request value and digest must be bound together")
+        if request_value is not None and request_digest is not None:
+            canonical = _json_object(request_value)
+            if len(request_digest) != 64 or str(receipt[2]) != request_digest:
+                raise JobStoreError("durable request digest differs from receipt reservation")
+            connection.execute(
+                "INSERT INTO product_job_requests(job_id,receipt_id,request_json,"
+                "request_digest,created_at) VALUES(?,?,?,?,?)",
+                (job_id, receipt_id, canonical, request_digest, now),
+            )
 
     def get(self, job_id: str) -> DurableJob:
         with self._connect() as connection:
@@ -259,6 +285,20 @@ class JobStore:
         if row is None:
             raise KeyError(job_id)
         return _job(row)
+
+    def request(self, job_id: str) -> JobRequest:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT job_id,receipt_id,request_json,request_digest,created_at "
+                "FROM product_job_requests WHERE job_id=?",
+                (job_id,),
+            ).fetchone()
+        if row is None:
+            raise JobStoreError("durable job has no immutable request binding")
+        value = json.loads(str(row[2]))
+        if not isinstance(value, dict):
+            raise JobStoreError("stored durable request is not an object")
+        return JobRequest(str(row[0]), str(row[1]), value, str(row[3]), str(row[4]))
 
     def claim_next(
         self,
@@ -691,6 +731,10 @@ def _retry_binding(safety: RetrySafety, idempotency_key: str | None) -> None:
 
 def _json_array(value: Sequence[object]) -> str:
     return json.dumps(list(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _json_object(value: Mapping[str, object]) -> str:
+    return json.dumps(dict(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def _json_list(value: object) -> list[Any]:

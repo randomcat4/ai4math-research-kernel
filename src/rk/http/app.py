@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rk.http.route_registry import PublishedRouteFactories
+from rk.migrations import MigrationRunner
 from rk.http_shell import HttpErrorClass, HttpResponse, ProductHttpError, RouteSpec, SessionRequest
 from rk.product.identity import IdentityStore, ProductRole
 from rk.product.published_app import (
@@ -94,6 +95,8 @@ def bootstrap_admin_session(
     os.chmod(cas_root, 0o700)
     os.chmod(spool_root, 0o700)
     db_path = root / "product.sqlite"
+    migration_root = Path(__file__).resolve().parents[3] / "migrations"
+    MigrationRunner(db_path, migration_root, 5_000).migrate()
     with sqlite3.connect(db_path) as connection:
         ProductMigrationAssembler(ProductMigrationRegistry(schema_fragments)).apply(connection)
     os.chmod(db_path, 0o600)

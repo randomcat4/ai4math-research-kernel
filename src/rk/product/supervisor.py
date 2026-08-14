@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from rk.product.api import DeploymentScope, GlobalScope, ProductCommand, ProductSession, RunScope
+from rk.product.command_service import command_request_value
 from rk.product.jobs import (
     DurableJob,
     ExecutionReceipt,
@@ -19,6 +20,7 @@ from rk.product.jobs import (
     RecoveryResult,
     RetrySafety,
 )
+from rk.product.operations import OperationStore
 
 
 class ManagedProcess(Protocol):
@@ -122,6 +124,8 @@ class RuntimeSupervisor:
             retry_safety=safety,
             idempotency_key=idempotency_key,
             now=self._clock(),
+            request_value=command_request_value(request),
+            request_digest=OperationStore.request_digest(command_request_value(request)),
         )
 
     def claim(self, *, process_token: str, expires_at: str) -> tuple[DurableJob, JobLease] | None:

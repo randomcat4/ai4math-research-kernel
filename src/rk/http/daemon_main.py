@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import threading
+from collections.abc import Mapping, Sequence
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from types import TracebackType
 from typing import Self
@@ -136,7 +137,7 @@ class ProductHttpDaemon:
         headers: dict[str, str] = dict(response.headers)
         if isinstance(response, HttpResponse):
             payload = json.dumps(
-                response.body,
+                _json_tree(response.body),
                 ensure_ascii=False,
                 sort_keys=True,
                 separators=(",", ":"),
@@ -171,3 +172,13 @@ class ProductHttpDaemon:
 
 
 __all__ = ["ProductHttpDaemon"]
+
+
+def _json_tree(value: object) -> object:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Mapping):
+        return {str(key): _json_tree(item) for key, item in value.items()}
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_json_tree(item) for item in value]
+    raise TypeError(f"HTTP response contains non-JSON value {type(value).__name__}")

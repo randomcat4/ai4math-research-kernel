@@ -29,9 +29,7 @@ class ArtifactUploadOperation(StrEnum):
 class UploadAuthorizer(Protocol):
     """Authorize only the principal established by session middleware."""
 
-    def __call__(
-        self, principal: SessionPrincipal, operation: ArtifactUploadOperation
-    ) -> None: ...
+    def __call__(self, principal: SessionPrincipal, operation: ArtifactUploadOperation) -> None: ...
 
 
 class ArtifactUploadRouter:
@@ -59,11 +57,7 @@ class ArtifactUploadRouter:
 
     async def handle(self, session_request: SessionRequest) -> HttpResponse:
         principal = session_request.principal
-        if (
-            not principal.session_id
-            or not principal.subject_id
-            or not principal.capability_ids
-        ):
+        if not principal.session_id or not principal.subject_id or not principal.capability_ids:
             raise ProductHttpError(
                 code="SESSION_PRINCIPAL_REQUIRED",
                 error_class=HttpErrorClass.AUTHENTICATION,
@@ -83,10 +77,13 @@ class ArtifactUploadRouter:
                 return await self._append(session_request)
 
             if _media_type(request.headers) != "application/json":
-                raise _schema_error(
-                    "JSON_CONTENT_TYPE_REQUIRED", "$.headers.content-type"
-                )
+                raise _schema_error("JSON_CONTENT_TYPE_REQUIRED", "$.headers.content-type")
             envelope = _json_object(request.body)
+            if set(envelope) == {"schema_version", "request_id", "operation"}:
+                nested = envelope["operation"]
+                if not isinstance(nested, dict):
+                    raise _schema_error("UNKNOWN_ARTIFACT_OPERATION", "$.operation")
+                envelope = nested
             operation = _json_operation(envelope)
             self._authorize(principal, operation)
             if operation is ArtifactUploadOperation.BEGIN_UPLOAD:
@@ -152,20 +149,14 @@ class ArtifactUploadRouter:
     async def _append(self, session_request: SessionRequest) -> HttpResponse:
         request = session_request.request
         if _media_type(request.headers) != "application/octet-stream":
-            raise _schema_error(
-                "RAW_CHUNK_CONTENT_TYPE_REQUIRED", "$.headers.content-type"
-            )
+            raise _schema_error("RAW_CHUNK_CONTENT_TYPE_REQUIRED", "$.headers.content-type")
         upload_id = _required_header(request.headers, "x-rk-upload-id")
         offset_text = _required_header(request.headers, "x-rk-upload-offset")
-        transfer_sha256 = _required_header(
-            request.headers, "x-rk-chunk-sha256"
-        )
+        transfer_sha256 = _required_header(request.headers, "x-rk-chunk-sha256")
         try:
             offset = int(offset_text)
         except ValueError as error:
-            raise _schema_error(
-                "UPLOAD_OFFSET_INVALID", "$.headers.x-rk-upload-offset"
-            ) from error
+            raise _schema_error("UPLOAD_OFFSET_INVALID", "$.headers.x-rk-upload-offset") from error
         session = await asyncio.to_thread(
             self._uploads.append,
             upload_id,
@@ -186,9 +177,7 @@ class ArtifactUploadRouter:
         _exact_keys(envelope, {"type", "payload"}, "$")
         payload = _mapping(envelope["payload"], "$.payload")
         _exact_keys(payload, {"upload_id"}, "$.payload")
-        artifact = await asyncio.to_thread(
-            self._uploads.commit, _string(payload, "upload_id")
-        )
+        artifact = await asyncio.to_thread(self._uploads.commit, _string(payload, "upload_id"))
         artifact_body: dict[str, JsonValue] = {
             "artifact_id": artifact.artifact_id,
             "sha256": artifact.sha256,
@@ -229,9 +218,7 @@ def _json_object(raw: bytes) -> dict[str, Any]:
         return value
 
     try:
-        value = json.loads(
-            raw.decode("utf-8"), object_pairs_hook=reject_duplicates
-        )
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=reject_duplicates)
     except UnicodeDecodeError as error:
         raise _schema_error("ARTIFACT_OPERATION_NOT_UTF8", "$") from error
     except json.JSONDecodeError as error:

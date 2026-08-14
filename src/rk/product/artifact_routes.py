@@ -105,8 +105,20 @@ class ArtifactRouter:
         )
 
     async def _operation(self, request: SessionRequest) -> HttpResult:
+        if (
+            self._other_operations is not None
+            and _header(request.request.headers, "x-rk-artifact-operation") is not None
+        ):
+            return await self._other_operations(request)
         try:
             value = _json_object(request.request.body)
+        except ValueError:
+            return _problem("ARTIFACT_OPERATION_INVALID", HttpErrorClass.SCHEMA, "$.operation")
+        if set(value) == {"type", "payload"}:
+            if self._other_operations is None:
+                return _problem("ARTIFACT_OPERATION_UNSUPPORTED", HttpErrorClass.SCHEMA, "$.type")
+            return await self._other_operations(request)
+        try:
             operation_type = _operation_type(value)
         except ValueError:
             return _problem("ARTIFACT_OPERATION_INVALID", HttpErrorClass.SCHEMA, "$.operation")
