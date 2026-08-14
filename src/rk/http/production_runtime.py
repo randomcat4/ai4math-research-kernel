@@ -9,7 +9,7 @@ import os
 import signal
 import sqlite3
 import threading
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -17,6 +17,7 @@ from typing import Any, cast
 
 from rk.cas import ContentAddressedStore
 from rk.config import KernelConfig
+from rk.domain import RunSnapshot
 from rk.http.app import build_application
 from rk.http.daemon_main import ProductHttpDaemon
 from rk.http.route_registry import PublishedRouteFactories
@@ -45,6 +46,7 @@ from rk.product.authority import (
     ResearchKernelRevocationAuthority,
     product_kernel_bindings,
 )
+from rk.product.backup import BackupService, CasBackupArtifactReader
 from rk.product.bridge_opportunities import BridgeOpportunityStore
 from rk.product.command_routes import command_router_factory
 from rk.product.command_service import CommandPlan, ExecutionClass, ProductCommandService
@@ -64,7 +66,6 @@ from rk.product.domain_queries import (
 )
 from rk.product.durable_executors import (
     DURABLE_COMMAND_TYPES,
-    DurableExecutorPorts,
     build_durable_executors,
 )
 from rk.product.durable_runtime import DurableJobPump, DurableJobResolver
@@ -74,13 +75,25 @@ from rk.product.guidance import GuidanceStore
 from rk.product.identity import IdentityStore
 from rk.product.identity_routes import identity_router
 from rk.product.invalidation import AuthorityInvalidationEngine
-from rk.product.jobs import JobStore, RetrySafety
+from rk.product.jobs import DurableJob, JobStore, RetrySafety
 from rk.product.listing import ResearchCatalog
+from rk.product.literature_connectors import (
+    ArxivConnector,
+    CrossrefConnector,
+    MatlasConnector,
+    OpenAlexConnector,
+    UrllibTransport,
+)
 from rk.product.log_tail import PublicLogStore
 from rk.product.materials import MaterialStore
 from rk.product.operational_queries import OperationalFenceSource, OperationalQueries
 from rk.product.operations import OperationStore
 from rk.product.problem_pool import ProblemPoolStore
+from rk.product.production_executors import (
+    ProductionExecutorDependencies,
+    build_production_executor_ports,
+)
+from rk.product.publication import PublicationArtifactService
 from rk.product.published_app import PublishedAppConfig, PublishedHttpApplication
 from rk.product.query_routes import query_router_factory
 from rk.product.query_service import (
@@ -91,15 +104,19 @@ from rk.product.query_service import (
 from rk.product.receipt_query import ReceiptJobQuery
 from rk.product.research_lineage import ResearchLineageStore
 from rk.product.research_queries import ResearchQueries
+from rk.product.restore import RestoreRunner
 from rk.product.review_routes import ReviewInboxIndex, review_router
 from rk.product.reviews import ReviewTaskStore
 from rk.product.revocation import RevocationService
 from rk.product.route_plan import RoutePlanStore
 from rk.product.sessions import SessionCapabilitySource, SessionStore
+from rk.product.source_snapshots import SourceSnapshotStore
 from rk.product.supervisor import RuntimeSupervisor
 from rk.product.theorem_applicability import TheoremApplicabilityStore
 from rk.product.tool_runs import ToolCatalogStore, ToolRunStore
+from rk.product.upgrade import UpgradeRunner
 from rk.product.work_activity import WorkActivityStore
+from rk.product_release_migrations import ProductReleaseMigrationAssembler
 from rk.runtime import SystemClock, Uuid7Generator, format_utc
 from rk.storage import SQLiteStorage
 
@@ -131,7 +148,6 @@ class ProductionRuntimeConfig:
     max_log_tail_bytes: int = 1024 * 1024
     busy_timeout_ms: int = 5_000
     review_keys: Mapping[str, HmacAttestationKey] = field(default_factory=dict)
-    durable_executor_ports: DurableExecutorPorts = field(default_factory=DurableExecutorPorts)
 
     def __post_init__(self) -> None:
         if not self.deployment_id or not self.organization_id or not self.host:
@@ -179,6 +195,130 @@ class _CasPublisher:
         )
         ref = self._registry.register(committed)
         return ExactArtifactRef(ref.artifact_id, ref.sha256, ref.byte_count, ref.media_type)
+
+
+def _session_resolver(
+    db_path: Path,
+    sessions: SessionStore,
+    clock: Callable[[], str],
+    ids: Callable[[], str],
+    organization_id: str,
+) -> Callable[[str], ProductSession]:
+    def resolve(subject_id: str) -> ProductSession:
+        now = clock()
+        with sqlite3.connect(db_path) as connection:
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT identity_id FROM product_identities "
+                "WHERE subject_id=? AND enabled=1",
+                (subject_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError("durable requester identity is not enabled")
+            identity_id = str(row[0])
+            managed = connection.execute(
+                "SELECT session.session_id FROM product_managed_sessions AS managed "
+                "JOIN product_sessions AS session ON session.session_id=managed.session_id "
+                "WHERE managed.identity_id=? AND session.revoked_at IS NULL",
+                (identity_id,),
+            ).fetchone()
+            if managed is None:
+                session_id = f"managed-{ids()}"
+                connection.execute(
+                    "INSERT INTO product_sessions("
+                    "session_id,organization_id,active_identity_id,session_version,"
+                    "issued_at,expires_at) VALUES(?,?,?,?,?,?)",
+                    (
+                        session_id,
+                        organization_id,
+                        identity_id,
+                        1,
+                        now,
+                        "9999-12-31T23:59:59Z",
+                    ),
+                )
+                connection.execute(
+                    "INSERT INTO product_session_identities VALUES(?,?,?)",
+                    (session_id, identity_id, now),
+                )
+                connection.execute(
+                    "INSERT INTO product_managed_sessions VALUES(?,?,?)",
+                    (session_id, identity_id, now),
+                )
+            else:
+                session_id = str(managed[0])
+            connection.commit()
+        resolved = sessions.derive(session_id, now=now)
+        if resolved.principal_subject_id != subject_id:
+            raise ValueError("durable requester session principal changed")
+        return resolved
+
+    return resolve
+
+
+def _lifecycle_payload(
+    job: DurableJob, payload: Mapping[str, object]
+) -> Mapping[str, object]:
+    required = {
+        "START_RESEARCH": {"contract_version", "literature_plan_artifact_id", "budget_policy"},
+        "RESUME_RESEARCH": {"checkpoint_artifact_id", "lease_preflight", "budget_preflight"},
+    }
+    expected = required.get(job.kind)
+    if expected is None or set(payload) != expected:
+        raise ValueError("durable lifecycle payload differs from its frozen kernel binding")
+    return dict(payload)
+
+
+def _artifact_resolver(
+    artifacts: ArtifactReadService,
+) -> Callable[[Mapping[str, object]], ExactArtifactRef]:
+    def resolve(value: Mapping[str, object]) -> ExactArtifactRef:
+        required = {"artifact_id", "sha256", "byte_count", "media_type"}
+        if set(value) != required:
+            raise ValueError("ArtifactRef fields are not exact")
+        artifact_id = value["artifact_id"]
+        if not isinstance(artifact_id, str):
+            raise ValueError("ArtifactRef identity is invalid")
+        actual = artifacts.describe(artifact_id).ref
+        if (
+            actual.sha256 != value["sha256"]
+            or actual.byte_count != value["byte_count"]
+            or actual.media_type != value["media_type"]
+        ):
+            raise ValueError("ArtifactRef metadata differs from CAS authority")
+        return actual
+
+    return resolve
+
+
+def _finalized_snapshot(kernel: ResearchKernel) -> Callable[[str], Mapping[str, Any]]:
+    def resolve(run_id: str) -> Mapping[str, Any]:
+        snapshot = kernel.inspect(run_id)
+        if not isinstance(snapshot, RunSnapshot):
+            raise ValueError("finalized snapshot lookup returned an event page")
+        return snapshot.to_dict()
+
+    return resolve
+
+
+def _publication_abstract(
+    db_path: Path,
+) -> Callable[[DurableJob, Mapping[str, object]], str]:
+    def resolve(job: DurableJob, payload: Mapping[str, object]) -> str:
+        del payload
+        if job.run_id is None:
+            raise ValueError("publication job requires RUN scope")
+        with sqlite3.connect(db_path) as connection:
+            row = connection.execute(
+                "SELECT question_summary FROM research_catalog WHERE run_id=?",
+                (job.run_id,),
+            ).fetchone()
+        if row is None or not str(row[0]).strip():
+            raise ValueError("publication abstract source is unavailable")
+        return str(row[0])
+
+    return resolve
 
 
 class _ProductionCommandFences:
@@ -506,11 +646,93 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
                 busy_timeout_ms=config.busy_timeout_ms,
             ),
             jobs=jobs,
+            catalog=ResearchCatalog(db_path),
             clock=now,
             ids=ids.new,
         ),
     )
-    durable_executors = build_durable_executors(config.durable_executor_ports)
+    snapshots = SourceSnapshotStore(
+        db_path=db_path,
+        artifacts=artifact_reader,
+        publisher=publisher,
+        tool_runs=tool_runs,
+        busy_timeout_ms=config.busy_timeout_ms,
+    )
+    publication = PublicationArtifactService(
+        db_path=db_path,
+        cas=cas,
+        registry=registry,
+        artifacts=artifact_reader,
+        review_tasks=review_tasks,
+        logs=logs,
+        id_generator=ids.new,
+        clock=clock.now,
+        busy_timeout_ms=config.busy_timeout_ms,
+    )
+    backup = BackupService(
+        db_path=db_path,
+        cas_root=cas_root,
+        work_root=root / "backups",
+        cas=cas,
+        registry=registry,
+        id_generator=ids.new,
+        clock=clock.now,
+        busy_timeout_ms=config.busy_timeout_ms,
+    )
+    release = ProductReleaseMigrationAssembler(
+        fragment_root=repository_root / "schema_fragments",
+        manifest_path=repository_root / "packaging/release-manifest.json",
+        lock_path=repository_root / "migrations/release/current.lock",
+    )
+    restore = RestoreRunner(
+        tracking_db_path=db_path,
+        artifact_reader=CasBackupArtifactReader(cas),
+        release=release,
+        id_generator=ids.new,
+        clock=clock.now,
+        busy_timeout_ms=config.busy_timeout_ms,
+    )
+    upgrade = UpgradeRunner(
+        db_path=db_path,
+        release=release,
+        id_generator=ids.new,
+        clock=clock.now,
+        busy_timeout_ms=config.busy_timeout_ms,
+    )
+    durable_executors = build_durable_executors(
+        build_production_executor_ports(
+            ProductionExecutorDependencies(
+                db_path=db_path,
+                clock=now,
+                ids=ids.new,
+                snapshots=snapshots,
+                literature_connectors={
+                    "ARXIV": ArxivConnector(UrllibTransport()),
+                    "CROSSREF": CrossrefConnector(UrllibTransport()),
+                    "MATLAS": MatlasConnector(UrllibTransport()),
+                    "OPENALEX": OpenAlexConnector(UrllibTransport()),
+                },
+                publication=publication,
+                authority=kernel_authority,
+                sessions=_session_resolver(
+                    db_path, sessions, now, ids.new, config.organization_id
+                ),
+                lifecycle_payload=_lifecycle_payload,
+                artifact_ref=_artifact_resolver(artifact_reader),
+                lineage=ResearchLineageStore(
+                    db_path=db_path,
+                    artifacts=artifact_reader,
+                    busy_timeout_ms=config.busy_timeout_ms,
+                ),
+                backup=backup,
+                restore=restore,
+                upgrade=upgrade,
+                configuration_files={},
+                finalized_snapshot=_finalized_snapshot(kernel),
+                abstract_resolver=_publication_abstract(db_path),
+            )
+        )
+    )
     plans = {name: CommandPlan(ExecutionClass.DURABLE_JOB, name) for name in durable_executors}
     plans.update(
         {
@@ -525,6 +747,7 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
         plans=plans,
         id_generator=ids.new,
         clock=now,
+        authorizer=capabilities,
     )
     job_pump = (
         DurableJobPump(

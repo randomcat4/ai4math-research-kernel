@@ -6,7 +6,7 @@ import sqlite3
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, cast
 
 from rk.product.api import (
     JsonObject,
@@ -26,6 +26,16 @@ class ExecutionClass(StrEnum):
 
 class AuthorityPort(Protocol):
     def apply(self, session: ProductSession, request: ProductCommand) -> ProductDecision: ...
+
+
+class CommandAuthorizer(Protocol):
+    def resolve(
+        self,
+        session: ProductSession,
+        *,
+        action: str,
+        run_id: str | None,
+    ) -> object: ...
 
 
 class JobQueuePort(Protocol):
@@ -64,6 +74,7 @@ class ProductCommandService:
         plans: Mapping[str, CommandPlan],
         id_generator: Callable[[], str],
         clock: Callable[[], str],
+        authorizer: CommandAuthorizer | None = None,
     ) -> None:
         self._operations = operations
         self._authority = authority
@@ -71,15 +82,22 @@ class ProductCommandService:
         self._plans = dict(plans)
         self._ids = id_generator
         self._clock = clock
+        self._authorizer = authorizer
 
     def execute(self, session: ProductSession, request: ProductCommand) -> ProductReceipt:
         try:
             plan = self._plans[request.command_type]
         except KeyError as error:
             raise ValueError(f"command has no execution plan: {request.command_type}") from error
+        if self._authorizer is not None:
+            self._authorizer.resolve(
+                session,
+                action=request.command_type,
+                run_id=request.scope.run_id if isinstance(request.scope, RunScope) else None,
+            )
         now = self._clock()
         job_id = self._ids()
-        request_value = _request_value(request)
+        request_value = command_request_value(request)
         pending = {
             "schema_version": "rk.product.receipt.v1",
             "request_id": request.request_id,
@@ -122,7 +140,7 @@ class ProductCommandService:
             "scope": _scope_value(request),
             "updated_at": decided_at,
             "state": "DECIDED",
-            "decision": _decision_value(decision),
+            "decision": decision_value(decision),
             "decided_at": decided_at,
         }
         stored = self._operations.decide(
@@ -155,16 +173,19 @@ def _scope_value(request: ProductCommand) -> dict[str, object]:
     }
 
 
-def _request_value(request: ProductCommand) -> dict[str, object]:
-    return {
-        "schema_version": "rk.product.command.v1",
-        "request_id": request.request_id,
-        "scope": _scope_value(request),
-        "command": {"type": request.command_type, "payload": dict(request.payload)},
-    }
+def command_request_value(request: ProductCommand) -> JsonObject:
+    return cast(
+        JsonObject,
+        {
+            "schema_version": "rk.product.command.v1",
+            "request_id": request.request_id,
+            "scope": _scope_value(request),
+            "command": {"type": request.command_type, "payload": dict(request.payload)},
+        },
+    )
 
 
-def _decision_value(decision: ProductDecision) -> dict[str, object]:
+def decision_value(decision: ProductDecision) -> dict[str, object]:
     return {
         "accepted": decision.accepted,
         "rejection_code": decision.rejection_code,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import cast
+from typing import Protocol, cast
 
 from rk.product.api import (
     DeploymentScope,
@@ -14,9 +14,14 @@ from rk.product.api import (
     ProductCommand,
     ProductReceipt,
     ProductSession,
-    ResearchProduct,
     RunScope,
 )
+
+
+class CommandProduct(Protocol):
+    """The command facet consumed by command transports."""
+
+    def command(self, session: ProductSession, request: ProductCommand) -> ProductReceipt: ...
 
 
 class ProductWireError(ValueError):
@@ -25,7 +30,12 @@ class ProductWireError(ValueError):
 
 def command_from_json(value: Mapping[str, JsonValue]) -> ProductCommand:
     required = {"schema_version", "request_id", "scope", "command"}
-    if set(value) != required or value.get("schema_version") != "rk.product.command.v1":
+    allowed = required | {"artifact_inputs"}
+    if (
+        set(value) not in (required, allowed)
+        or value.get("schema_version") != "rk.product.command.v1"
+        or ("artifact_inputs" in value and value["artifact_inputs"] != [])
+    ):
         raise ProductWireError("invalid product command envelope")
     scope_value = _object(value["scope"], "scope")
     command_value = _object(value["command"], "command")
@@ -80,7 +90,7 @@ def receipt_to_json(receipt: ProductReceipt) -> dict[str, JsonValue]:
 
 
 class CommandJsonAdapter:
-    def __init__(self, product: ResearchProduct) -> None:
+    def __init__(self, product: CommandProduct) -> None:
         self._product = product
 
     def invoke(
@@ -127,6 +137,8 @@ def _scope(value: JsonObject) -> GlobalScope | RunScope | DeploymentScope:
             _integer(value["expected_revision"], "expected_revision"),
             _integer(value["expected_contract_version"], "expected_contract_version"),
         )
+    if kind == "GLOBAL" and set(value) == {"kind", "deployment_id"}:
+        return GlobalScope(_string(value["deployment_id"], "deployment_id"))
     if kind in {"GLOBAL", "DEPLOYMENT"} and set(value) == {
         "kind",
         "deployment_id",

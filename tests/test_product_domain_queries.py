@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -9,6 +10,7 @@ import pytest
 
 from rk.product.activity_store import ActivityStore
 from rk.product.api import QuerySpec
+from rk.product.artifact_read import ExactArtifactRef
 from rk.product.domain_queries import (
     DomainObjectNotFound,
     DomainQueries,
@@ -142,3 +144,47 @@ def test_absent_compute_task_is_not_relabelled_from_another_store(tmp_path: Path
                 {"compute_task_id": "missing-compute-task"},
             )
         )
+
+
+def test_problem_pool_projects_only_persisted_exact_artifact_refs(tmp_path: Path) -> None:
+    queries, _ = adapter(tmp_path)
+    pools = ProblemPoolStore(tmp_path / "domain-queries.sqlite")
+    pools.create(
+        problem_pool_id="pool-1",
+        deployment_id="deployment-1",
+        date_from="2026-01-01",
+        date_to="2026-01-31",
+        subjects=("math.CO",),
+        version_rule="LATEST_VISIBLE",
+        withdrawal_rule="EXCLUDE_WITHDRAWN",
+        exclusion_rules=("NO_SURVEYS",),
+        now="2026-08-14T00:00:00Z",
+    )
+    semantic = ExactArtifactRef("audit-1", "a" * 64, 17, "application/json")
+    template = ExactArtifactRef("template-1", "b" * 64, 23, "application/json")
+    pools.bind_artifact(
+        "pool-1",
+        binding_kind="SEMANTIC_AUDIT",
+        artifact=semantic,
+        bound_by="auditor-1",
+        now="2026-08-14T00:00:00Z",
+    )
+    pools.bind_artifact(
+        "pool-1",
+        binding_kind="CONTRACT_TEMPLATE",
+        artifact=template,
+        bound_by="auditor-1",
+        now="2026-08-14T00:00:00Z",
+    )
+    result = queries.execute(
+        QuerySpec(
+            {"kind": "GLOBAL", "deployment_id": "deployment-1"},
+            "PROBLEM_POOL",
+            {"problem_pool_id": "pool-1"},
+        )
+    )
+    semantic_result = cast(Mapping[str, object], result.data["semantic_audit_artifact"])
+    template_result = cast(Mapping[str, object], result.data["contract_template_artifact"])
+    assert semantic_result["artifact_id"] == "audit-1"
+    assert template_result["artifact_id"] == "template-1"
+    assert result.data["authority_effect"] == "NO_FACT"

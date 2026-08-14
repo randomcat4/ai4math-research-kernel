@@ -31,7 +31,7 @@ class ProductSession:
 @dataclass(frozen=True, slots=True)
 class GlobalScope:
     deployment_id: str
-    expected_deployment_revision: int
+    expected_deployment_revision: int = 0
     kind: str = field(default="GLOBAL", init=False)
 
 

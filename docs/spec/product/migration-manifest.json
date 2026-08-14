@@ -170,6 +170,16 @@
       "release_position": 33,
       "fragment_id": "B05c/identity_roles",
       "sha256": "eb1a35c42dfcf1c78f61718318f24d8e24c5de0865bd5ab0dc64fbb74610f30a"
+    },
+    {
+      "release_position": 34,
+      "fragment_id": "B17b/pool_artifacts",
+      "sha256": "0ac7601f071e64c0d1c7daad9d177e40fda7833d9d8a9a7297722fc7d557c81b"
+    },
+    {
+      "release_position": 35,
+      "fragment_id": "B05d/managed_sessions",
+      "sha256": "eb63d27e7b53f168b4d2c4ff17e1013cb880146065d5bc5a3248e4ec42ae6716"
     }
   ]
 }

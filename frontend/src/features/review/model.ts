@@ -12,7 +12,8 @@ export const CHECKS:Record<ReviewType,{key:string;label:string}[]>={ATOMIC:[
  PAPER:[{key:"statement_alignment",label:"陈述一致"},{key:"proof_completeness",label:"证明完整"},{key:"citation_accuracy",label:"引用准确"},
  {key:"novelty_boundary",label:"新颖性边界"},{key:"artifact_binding",label:"工件绑定"},{key:"outcome_alignment",label:"结果一致"}]};
 export interface FeatureFailure{code:string;title:string;detail:string;action:string;unavailable:boolean}
-export function canReview(session:SessionView|undefined){return session?.role==="REVIEWER"}
+export function canReview(session:SessionView|undefined){return session?.role==="PEER_REVIEWER"||session?.role==="PAPER_REVIEWER"}
+export function canReviewTask(session:SessionView|undefined,type:ReviewType){return session?.role==="PEER_REVIEWER"?type==="ATOMIC"||type==="COMPOSITION":session?.role==="PAPER_REVIEWER"&&type==="PAPER"}
 export function explainError(code:string):FeatureFailure{const messages:Record<string,[string,string,string]>={
  REVIEWER_IS_TASK_AUTHOR:["独立性拒绝","当前审查人与任务作者同源。","切换到已认证且不在作者集合中的 Reviewer 身份。"],
  AUTHOR_BINDING_MISMATCH:["作者绑定不一致","签名工件中的作者集合与任务不同。","重新读取任务并按精确 author_subject_ids 生成签名。"],

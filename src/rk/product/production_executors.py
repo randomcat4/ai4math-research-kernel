@@ -719,6 +719,8 @@ def _connector_request(name: str, query: str) -> dict[str, object]:
         return {"query": query, "rows": 100}
     if name == "ARXIV":
         return {"kind": "SEARCH", "query": query, "max_results": 100}
+    if name == "MATLAS":
+        return {"query": query, "num_results": 100}
     raise ValueError(f"connector has no deployed request adapter: {name}")
 
 

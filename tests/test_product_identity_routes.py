@@ -23,6 +23,8 @@ from rk.product.sessions import SessionAuthenticationError, SessionStore
 
 ROOT = Path(__file__).parents[1]
 B05A = ROOT / "schema_fragments/B05a/identity.sql"
+B05B = ROOT / "schema_fragments/B05b/reviews.sql"
+B05C = ROOT / "schema_fragments/B05c/identity_roles.sql"
 NOW = "2026-08-13T18:00:00Z"
 EXPIRES = "2026-08-14T18:00:00Z"
 EMPTY = SessionPrincipal(session_id="", subject_id="", capability_ids=())
@@ -41,6 +43,8 @@ def _setup(tmp_path: Path) -> tuple[IdentityRouter, SessionStore]:
     db_path = tmp_path / "identity.sqlite"
     with sqlite3.connect(db_path) as connection:
         connection.executescript(B05A.read_text(encoding="utf-8"))
+        connection.executescript(B05B.read_text(encoding="utf-8"))
+        connection.executescript(B05C.read_text(encoding="utf-8"))
     identities = IdentityStore(db_path, lambda: b"0" * 16)
     identities.register(
         identity_id="identity-main",
@@ -55,7 +59,7 @@ def _setup(tmp_path: Path) -> tuple[IdentityRouter, SessionStore]:
         identity_id="identity-reviewer",
         subject_id="reviewer:one",
         display_name="Reviewer",
-        role=ProductRole.REVIEWER,
+        role=ProductRole.PEER_REVIEWER,
         capability_id="cap:reviewer",
         login_secret="reviewer-login-secret",
         now=NOW,
@@ -162,7 +166,7 @@ def test_second_identity_login_switch_me_and_logout_use_same_session(
         main,
     )
     assert second.body["session_id"] == session_id
-    assert second.body["role"] == "REVIEWER"
+    assert second.body["role"] == "PEER_REVIEWER"
     assert second.body["linked_identity_ids"] == [
         "identity-main",
         "identity-reviewer",

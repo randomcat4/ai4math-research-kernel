@@ -42,7 +42,7 @@ def _stores(tmp_path: Path) -> tuple[IdentityStore, SessionStore]:
         identity_id="reviewer-one",
         subject_id="subject:reviewer-one",
         display_name="Reviewer One",
-        role=ProductRole.REVIEWER,
+        role=ProductRole.PEER_REVIEWER,
         capability_id="cap:reviewer-one",
         login_secret="reviewer-secret-1",
         now="2026-08-13T00:00:00Z",
@@ -91,9 +91,9 @@ def test_two_authenticated_identities_switch_one_session_principal(tmp_path: Pat
 
     source = SessionCapabilitySource(sessions, lambda: "2026-08-13T00:00:06Z")
     with pytest.raises(CapabilityError):
-        source.resolve(worker_session, action="Finalize", run_id="run-1")
+        source.resolve(worker_session, action="FINALIZE_RESEARCH", run_id="run-1")
     current = sessions.derive(main.session_id, now="2026-08-13T00:00:06Z")
-    capability = source.resolve(current, action="Finalize", run_id="run-1")
+    capability = source.resolve(current, action="FINALIZE_RESEARCH", run_id="run-1")
     assert capability.subject_id == "subject:main-one"
     assert capability.run_scope == frozenset({"run-1"})
     assert "*" not in capability.allowed_actions

@@ -377,7 +377,13 @@ export function App() {
           )
         ) : null}
 
-        <PublishedWorkspaces activeNav={activeNav} research={selectedResearch ?? undefined} session={connection.session} />
+        <PublishedWorkspaces
+          activeNav={activeNav}
+          research={selectedResearch ?? undefined}
+          session={connection.session}
+          meta={connection.meta}
+          onReload={connection.refreshResearch}
+        />
 
         <div
           className={

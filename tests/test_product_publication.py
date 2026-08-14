@@ -95,7 +95,7 @@ class Harness:
             identity_id=REVIEWER,
             subject_id=REVIEWER_SUBJECT,
             display_name="Independent paper reviewer",
-            role=ProductRole.REVIEWER,
+            role=ProductRole.PAPER_REVIEWER,
             capability_id="cap:paper-reviewer:one",
             login_secret="paper-reviewer-login-secret",
             now=STAMP,

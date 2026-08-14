@@ -426,17 +426,34 @@ def kernel_contract(request: ProductCommand) -> Mapping[str, object]:
         if isinstance(success, list) and success and all(isinstance(item, str) for item in success)
         else ["NATURAL_LANGUAGE_PROOF"]
     )
+    raw_objects = draft.get("objects", [])
+    raw_quantifiers = draft.get("quantifiers", [])
+    raw_boundaries = draft.get("boundary_conditions", [])
+    raw_tools = draft.get("allowed_tools", [])
+    if (
+        not isinstance(raw_objects, list)
+        or not raw_objects
+        or any(not isinstance(item, str) or not item for item in raw_objects)
+        or not isinstance(raw_quantifiers, list)
+        or not raw_quantifiers
+        or any(not isinstance(item, str) or not item for item in raw_quantifiers)
+        or not isinstance(raw_boundaries, list)
+        or any(not isinstance(item, str) or not item for item in raw_boundaries)
+        or not isinstance(raw_tools, list)
+        or any(not isinstance(item, str) or not item for item in raw_tools)
+    ):
+        raise ValueError("contract draft lists cannot be losslessly mapped to kernel objects")
     return {
         "stable_project_id": f"PRODUCT_{request.request_id}",
         "statement": question,
         "source_refs": material_ids,
-        "objects": draft.get("objects", []),
+        "objects": [{"name": item} for item in raw_objects],
         "definitions": draft.get("definitions", []),
-        "quantifiers": draft.get("quantifiers", []),
+        "quantifiers": [{"expression": item} for item in raw_quantifiers],
         "exact_negation": draft.get("exact_negation", ""),
         "allowed_dependencies": draft.get("allowed_dependencies", []),
         "forbidden_information": draft.get("forbidden_information", []),
-        "boundary_rules": draft.get("boundary_rules", {}),
+        "boundary_rules": {"conditions": raw_boundaries},
         "randomness_rules": draft.get("randomness_rules", {}),
         "tie_rules": draft.get("tie_rules", {}),
         "success_certificate_types": certificate_types,
@@ -448,7 +465,7 @@ def kernel_contract(request: ProductCommand) -> Mapping[str, object]:
         "literature_cutoff_date": draft.get("literature_cutoff_date", "9999-12-31"),
         "budget_policy": request.payload.get("initial_budget", {}),
         "stop_rules": draft.get("stop_rules", [{"kind": "manual"}]),
-        "semantic_review_policy": draft.get("semantic_review_policy", {}),
+        "semantic_review_policy": {"allowed_tools": raw_tools},
         "amendment_policy": draft.get("amendment_policy", {}),
     }
 
