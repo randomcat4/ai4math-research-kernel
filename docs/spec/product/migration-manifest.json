@@ -160,6 +160,11 @@
       "release_position": 31,
       "fragment_id": "B16c/backup",
       "sha256": "72fb523667271c32f618cbbfffcdd1e0fba6de2a5e3420fad359d863ad818f84"
+    },
+    {
+      "release_position": 32,
+      "fragment_id": "B03b/job_requests",
+      "sha256": "01254ac13ce74947aaec86b3ba716d9fe42aaa0a6f65623b5988a89702f82ea2"
     }
   ]
 }

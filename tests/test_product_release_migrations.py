@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 
 from rk.product_migrations import (
-    ProductMigrationAssembler,
     ProductMigrationError,
     ProductMigrationRegistry,
 )
@@ -73,31 +72,30 @@ def test_project_release_manifest_empty_install_and_repeat_are_exact(
     manifest = release.manifest()
     assert manifest.release_status == "BACKEND_ONLY"
     assert manifest.sealed is False
-    assert len(manifest.fragments) == 31
-    assert manifest.fragments[-3].fragment_id == "B18/research_lineage"
-    assert manifest.fragments[-2].fragment_id == "B17/problem_pool"
-    assert manifest.fragments[-1].fragment_id == "B16c/backup"
+    assert len(manifest.fragments) == 32
+    assert manifest.fragments[-2].fragment_id == "B16c/backup"
+    assert manifest.fragments[-1].fragment_id == "B03b/job_requests"
 
     db = tmp_path / "empty.sqlite"
     with sqlite3.connect(db, isolation_level=None) as connection:
         first = release.apply(connection)
         second = release.apply(connection)
         assert first == second
-        assert len(first) == 31
+        assert len(first) == 32
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
 
 
-def test_release_upgrades_the_previous_30_fragment_database_atomically(
+def test_release_upgrades_the_previous_31_fragment_database_atomically(
     tmp_path: Path,
 ) -> None:
     old_root = tmp_path / "old-fragments"
     shutil.copytree(FRAGMENTS, old_root)
-    (old_root / "B16c" / "backup.sql").unlink()
-    (old_root / "B16c").rmdir()
+    (old_root / "B03b" / "job_requests.sql").unlink()
+    (old_root / "B03b").rmdir()
     old_manifest, old_lock = tmp_path / "old-manifest.json", tmp_path / "old.lock"
     current_order = tuple(
-        item.fragment_id for item in _release(FRAGMENTS, MANIFEST, LOCK).manifest().fragments[:30]
+        item.fragment_id for item in _release(FRAGMENTS, MANIFEST, LOCK).manifest().fragments[:31]
     )
     _write_manifest(old_root, old_manifest, old_lock, current_order)
     db = tmp_path / "current.sqlite"
@@ -106,17 +104,17 @@ def test_release_upgrades_the_previous_30_fragment_database_atomically(
         assert connection.execute(
             "SELECT package,assembly_position FROM product_schema_fragments "
             "ORDER BY assembly_position DESC LIMIT 1"
-        ).fetchone() == ("B17", 30)
+        ).fetchone() == ("B16c", 31)
 
         result = _release(FRAGMENTS, MANIFEST, LOCK).apply(connection)
-        assert len(result) == 31
+        assert len(result) == 32
         assert connection.execute(
             "SELECT package,assembly_position FROM product_schema_fragments "
             "ORDER BY assembly_position DESC LIMIT 1"
-        ).fetchone() == ("B16c", 31)
+        ).fetchone() == ("B03b", 32)
         assert connection.execute(
-            "SELECT name FROM sqlite_master WHERE name='product_backups'"
-        ).fetchone() == ("product_backups",)
+            "SELECT name FROM sqlite_master WHERE name='product_job_requests'"
+        ).fetchone() == ("product_job_requests",)
 
 
 def test_release_failure_rolls_back_all_prior_fragments(tmp_path: Path) -> None:
