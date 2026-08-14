@@ -6,8 +6,10 @@ per-command closures. Mathematical mutations always cross ProductAuthority.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
+import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,7 +21,7 @@ from rk.product.attestation_import import ImportedReview, ReviewAttestationImpor
 from rk.product.authority import CapabilitySource, ProductAuthority
 from rk.product.bridge_opportunities import BridgeOpportunityStore, OpportunityMetrics
 from rk.product.contract_materials import ContractMaterialService
-from rk.product.contracts import ContractStore
+from rk.product.contracts import ContractContent, ContractStore
 from rk.product.domain_commands import (
     CommandFenceSource,
     DomainCommandAuthority,
@@ -30,12 +32,15 @@ from rk.product.domain_commands import (
 )
 from rk.product.guidance import GuidanceStore
 from rk.product.jobs import JobStore
+from rk.product.listing import ResearchCatalog
 from rk.product.materials import MaterialStore
 from rk.product.problem_pool import ProblemPoolStore
 from rk.product.reviews import ReviewArtifactRef, ReviewBinding, ReviewTaskStore, ReviewType
 from rk.product.revocation import RevocationService
 from rk.product.route_plan import RoutePlanStore
+from rk.product.summary import BudgetSummary, ResearchSummaryProjection
 from rk.product.theorem_applicability import TheoremApplicabilityStore
+from rk.wire import canonical_json_bytes
 
 
 class ArtifactPublisher(Protocol):
@@ -60,6 +65,7 @@ class DomainHandlerServices:
     bridge_opportunities: BridgeOpportunityStore
     revocations: RevocationService
     jobs: JobStore
+    catalog: ResearchCatalog
     clock: Callable[[], str]
     ids: Callable[[], str]
 
@@ -112,6 +118,7 @@ class _Handlers:
 
     def create_research(self, i: DomainInvocation) -> ProductDecision:
         run_id = self.s.kernel.create(i.session, i.request)
+        self._register_created_research(i, run_id)
         return ProductDecision(
             True,
             i.fence.revision,
@@ -121,6 +128,102 @@ class _Handlers:
             affected_entity_ids=(run_id,),
             created_run_id=run_id,
         )
+
+    def _register_created_research(self, i: DomainInvocation, run_id: str) -> None:
+        payload = i.request.payload
+        now = self.s.clock()
+        title = _optional_text(payload, "title") or _text(payload, "question")
+        owner = _text(payload, "owner")
+        labels = _strings(payload, "labels")
+        expected_catalog = (
+            title,
+            _text(payload, "question"),
+            owner,
+            _json(list(sorted(set(labels)))),
+        )
+        with sqlite3.connect(self.s.db_path) as connection:
+            row = connection.execute(
+                "SELECT title,question_summary,owner,labels_json FROM research_catalog "
+                "WHERE run_id=?",
+                (run_id,),
+            ).fetchone()
+        if row is None:
+            self.s.catalog.register(
+                run_id=run_id,
+                title=title,
+                question_summary=_text(payload, "question"),
+                owner=owner,
+                labels=labels,
+                created_at=now,
+            )
+        elif tuple(str(item) for item in row) != expected_catalog:
+            raise DomainCommandRejected("RESEARCH_CATALOG_BINDING_MISMATCH")
+
+        draft = _object(payload, "contract_draft")
+        contract_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"rk:contract:{run_id}"))
+        content = ContractContent(
+            objective=_text(payload, "question"),
+            domain=_text(draft, "domain"),
+            quantifiers=_strings(draft, "quantifiers"),
+            boundary_conditions=_strings(draft, "boundary_conditions"),
+            exact_negation=_text(draft, "exact_negation"),
+            allowed_tools=_strings(draft, "allowed_tools"),
+            success_criteria=_strings(draft, "success_conditions"),
+        )
+        self.s.contracts.create_draft(
+            contract_id=contract_id,
+            run_id=run_id,
+            content=content,
+            ambiguities=(),
+            now=now,
+        )
+
+        material_ids = []
+        for binding in _objects(payload, "material_artifacts"):
+            artifact_id = _text(binding, "artifact_id")
+            descriptor = self.s.artifacts.describe(artifact_id)
+            if descriptor.ref.sha256 != _text(binding, "sha256"):
+                raise DomainCommandRejected("MATERIAL_ARTIFACT_DIGEST_MISMATCH")
+            material_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"rk:material:{run_id}:{artifact_id}"))
+            self.s.materials.ingest(
+                material_id=material_id,
+                run_id=run_id,
+                material_kind=_material_kind(descriptor.ref.media_type),
+                original=descriptor.ref,
+                now=now,
+            )
+            material_ids.append(material_id)
+
+        source = {
+            "run_id": run_id,
+            "contract_id": contract_id,
+            "contract_digest": hashlib.sha256(canonical_json_bytes(content.to_dict())).hexdigest(),
+            "material_ids": material_ids,
+            "initial_budget": dict(_object(payload, "initial_budget")),
+        }
+        projection = ResearchSummaryProjection(
+            outcome_state="OPEN",
+            execution_state="IDLE",
+            authority_state="CONTRACT_DRAFT",
+            publication_state="NOT_STARTED",
+            phase="CONTRACT",
+            blockers=("CONTRACT_CONFIRMATION_REQUIRED",),
+            next_actions=("CONFIRM_CONTRACT",),
+            available_actions=({"command_type": "CONFIRM_CONTRACT"},),
+            budget=BudgetSummary(0, 0, 0, 0),
+            recent_activity_at=now,
+            recent_activity_summary="Research created; contract confirmation required.",
+            research_revision=0,
+            contract_version=1,
+            last_cursor=self._cursor(),
+            projection_source_digest=hashlib.sha256(canonical_json_bytes(source)).hexdigest(),
+        )
+        with sqlite3.connect(self.s.db_path) as connection:
+            projected = connection.execute(
+                "SELECT 1 FROM research_summary_projection WHERE run_id=?", (run_id,)
+            ).fetchone()
+        if projected is None:
+            self.s.catalog.project(run_id, projection)
 
     def confirm_contract(self, i: DomainInvocation) -> ProductDecision:
         payload = i.request.payload
@@ -651,6 +754,30 @@ def _strings(value: Mapping[str, object], name: str) -> tuple[str, ...]:
     if not isinstance(item, list) or any(not isinstance(part, str) for part in item):
         raise ValueError(f"{name} must be a string array")
     return tuple(cast(list[str], item))
+
+
+def _objects(value: Mapping[str, object], name: str) -> tuple[dict[str, object], ...]:
+    item = value.get(name)
+    if not isinstance(item, list) or any(not isinstance(part, dict) for part in item):
+        raise ValueError(f"{name} must be an object array")
+    return tuple(cast(list[dict[str, object]], item))
+
+
+def _json(value: object) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _material_kind(media_type: str) -> str:
+    normalized = media_type.partition(";")[0].strip().lower()
+    if normalized == "application/pdf":
+        return "PDF"
+    if normalized in {"application/x-tex", "text/x-tex"}:
+        return "TEX"
+    if normalized.startswith("image/"):
+        return "IMAGE"
+    if normalized.startswith("text/"):
+        return "TEXT"
+    raise DomainCommandRejected("MATERIAL_MEDIA_TYPE_UNSUPPORTED")
 
 
 __all__ = ["ArtifactPublisher", "DomainHandlerServices", "build_domain_command_authority"]
