@@ -616,6 +616,7 @@ verifier→拒绝修复→回图/检索复用→组合义务/ClosureWitness read
 | B08b | `BACKEND_ONLY` | 多源文献图、适用性和独立新颖性审查 | 逐边来源/版本/锚点、精确arXiv上下文；NO_HIT/失败/薄客户端不得产生新颖性 |
 | B09a | `BACKEND_ONLY` | `work_activity.py`、orchestrator activity adapter | WorkerRun/attempt完整历史、重启恢复、单活动cursor与公开白名单已验收 |
 | B09b | `BACKEND_ONLY` | `route_plan.py`、route-control adapter | 三路线正式控制、STOP派生闸门、CAS/幂等与hint负链已验收 |
+| B09c | `BACKEND_ONLY` | 远域机会与五组正式消融 | 真实进程、完整分母、同一终局verifier与配置漂移拒绝；未预设full-RK胜出 |
 | B10 | `BACKEND_ONLY` | `claims.py`、validation gateway、S00 handlers | 原子Claim、拒绝修复、必要子图及仅ResearchKernel晋级已验收 |
 | B10b | `BACKEND_ONLY` | 研究稿多Claim规范化、异质验证与义务adapter | 真实研究级拒绝修复、检索复用；仅kernel接受事件推进ClosureWitness readiness |
 | B11a | `BACKEND_ONLY` | 单一invalidation ledger/watermark | 强杀重启、projection lag、七类绑定追平与sibling保留已验收 |
@@ -626,7 +627,9 @@ verifier→拒绝修复→回图/检索复用→组合义务/ClosureWitness read
 | B13 | `BACKEND_ONLY` | kernel预算提交、真实硬件探测与稳定placement | CPU/ROCm同run真实并发执行、50非终态、预算恢复与稳定晋级已验收；API未配置保持UNCONFIGURED |
 | B14 | `BACKEND_ONLY` | 五态人工提示与orchestrator adapter | 有效提示真实改变后续WorkItem输入；路线停止仍须B09b正式动作，提示不写图 |
 | B15a | `BACKEND_ONLY` | 唯一ROOT/Finalize与CLOSED发布白名单 | 窄身份、精确revision/ROOT/closure/TeX/generation绑定；mutation仅写发布投影 |
+| B15b | `BACKEND_ONLY` | 确定性TeX、签名审查、真实PDF与卷宗 | pdflatex失败返修、新摘要强制重审；主页不泄露候选TeX |
 | B16a | `BACKEND_ONLY` | 真实部署probe与类型化诊断 | CPU/RAM/SQLite/CAS/ROCm/HTTP逐项状态、公开活动白名单及重启回执已验收 |
+| B18 | `BACKEND_ONLY` | Zhao双模式与N2_AJT5历史迁移 | 净室无历史证据且诚实NO_REDISCOVERY；证书逐件核验；N2未验证候选不入图 |
 | 其余 D/P/B/F/I/R | `NOT_STARTED` | 无新产品完成证据 | 依本文拓扑推进 |
 
 `SPEC_ONLY` 只表示冻结契约或接缝已有可执行校验，不表示 ResearchProduct、后端、前端或产品 E2E 已完成。
