@@ -22,21 +22,28 @@ def _database(tmp_path: Path) -> Path:
     return path
 
 
-def test_four_roles_have_frozen_narrow_capabilities_without_gateway_or_wildcard() -> None:
+def test_eight_roles_have_frozen_narrow_product_capabilities() -> None:
     assert set(ProductRole) == {
         ProductRole.MAIN,
+        ProductRole.LITERATURE_REVIEWER,
         ProductRole.WORKER,
-        ProductRole.REVIEWER,
+        ProductRole.MACHINE_VERIFIER,
+        ProductRole.PEER_REVIEWER,
+        ProductRole.PAPER_REVIEWER,
+        ProductRole.PUBLICATION_WORKER,
         ProductRole.ADMIN,
     }
     assert all("*" not in role_actions(role) for role in ProductRole)
-    assert "Finalize" in role_actions(ProductRole.MAIN)
-    assert "Finalize" not in role_actions(ProductRole.WORKER)
-    assert "RegisterClaim" in role_actions(ProductRole.WORKER)
-    assert "SubmitCompositionReview" in role_actions(ProductRole.REVIEWER)
-    assert "SubmitCompositionReview" not in role_actions(ProductRole.MAIN)
-    assert "DeploymentOperation" in role_actions(ProductRole.ADMIN)
-    assert "Finalize" not in role_actions(ProductRole.ADMIN)
+    assert "FINALIZE_RESEARCH" in role_actions(ProductRole.MAIN)
+    assert "FINALIZE_RESEARCH" not in role_actions(ProductRole.WORKER)
+    assert "SUBMIT_CLAIM" in role_actions(ProductRole.WORKER)
+    assert "SUBMIT_REVIEW" in role_actions(ProductRole.PEER_REVIEWER)
+    assert "SUBMIT_REVIEW" not in role_actions(ProductRole.PAPER_REVIEWER)
+    assert "SUBMIT_PAPER_REVIEW" in role_actions(ProductRole.PAPER_REVIEWER)
+    assert "GENERATE_CANDIDATE_TEX" in role_actions(ProductRole.PUBLICATION_WORKER)
+    assert "DEPLOYMENT_OPERATION" in role_actions(ProductRole.ADMIN)
+    assert "CREATE_RESEARCH" not in role_actions(ProductRole.ADMIN)
+    assert all(role.value != "GATEWAY" for role in ProductRole)
 
 
 def test_identity_login_secret_is_verified_and_disabled_identity_cannot_login(

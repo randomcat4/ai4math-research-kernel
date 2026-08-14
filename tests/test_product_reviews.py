@@ -39,6 +39,7 @@ ROOT = Path(__file__).parents[1]
 SCHEMA = ROOT / "docs/spec/product/review.schema.json"
 B05A = ROOT / "schema_fragments/B05a/identity.sql"
 B05B = ROOT / "schema_fragments/B05b/reviews.sql"
+B05C = ROOT / "schema_fragments/B05c/identity_roles.sql"
 SECRET = b"managed-review-key-material-32bytes!"
 TASK_ID = "76e89cf5-2d2e-461b-b03d-c4ed076fd6c1"
 RUN_ID = "c73f6387-2ea0-487a-aebf-dd2b8dad8ec2"
@@ -113,12 +114,17 @@ def _harness(
     with sqlite3.connect(db_path) as connection:
         connection.executescript(B05A.read_text(encoding="utf-8"))
         connection.executescript(B05B.read_text(encoding="utf-8"))
+        connection.executescript(B05C.read_text(encoding="utf-8"))
     identities = IdentityStore(db_path, lambda: b"0" * 16)
     identities.register(
         identity_id=REVIEWER_ID,
         subject_id=REVIEWER_SUBJECT,
         display_name="Independent reviewer",
-        role=ProductRole.REVIEWER,
+        role=(
+            ProductRole.PAPER_REVIEWER
+            if review_type is ReviewType.PAPER
+            else ProductRole.PEER_REVIEWER
+        ),
         capability_id="cap:reviewer:one",
         login_secret="reviewer-login-secret",
         now=CREATED,
@@ -468,7 +474,7 @@ def test_reassignment_rechecks_identity_and_author_independence(tmp_path: Path) 
         identity_id="verifier:managed:two",
         subject_id="reviewer:two",
         display_name="Second independent reviewer",
-        role=ProductRole.REVIEWER,
+        role=ProductRole.PEER_REVIEWER,
         capability_id="cap:reviewer:two",
         login_secret="second-reviewer-secret",
         now=CLAIMED,
@@ -492,7 +498,7 @@ def test_reassignment_rechecks_identity_and_author_independence(tmp_path: Path) 
         identity_id="verifier:author",
         subject_id=AUTHOR,
         display_name="Author identity",
-        role=ProductRole.REVIEWER,
+        role=ProductRole.PEER_REVIEWER,
         capability_id="cap:reviewer:author",
         login_secret="author-reviewer-secret",
         now=CLAIMED,

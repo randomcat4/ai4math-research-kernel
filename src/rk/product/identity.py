@@ -14,8 +14,12 @@ from types import MappingProxyType
 
 class ProductRole(StrEnum):
     MAIN = "MAIN"
+    LITERATURE_REVIEWER = "LITERATURE_REVIEWER"
     WORKER = "WORKER"
-    REVIEWER = "REVIEWER"
+    MACHINE_VERIFIER = "MACHINE_VERIFIER"
+    PEER_REVIEWER = "PEER_REVIEWER"
+    PAPER_REVIEWER = "PAPER_REVIEWER"
+    PUBLICATION_WORKER = "PUBLICATION_WORKER"
     ADMIN = "ADMIN"
 
 
@@ -23,56 +27,63 @@ _ROLE_ACTIONS: Mapping[ProductRole, frozenset[str]] = MappingProxyType(
     {
         ProductRole.MAIN: frozenset(
             {
-                "create",
-                "FreezeContract",
-                "AmendContract",
-                "StartRun",
-                "Interrupt",
-                "Resume",
-                "CancelRun",
-                "ApplyRoutePlan",
-                "SubmitGuidance",
-                "WithdrawGuidance",
-                "ConfirmRevoke",
-                "RegisterBridgeSpec",
-                "SubmitClosureWitness",
-                "CreateReviewTask",
-                "GenerateCandidateTex",
-                "Finalize",
-                "ExportDossier",
+                "AMEND_CONTRACT",
+                "APPLY_ROUTE_PLAN",
+                "ASSIGN_ABLATION",
+                "BATCH_CREATE_RESEARCH",
+                "CANCEL_JOB",
+                "CANCEL_RESEARCH",
+                "CONFIRM_CONTRACT",
+                "CONFIRM_MATERIAL_EXTRACTION",
+                "CONFIRM_REVOKE",
+                "CREATE_RESEARCH",
+                "CREATE_REVIEW_TASK",
+                "FINALIZE_RESEARCH",
+                "FREEZE_PROBLEM_POOL",
+                "IMPORT_RESEARCH_LINEAGE",
+                "PAUSE_RESEARCH",
+                "REGISTER_BRIDGE_OPPORTUNITY",
+                "REGISTER_BRIDGE_SPEC",
+                "REPLAY_SOURCE_SNAPSHOT",
+                "RESUME_RESEARCH",
+                "RUN_LITERATURE_QUERY",
+                "START_RESEARCH",
+                "SUBMIT_CLOSURE_WITNESS",
+                "SUBMIT_GUIDANCE",
+                "WITHDRAW_GUIDANCE",
+            }
+        ),
+        ProductRole.LITERATURE_REVIEWER: frozenset(
+            {
+                "REVIEW_THEOREM_APPLICABILITY",
             }
         ),
         ProductRole.WORKER: frozenset(
             {
-                "RegisterClaim",
-                "ReviseClaim",
-                "CreateComputeTask",
-                "RunTool",
-                "CancelJob",
-                "SubmitWorkerCheckpoint",
+                "CANCEL_JOB",
+                "CREATE_COMPUTE_TASK",
+                "REGISTER_BRIDGE_OPPORTUNITY",
+                "RETRY_UNKNOWN_OUTCOME",
+                "RUN_TOOL",
+                "SUBMIT_CLAIM",
             }
         ),
-        ProductRole.REVIEWER: frozenset(
+        ProductRole.MACHINE_VERIFIER: frozenset(
             {
-                "ClaimReviewTask",
-                "SubmitAtomicReview",
-                "SubmitCompositionReview",
-                "SubmitPaperReview",
-                "ReviewTheoremApplicability",
-                "ReviewMaterialExtraction",
-                "ReviewProblemCandidate",
+                "IMPORT_VERIFICATION",
             }
+        ),
+        ProductRole.PEER_REVIEWER: frozenset({"CLAIM_REVIEW_TASK", "SUBMIT_REVIEW"}),
+        ProductRole.PAPER_REVIEWER: frozenset(
+            {"CLAIM_REVIEW_TASK", "SUBMIT_PAPER_REVIEW"}
+        ),
+        ProductRole.PUBLICATION_WORKER: frozenset(
+            {"COMPILE_FINAL_PDF", "GENERATE_CANDIDATE_TEX"}
         ),
         ProductRole.ADMIN: frozenset(
             {
-                "DeploymentOperation",
-                "ConfigureDeployment",
-                "ProbeCapability",
-                "BackupDeployment",
-                "RestoreDeployment",
-                "UpgradePreflight",
-                "ManageIdentity",
-                "ReadDiagnostics",
+                "CANCEL_JOB",
+                "DEPLOYMENT_OPERATION",
             }
         ),
     }

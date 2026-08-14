@@ -59,10 +59,12 @@ class ProductAuthority:
     def create(self, session: ProductSession, request: ProductCommand) -> str:
         if request.command_type != "CREATE_RESEARCH" or not isinstance(request.scope, GlobalScope):
             raise ValueError("create requires CREATE_RESEARCH with GLOBAL scope")
-        capability = self.__capabilities.resolve(session, action="create", run_id=None)
+        product_capability = self.__capabilities.resolve(
+            session, action=request.command_type, run_id=None
+        )
         handle = self.__kernel.create(
             CreateRequest(request_id=request.request_id, contract=kernel_contract(request)),
-            capability,
+            _kernel_capability(product_capability, "create"),
         )
         return handle.run_id
 
@@ -75,9 +77,9 @@ class ProductAuthority:
             raise ValueError(
                 f"product command has no kernel binding: {request.command_type}"
             ) from error
-        capability = self.__capabilities.resolve(
+        product_capability = self.__capabilities.resolve(
             session,
-            action=binding.kernel_command_type,
+            action=request.command_type,
             run_id=request.scope.run_id,
         )
         receipt = self.__kernel.apply(
@@ -92,7 +94,7 @@ class ProductAuthority:
                     },
                 }
             ),
-            capability,
+            _kernel_capability(product_capability, binding.kernel_command_type),
         )
         return ProductDecision(
             accepted=receipt.accepted,
@@ -129,6 +131,23 @@ def exact_payload(required: tuple[str, ...], optional: tuple[str, ...] = ()) -> 
         return dict(payload)
 
     return build
+
+
+def _kernel_capability(
+    product_capability: VerifiedCapability, kernel_action: str
+) -> VerifiedCapability:
+    """Translate one authenticated product action at the sole kernel boundary."""
+
+    return VerifiedCapability(
+        capability_id=product_capability.capability_id,
+        subject_id=product_capability.subject_id,
+        issuer=product_capability.issuer,
+        allowed_actions=frozenset({kernel_action}),
+        run_scope=product_capability.run_scope,
+        issued_at=product_capability.issued_at,
+        expires_at=product_capability.expires_at,
+        subject_role=product_capability.subject_role,
+    )
 
 
 def core_kernel_bindings() -> Mapping[str, KernelBinding]:

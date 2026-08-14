@@ -205,7 +205,7 @@ class ReviewTaskStore:
         _uuid(review_task_id, "review_task_id")
         binding.validate_for(review_type)
         authors = _authors(author_subject_ids)
-        assignee = self._reviewer(assignee_identity_id)
+        assignee = self._reviewer(assignee_identity_id, review_type)
         if assignee.subject_id in authors:
             raise ReviewIndependenceError("REVIEWER_IS_TASK_AUTHOR")
         if _instant(expires_at) <= _instant(created_at):
@@ -240,7 +240,6 @@ class ReviewTaskStore:
         return _task(row)
 
     def claim(self, review_task_id: str, *, identity_id: str, now: str) -> ReviewTask:
-        reviewer = self._reviewer(identity_id)
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
@@ -249,6 +248,7 @@ class ReviewTaskStore:
             if row is None:
                 raise KeyError(review_task_id)
             task = _task(row)
+            reviewer = self._reviewer(identity_id, task.review_type)
             if task.assignee_identity_id != reviewer.identity_id:
                 raise ReviewTaskStateError("TASK_ASSIGNED_TO_ANOTHER_IDENTITY")
             if reviewer.subject_id in task.author_subject_ids:
@@ -270,8 +270,8 @@ class ReviewTaskStore:
                 "UPDATE product_review_tasks SET status='CLAIMED',claimed_at=? "
                 "WHERE review_task_id=? AND status IN ('OPEN','REASSIGNED') "
                 "AND EXISTS(SELECT 1 FROM product_identities "
-                "WHERE identity_id=assignee_identity_id AND enabled=1 AND role='REVIEWER')",
-                (now, review_task_id),
+                "WHERE identity_id=assignee_identity_id AND enabled=1 AND role=?)",
+                (now, review_task_id, _required_role(task.review_type).value),
             ).rowcount
             if changed != 1:
                 raise ReviewTaskConflict("review task changed while claimed")
@@ -286,7 +286,6 @@ class ReviewTaskStore:
         reassigned_at: str,
         expires_at: str,
     ) -> ReviewTask:
-        assignee = self._reviewer(assignee_identity_id)
         if _instant(expires_at) <= _instant(reassigned_at):
             raise ValueError("expires_at must follow reassigned_at")
         with self._connect() as connection:
@@ -297,6 +296,7 @@ class ReviewTaskStore:
             if row is None:
                 raise KeyError(review_task_id)
             task = _task(row)
+            assignee = self._reviewer(assignee_identity_id, task.review_type)
             if task.status in (
                 ReviewTaskStatus.SUBMITTED,
                 ReviewTaskStatus.INVALIDATED,
@@ -310,12 +310,13 @@ class ReviewTaskStore:
                 "expires_at=?,claimed_at=NULL "
                 "WHERE review_task_id=? AND status NOT IN ('SUBMITTED','INVALIDATED') "
                 "AND EXISTS(SELECT 1 FROM product_identities "
-                "WHERE identity_id=? AND enabled=1 AND role='REVIEWER')",
+                "WHERE identity_id=? AND enabled=1 AND role=?)",
                 (
                     assignee_identity_id,
                     expires_at,
                     review_task_id,
                     assignee_identity_id,
+                    _required_role(task.review_type).value,
                 ),
             ).rowcount
             if changed != 1:
@@ -354,7 +355,7 @@ class ReviewTaskStore:
                 "signed_artifact_media_type=?,submitted_at=? "
                 "WHERE review_task_id=? AND status='CLAIMED' "
                 "AND EXISTS(SELECT 1 FROM product_identities "
-                "WHERE identity_id=assignee_identity_id AND enabled=1 AND role='REVIEWER')",
+                "WHERE identity_id=assignee_identity_id AND enabled=1 AND role=?)",
                 (
                     artifact_ref.artifact_id,
                     artifact_ref.sha256,
@@ -362,6 +363,7 @@ class ReviewTaskStore:
                     artifact_ref.media_type,
                     submitted_at,
                     review_task_id,
+                    _required_role(task.review_type).value,
                 ),
             ).rowcount
             if changed != 1:
@@ -369,10 +371,12 @@ class ReviewTaskStore:
             connection.commit()
         return self.get(review_task_id)
 
-    def _reviewer(self, identity_id: str) -> ProductIdentity:
+    def _reviewer(
+        self, identity_id: str, review_type: ReviewType
+    ) -> ProductIdentity:
         identity = self._identities.get(identity_id)
-        if not identity.enabled or identity.role is not ProductRole.REVIEWER:
-            raise ReviewTaskStateError("ASSIGNEE_IS_NOT_AN_ENABLED_REVIEWER")
+        if not identity.enabled or identity.role is not _required_role(review_type):
+            raise ReviewTaskStateError("ASSIGNEE_ROLE_DOES_NOT_MATCH_REVIEW_TYPE")
         return identity
 
     def _connect(self) -> sqlite3.Connection:
@@ -392,6 +396,12 @@ _TASK_SELECT = (
     "FROM product_review_tasks AS task "
     "JOIN product_identities AS identity ON identity.identity_id=task.assignee_identity_id"
 )
+
+
+def _required_role(review_type: ReviewType) -> ProductRole:
+    if review_type is ReviewType.PAPER:
+        return ProductRole.PAPER_REVIEWER
+    return ProductRole.PEER_REVIEWER
 
 
 def _task(row: tuple[object, ...]) -> ReviewTask:

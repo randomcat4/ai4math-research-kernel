@@ -213,9 +213,12 @@ class ReviewRouter:
                 HttpErrorClass.AUTHENTICATION,
                 "$.session",
             )
-        if view.role is not ProductRole.REVIEWER:
+        if view.role not in {
+            ProductRole.PEER_REVIEWER,
+            ProductRole.PAPER_REVIEWER,
+        }:
             raise _error(
-                "REVIEWER_ROLE_REQUIRED",
+                "SIGNED_REVIEWER_ROLE_REQUIRED",
                 HttpErrorClass.AUTHORIZATION,
                 "$.session.principal",
             )

@@ -144,13 +144,19 @@ IMMEDIATE_COMMAND_SPECS: Mapping[str, CommandSpec] = MappingProxyType(
         "SUBMIT_GUIDANCE": _spec("B14", "RUN", AuthorityBoundary.DOMAIN_ONLY, "MAIN"),
         "WITHDRAW_GUIDANCE": _spec("B14", "RUN", AuthorityBoundary.DOMAIN_ONLY, "MAIN"),
         "SUBMIT_CLAIM": _spec("B10", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "WORKER"),
-        "IMPORT_VERIFICATION": _spec("B10", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "WORKER"),
+        "IMPORT_VERIFICATION": _spec(
+            "B10", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "MACHINE_VERIFIER"
+        ),
         "CONFIRM_REVOKE": _spec("B11b", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "MAIN"),
         "REGISTER_BRIDGE_SPEC": _spec("B06b", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "MAIN"),
         "SUBMIT_CLOSURE_WITNESS": _spec("B06b", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "MAIN"),
         "CREATE_REVIEW_TASK": _spec("B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "MAIN"),
-        "CLAIM_REVIEW_TASK": _spec("B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "REVIEWER"),
-        "SUBMIT_REVIEW": _spec("B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "REVIEWER"),
+        "CLAIM_REVIEW_TASK": _spec(
+            "B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "PEER_REVIEWER"
+        ),
+        "SUBMIT_REVIEW": _spec(
+            "B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "PEER_REVIEWER"
+        ),
         "SUBMIT_PAPER_REVIEW": _spec(
             "B15a", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "PAPER_REVIEWER"
         ),
