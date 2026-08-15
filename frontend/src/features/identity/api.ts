@@ -94,6 +94,7 @@ function session(value: Record<string, unknown>): SessionView {
   const role = required(value.role, "role");
   if (
     ![
+      "VIEWER",
       "MAIN",
       "LITERATURE_REVIEWER",
       "WORKER",

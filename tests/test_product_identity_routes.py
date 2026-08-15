@@ -152,7 +152,7 @@ def test_shared_options_enter_without_exposing_identity_or_secret(tmp_path: Path
         router.enter,
         _request("/v1/session/enter", {"option": "SHARED"}),
     )
-    assert entered.body["role"] == "MAIN"
+    assert entered.body["role"] == "VIEWER"
     session_id = str(entered.body["session_id"])
     assert session_id.startswith("shared.")
     assert sessions.derive(session_id, now=NOW).principal_subject_id == "main:one"

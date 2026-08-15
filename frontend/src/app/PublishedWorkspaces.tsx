@@ -32,6 +32,7 @@ function reviewSession(
     !session ||
     !(
       [
+        "VIEWER",
         "MAIN",
         "LITERATURE_REVIEWER",
         "WORKER",

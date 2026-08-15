@@ -291,7 +291,7 @@ def _session_body(view: SessionView) -> Mapping[str, JsonValue]:
         "principal_subject_id": view.principal_subject_id,
         "identity_id": view.identity_id,
         "display_name": view.display_name,
-        "role": view.role.value,
+        "role": "VIEWER" if view.session_id.startswith("shared.") else view.role.value,
         "linked_identity_ids": list(view.linked_identity_ids),
         "session_version": view.session_version,
         "issued_at": view.issued_at,

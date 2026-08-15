@@ -1,4 +1,5 @@
 export type ProductRole =
+  | "VIEWER"
   | "MAIN"
   | "LITERATURE_REVIEWER"
   | "WORKER"
@@ -25,6 +26,7 @@ export interface SessionOption {
   description: string;
 }
 const ACTIONS: Record<ProductRole, string[]> = {
+  VIEWER: [],
   MAIN: [
     "CreateResearch",
     "FreezeContract",
@@ -57,6 +59,7 @@ export function narrowActions(role: ProductRole) {
 }
 
 const ROLE_LABELS: Record<ProductRole, string> = {
+  VIEWER: "共享浏览者",
   MAIN: "数学家",
   LITERATURE_REVIEWER: "文献审查者",
   WORKER: "研究执行者",
