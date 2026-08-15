@@ -1,3 +1,207 @@
-import {useMemo,useState} from "react";import {LineagePanel} from "../research-lineage/LineagePanel.js";import type {ConfirmationItem,LineageCase} from "../research-lineage/model.js";import {F11Gateway,ref} from "./api.js";import type {ProblemPoolView} from "./model.js";import "./problem-pool.css";
-interface Props{deploymentId:string;runId:string;researchRevision:number;contractVersion:number;baseUrl?:string;pool?:ProblemPoolView;lineages:LineageCase[];confirmations:ConfirmationItem[]}
-export function ProblemPoolWorkspace(p:Props){const gateway=useMemo(()=>new F11Gateway(p.deploymentId,p.runId,p.researchRevision,p.contractVersion,p.baseUrl),[p.deploymentId,p.runId,p.researchRevision,p.contractVersion,p.baseUrl]);const[status,setStatus]=useState("");const[budget,setBudget]=useState('{"INPUT_TOKEN":100000,"OUTPUT_TOKEN":30000}');const pool=p.pool;const counts=pool?.candidates.reduce<Record<string,number>>((a,x)=>({...a,[x.state]:(a[x.state]??0)+1}),{})??{};async function freeze(){if(!pool)return;try{await gateway.globalCommand("FREEZE_PROBLEM_POOL",{pool_name:pool.name,frozen_at:new Date().toISOString(),source_snapshot_ids:pool.sourceSnapshotIds,subject_classes:pool.rules.subjectClasses,version_rule:pool.rules.versionRule,inclusion_rules:{date_from:pool.rules.dateFrom,date_to:pool.rules.dateTo,rules:pool.rules.inclusionRules},exclusion_rules:{withdrawn:pool.rules.withdrawnRule,rules:pool.rules.exclusionRules},candidate_denominator:pool.candidates.length,semantic_audit_artifact:ref(pool.semanticAuditArtifact)});setStatus("题池冻结命令已提交；语义抽查不产生数学事实")}catch(e){setStatus(e instanceof Error?e.message:"冻结接口不可用")}}async function batch(){if(!pool?.contractTemplateArtifact)return;const ids=pool.candidates.filter(x=>x.state==="INCLUDED").map(x=>x.candidateId);try{await gateway.globalCommand("BATCH_CREATE_RESEARCH",{problem_pool_id:pool.poolId,problem_candidate_ids:ids,contract_template_artifact:ref(pool.contractTemplateArtifact),labels:["ARXIV_POOL",...pool.rules.subjectClasses],per_run_budget:JSON.parse(budget)});setStatus(`正式批量创建已提交：分母 ${ids.length}；每项独立 Receipt/run`)}catch(e){setStatus(e instanceof Error?e.message:"批量创建不可用")}}return <main className="rk-pool"><header><div><p>ARXIV PROBLEM POOL · LINEAGE</p><h1>题池与科研谱系</h1></div><strong>{status}</strong></header>{!pool?<section className="rk-unavailable"><h2>题池查询未发布</h2><p>不使用 fixture 补齐候选或成功数。</p></section>:<><section className="rk-rules"><h2>冻结规则</h2><dl><div><dt>日期</dt><dd>{pool.rules.dateFrom} → {pool.rules.dateTo}</dd></div><div><dt>学科</dt><dd>{pool.rules.subjectClasses.join(", ")}</dd></div><div><dt>版本</dt><dd>{pool.rules.versionRule}</dd></div><div><dt>撤稿</dt><dd>{pool.rules.withdrawnRule}</dd></div><div><dt>语义抽查</dt><dd>{pool.rules.semanticSampleSize} / {pool.candidates.length}</dd></div></dl><button onClick={()=>void freeze()}>按完整规则正式冻结</button></section><section className="rk-denominators"><h2>完整分母</h2>{["INCLUDED","EXCLUDED","FAILED","EXTERNAL_BLOCKED","PENDING_EXPERT","PENDING_AUTHOR"].map(x=><div key={x} data-state={x}><strong>{counts[x]??0}</strong><span>{x}</span></div>)}</section><section className="rk-candidates"><h2>全部候选（失败与阻塞不被成功过滤）</h2><table><thead><tr><th>arXiv</th><th>日期/版本</th><th>学科</th><th>题目</th><th>语义抽查</th><th>状态</th><th>理由</th></tr></thead><tbody>{pool.candidates.map(x=><tr key={x.candidateId} data-state={x.state}><td>{x.arxivId}</td><td>{x.date} · {x.version}</td><td>{x.subjects.join(",")}</td><td>{x.title}</td><td>{x.semanticAudit}</td><td>{x.state}</td><td>{x.reason}</td></tr>)}</tbody></table></section><section className="rk-batch"><h2>正式批量创建独立研究 run</h2><textarea value={budget} onChange={e=>setBudget(e.target.value)}/><button disabled={!pool.contractTemplateArtifact||!(counts.INCLUDED>0)} onClick={()=>void batch()}>为全部 INCLUDED 创建 run</button><p>PENDING_EXPERT / PENDING_AUTHOR、FAILED、BLOCKED 和 EXCLUDED 不会被静默算入成功。</p></section></>}<LineagePanel gateway={gateway} cases={p.lineages} confirmations={p.confirmations}/></main>}
+import { useMemo, useState } from "react";
+import { LineagePanel } from "../research-lineage/LineagePanel.js";
+import type {
+  ConfirmationItem,
+  LineageCase,
+} from "../research-lineage/model.js";
+import { F11Gateway, ref } from "./api.js";
+import type { ProblemPoolView } from "./model.js";
+import "./problem-pool.css";
+interface Props {
+  deploymentId: string;
+  runId: string;
+  researchRevision: number;
+  contractVersion: number;
+  baseUrl?: string;
+  pool?: ProblemPoolView;
+  lineages: LineageCase[];
+  confirmations: ConfirmationItem[];
+}
+export function ProblemPoolWorkspace(p: Props) {
+  const gateway = useMemo(
+    () =>
+      new F11Gateway(
+        p.deploymentId,
+        p.runId,
+        p.researchRevision,
+        p.contractVersion,
+        p.baseUrl,
+      ),
+    [p.deploymentId, p.runId, p.researchRevision, p.contractVersion, p.baseUrl],
+  );
+  const [status, setStatus] = useState("");
+  const [budget, setBudget] = useState(
+    '{"INPUT_TOKEN":100000,"OUTPUT_TOKEN":30000}',
+  );
+  const pool = p.pool;
+  const counts =
+    pool?.candidates.reduce<Record<string, number>>(
+      (a, x) => ({ ...a, [x.state]: (a[x.state] ?? 0) + 1 }),
+      {},
+    ) ?? {};
+  async function freeze() {
+    if (!pool) return;
+    try {
+      await gateway.globalCommand("FREEZE_PROBLEM_POOL", {
+        pool_name: pool.name,
+        frozen_at: new Date().toISOString(),
+        source_snapshot_ids: pool.sourceSnapshotIds,
+        subject_classes: pool.rules.subjectClasses,
+        version_rule: pool.rules.versionRule,
+        inclusion_rules: {
+          date_from: pool.rules.dateFrom,
+          date_to: pool.rules.dateTo,
+          rules: pool.rules.inclusionRules,
+        },
+        exclusion_rules: {
+          withdrawn: pool.rules.withdrawnRule,
+          rules: pool.rules.exclusionRules,
+        },
+        candidate_denominator: pool.candidates.length,
+        semantic_audit_artifact: ref(pool.semanticAuditArtifact),
+      });
+      setStatus("题池冻结命令已提交；语义抽查不产生数学事实");
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "冻结接口不可用");
+    }
+  }
+  async function batch() {
+    if (!pool?.contractTemplateArtifact) return;
+    const ids = pool.candidates
+      .filter((x) => x.state === "INCLUDED")
+      .map((x) => x.candidateId);
+    try {
+      await gateway.globalCommand("BATCH_CREATE_RESEARCH", {
+        problem_pool_id: pool.poolId,
+        problem_candidate_ids: ids,
+        contract_template_artifact: ref(pool.contractTemplateArtifact),
+        labels: ["ARXIV_POOL", ...pool.rules.subjectClasses],
+        per_run_budget: JSON.parse(budget),
+      });
+      setStatus(`正式批量创建已提交：分母 ${ids.length}；每项独立 Receipt/run`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "批量创建不可用");
+    }
+  }
+  return (
+    <main className="rk-pool">
+      <header>
+        <div>
+          <p>ARXIV PROBLEM POOL · LINEAGE</p>
+          <h1>题池与科研谱系</h1>
+        </div>
+        <strong>{status}</strong>
+      </header>
+      {!pool ? (
+        <section className="rk-unavailable">
+          <h2>题池查询未发布</h2>
+          <p>不使用 fixture 补齐候选或成功数。</p>
+        </section>
+      ) : (
+        <>
+          <section className="rk-rules">
+            <h2>冻结规则</h2>
+            <dl>
+              <div>
+                <dt>日期</dt>
+                <dd>
+                  {pool.rules.dateFrom} → {pool.rules.dateTo}
+                </dd>
+              </div>
+              <div>
+                <dt>学科</dt>
+                <dd>{pool.rules.subjectClasses.join(", ")}</dd>
+              </div>
+              <div>
+                <dt>版本</dt>
+                <dd>{pool.rules.versionRule}</dd>
+              </div>
+              <div>
+                <dt>撤稿</dt>
+                <dd>{pool.rules.withdrawnRule}</dd>
+              </div>
+              <div>
+                <dt>语义抽查</dt>
+                <dd>
+                  {pool.rules.semanticSampleSize} / {pool.candidates.length}
+                </dd>
+              </div>
+            </dl>
+            <button onClick={() => void freeze()}>按完整规则正式冻结</button>
+          </section>
+          <section className="rk-denominators">
+            <h2>完整分母</h2>
+            {[
+              "INCLUDED",
+              "EXCLUDED",
+              "FAILED",
+              "EXTERNAL_BLOCKED",
+              "PENDING_EXPERT",
+              "PENDING_AUTHOR",
+            ].map((x) => (
+              <div key={x} data-state={x}>
+                <strong>{counts[x] ?? 0}</strong>
+                <span>{x}</span>
+              </div>
+            ))}
+          </section>
+          <section className="rk-candidates">
+            <h2>全部候选（失败与阻塞不被成功过滤）</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>arXiv</th>
+                  <th>日期/版本</th>
+                  <th>学科</th>
+                  <th>题目</th>
+                  <th>语义抽查</th>
+                  <th>状态</th>
+                  <th>理由</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pool.candidates.map((x) => (
+                  <tr key={x.candidateId} data-state={x.state}>
+                    <td>{x.arxivId}</td>
+                    <td>
+                      {x.date} · {x.version}
+                    </td>
+                    <td>{x.subjects.join(",")}</td>
+                    <td>{x.title}</td>
+                    <td>{x.semanticAudit}</td>
+                    <td>{x.state}</td>
+                    <td>{x.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+          <section className="rk-batch">
+            <h2>正式批量创建独立研究 run</h2>
+            <textarea
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+            />
+            <button
+              disabled={
+                !pool.contractTemplateArtifact || !(counts.INCLUDED > 0)
+              }
+              onClick={() => void batch()}
+            >
+              为全部 INCLUDED 创建 run
+            </button>
+            <p>
+              PENDING_EXPERT / PENDING_AUTHOR、FAILED、BLOCKED 和 EXCLUDED
+              不会被静默算入成功。
+            </p>
+          </section>
+        </>
+      )}
+      <LineagePanel
+        gateway={gateway}
+        cases={p.lineages}
+        confirmations={p.confirmations}
+      />
+    </main>
+  );
+}
