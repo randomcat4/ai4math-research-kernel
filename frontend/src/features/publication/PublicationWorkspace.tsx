@@ -128,7 +128,16 @@ export function PublicationWorkspace(p: Props) {
         </div>
         <strong>{status}</strong>
       </header>
-      <DossierPanel dossier={p.dossier} />
+      {p.dossier ? (
+        <DossierPanel dossier={p.dossier} />
+      ) : (
+        <section className="rk-dossier rk-unavailable">
+          <h2>卷宗目录尚未返回</h2>
+          <p>
+            当前页面只显示已经由发布状态投影确认的终态环节，不用缓存补造卷宗。
+          </p>
+        </section>
+      )}
       {(publicationWorker || exactReviewer) && (
         <section className="rk-pipeline">
           <h2>发布绑定链</h2>
@@ -173,12 +182,23 @@ export function PublicationWorkspace(p: Props) {
           </button>
         </section>
       )}{" "}
-      {!publicationWorker && p.sessionRole !== "PAPER_REVIEWER" ? (
+      {!publicationWorker &&
+      p.sessionRole !== "PAPER_REVIEWER" &&
+      publication ? (
         <section className="rk-frozen">
-          <h2>结论已冻结，等待独立复核</h2>
+          <h2 data-state-binding="publication.finalizedRevision">
+            终态快照已冻结，等待独立复核
+          </h2>
           <p>
-            Main 在列表、路线和卷宗中只看到此状态；本页不会生成候选 TeX
-            链接或泄露精确工件地址。
+            已确认 finalized revision r{publication.finalizedRevision}
+            。当前身份只能查看公开状态， 不显示候选 TeX 链接或精确工件地址。
+          </p>
+        </section>
+      ) : !publication ? (
+        <section className="rk-denied">
+          <h2 data-state-binding="publication">研究尚未进入终态发布链</h2>
+          <p>
+            没有 finalized snapshot 时，不显示“已冻结”“等待复核”或最终论文状态。
           </p>
         </section>
       ) : exactReviewer && candidate && task ? (
@@ -204,7 +224,7 @@ export function PublicationWorkspace(p: Props) {
             提交签名独立审查
           </button>
         </section>
-      ) : (
+      ) : !publicationWorker ? (
         <section className="rk-denied">
           <h2>没有精确绑定的论文审查任务</h2>
           <p>
@@ -212,7 +232,7 @@ export function PublicationWorkspace(p: Props) {
             finalized revision 必须全部一致。
           </p>
         </section>
-      )}{" "}
+      ) : null}{" "}
       {publicationWorker && (
         <section className="rk-compile">
           <h2>同 digest PDF 与编译返修</h2>

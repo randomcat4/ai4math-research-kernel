@@ -298,6 +298,7 @@ def _task_body(task: ReviewTask) -> dict[str, JsonValue]:
         "run_id": task.binding.run_id,
         "assignee_subject_id": task.assignee_subject_id,
         "author_subject_ids": list(task.author_subject_ids),
+        "target_id": task.binding.target_id,
         "target_digest": task.binding.target_digest,
         "contract_version": task.binding.contract_version,
         "research_revision": task.binding.kernel_revision,

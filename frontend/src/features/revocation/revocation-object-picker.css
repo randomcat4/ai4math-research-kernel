@@ -1,0 +1,56 @@
+.revoke-target,
+.revoke-boundary {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--rk-border, #273244);
+  border-radius: 10px;
+  background: var(--rk-input, #0e141e);
+}
+.revoke-target span,
+.revoke-boundary span {
+  color: var(--rk-text-muted, #9ca9bb);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+.revoke-target details,
+.revoke-technical {
+  color: var(--rk-text-muted, #9ca9bb);
+  font-size: 0.68rem;
+}
+.revoke-target code,
+.revoke-technical code {
+  display: block;
+  margin-top: 0.35rem;
+  overflow-wrap: anywhere;
+}
+.revoke-panel textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 7rem;
+  border: 1px solid var(--rk-border, #273244);
+  background: var(--rk-input, #0e141e);
+  color: var(--rk-text, #e8edf5);
+  border-radius: 8px;
+  padding: 0.7rem;
+  font: inherit;
+  resize: vertical;
+}
+.revoke-file {
+  color: var(--rk-text-muted, #9ca9bb);
+  font-size: 0.72rem;
+}
+.revoke-failure details,
+.revoke-receipt details {
+  margin-left: auto;
+}
+.revoke-failure summary,
+.revoke-receipt summary {
+  cursor: pointer;
+}
+.revoke-failure code,
+.revoke-receipt code {
+  display: block;
+  margin-top: 0.25rem;
+}

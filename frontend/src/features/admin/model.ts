@@ -1,4 +1,4 @@
-import type {JsonObject} from "../../../../sdk/typescript/src/client.js";
+import type { JsonObject } from "../../../../sdk/typescript/src/client.js";
 
 export interface ArtifactBinding {
   artifact_id: string;
@@ -98,7 +98,10 @@ export function deploymentJob(value: JsonObject): DeploymentJob {
     deploymentId: string(domain.deployment_id, "deployment_id"),
     type: string(domain.job_type, "job_type"),
     state: string(domain.job_state, "job_state"),
-    executionReceiptId: string(domain.execution_receipt_id, "execution_receipt_id"),
+    executionReceiptId: string(
+      domain.execution_receipt_id,
+      "execution_receipt_id",
+    ),
     revision: integer(value.deployment_revision, "deployment_revision"),
   };
 }
@@ -127,7 +130,7 @@ export function operationReceipt(value: JsonObject): OperationReceipt {
 
 export function failure(code: string, status: number): AdminFailure {
   const rethlasBlocked =
-    status === 504 || code.includes("RETHLAS") && code.includes("TIMEOUT");
+    status === 504 || (code.includes("RETHLAS") && code.includes("TIMEOUT"));
   const unavailable =
     rethlasBlocked ||
     status === 404 ||
@@ -139,9 +142,10 @@ export function failure(code: string, status: number): AdminFailure {
     return {
       code,
       status,
-      title: "Rethlas ??????????",
-      detail: "HTTP 504 ??????????????????????????",
-      action: "??????? receipt???????????????????",
+      title: "Rethlas 当前无法响应",
+      detail:
+        "外部服务返回超时；这不代表其他验证器失败，也不会触发无限后台重试。",
+      action: "保留失败回执，等待服务恢复后由人工发起新的尝试。",
       unavailable: true,
       rethlasBlocked: true,
     };
@@ -149,11 +153,13 @@ export function failure(code: string, status: number): AdminFailure {
   return {
     code,
     status,
-    title: unavailable ? "????????" : "???????",
-    detail: code,
+    title: unavailable ? "部署能力当前不可用" : "部署状态读取失败",
+    detail: unavailable
+      ? "服务端未发布该查询，或当前部署缺少对应能力。"
+      : "请求没有完成；现有研究状态没有因此改变。",
     action: unavailable
-      ? "???????? query/command variant????????????????"
-      : "???? Admin session??? revision ???????????",
+      ? "查看能力发布清单，确认所需查询是否已部署。"
+      : "重新读取；若仍失败，请检查管理员会话与部署修订。",
     unavailable,
     rethlasBlocked: false,
   };
@@ -172,7 +178,8 @@ function object(value: unknown, label: string): JsonObject {
 }
 
 function string(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.length === 0) throw new Error(`${label} is invalid`);
+  if (typeof value !== "string" || value.length === 0)
+    throw new Error(`${label} is invalid`);
   return value;
 }
 
@@ -181,12 +188,15 @@ function optionalString(value: unknown): string | undefined {
 }
 
 function integer(value: unknown, label: string): number {
-  if (!Number.isSafeInteger(value) || Number(value) < 0) throw new Error(`${label} is invalid`);
+  if (!Number.isSafeInteger(value) || Number(value) < 0)
+    throw new Error(`${label} is invalid`);
   return Number(value);
 }
 
 function optionalInteger(value: unknown): number | undefined {
-  return Number.isSafeInteger(value) && Number(value) >= 0 ? Number(value) : undefined;
+  return Number.isSafeInteger(value) && Number(value) >= 0
+    ? Number(value)
+    : undefined;
 }
 
 function strings(value: unknown, label: string): string[] {

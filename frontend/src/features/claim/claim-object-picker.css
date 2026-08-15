@@ -1,0 +1,63 @@
+.claim-panel select {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--rk-border, #273244);
+  background: var(--rk-input, #0e141e);
+  color: var(--rk-text, #e8edf5);
+  border-radius: 8px;
+  padding: 0.72rem;
+  font: inherit;
+}
+.claim-file {
+  padding: 0.65rem;
+  border: 1px dashed var(--rk-border, #273244);
+  border-radius: 10px;
+}
+.claim-file input {
+  margin-top: 0.35rem;
+}
+.claim-technical {
+  margin-top: 0.65rem;
+  color: var(--rk-text-muted, #9ca9bb);
+  font-size: 0.7rem;
+}
+.claim-technical code {
+  display: block;
+  margin-top: 0.35rem;
+  overflow-wrap: anywhere;
+}
+.claim-receipt details {
+  margin-left: auto;
+}
+.claim-receipt summary,
+.claim-failure summary {
+  cursor: pointer;
+}
+.claim-receipt code,
+.claim-failure code {
+  display: block;
+  margin-top: 0.25rem;
+}
+.claim-history details {
+  margin-top: 0.35rem;
+  color: var(--rk-text-muted, #9ca9bb);
+  font-size: 0.68rem;
+}
+.claim-history details code,
+.claim-history details small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.claim-title > div {
+  min-width: 0;
+}
+.claim-title h2 {
+  text-wrap: balance;
+}
+.claim-panel button:focus-visible,
+.claim-panel textarea:focus-visible,
+.claim-panel select:focus-visible,
+.claim-panel input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--rk-accent, #64d8cb) 70%, white);
+  outline-offset: 2px;
+}
