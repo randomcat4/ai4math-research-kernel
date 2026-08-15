@@ -107,6 +107,23 @@
   padding-top: 1rem;
   border-top: 1px solid var(--border-subtle);
 }
+.identity-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.identity-mode-options button {
+  display: grid;
+  flex: 1 1 12rem;
+  gap: 0.3rem;
+  min-height: 4.5rem;
+  text-align: left;
+}
+.identity-mode-options button span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
 .identity-panel form h3,
 .identity-panel form p {
   grid-column: 1/-1;

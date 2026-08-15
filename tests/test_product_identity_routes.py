@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from rk.domain import CapabilityError
 from rk.http_shell import (
     HttpErrorClass,
     HttpRequest,
@@ -125,11 +126,45 @@ def test_identity_router_registers_fixed_session_lifecycle_routes(tmp_path: Path
     registry = RouteRegistry()
     registry.register(router)
     assert [(route.method, route.path) for route in registry.routes] == [
+        ("GET", "/v1/session/options"),
+        ("POST", "/v1/session/enter"),
         ("POST", "/v1/session/login"),
         ("POST", "/v1/session/switch"),
         ("POST", "/v1/session/logout"),
         ("GET", "/v1/session/me"),
     ]
+
+
+def test_shared_options_enter_without_exposing_identity_or_secret(tmp_path: Path) -> None:
+    router, sessions = _setup(tmp_path)
+
+    options = _invoke(
+        router.options,
+        HttpRequest(method="GET", path="/v1/session/options"),
+    )
+    assert options.status == 200
+    assert options.body["default"] == "SHARED"
+    rendered_options = json.dumps(dict(options.body))
+    assert "identity-main" not in rendered_options
+    assert "main-login-secret" not in rendered_options
+
+    entered = _invoke(
+        router.enter,
+        _request("/v1/session/enter", {"option": "SHARED"}),
+    )
+    assert entered.body["role"] == "MAIN"
+    session_id = str(entered.body["session_id"])
+    assert session_id.startswith("shared.")
+    assert sessions.derive(session_id, now=NOW).principal_subject_id == "main:one"
+    assert "HttpOnly" in entered.headers["set-cookie"]
+    assert entered.body["access_mode"] == "SHARED_READ_ONLY"
+    with pytest.raises(CapabilityError):
+        sessions.verified_capability(
+            sessions.derive(session_id, now=NOW),
+            action="CREATE_RESEARCH",
+            run_id=None,
+            now=NOW,
+        )
 
 
 def test_login_sets_httponly_cookie_without_capability_secret(tmp_path: Path) -> None:
@@ -200,9 +235,7 @@ def test_second_identity_login_switch_me_and_logout_use_same_session(
 
 
 @pytest.mark.parametrize("field", ["role", "capability_id", "session_id", "principal_subject_id"])
-def test_login_rejects_role_capability_and_session_in_body(
-    tmp_path: Path, field: str
-) -> None:
+def test_login_rejects_role_capability_and_session_in_body(tmp_path: Path, field: str) -> None:
     router, _sessions = _setup(tmp_path)
     body = {
         "identity_id": "identity-main",

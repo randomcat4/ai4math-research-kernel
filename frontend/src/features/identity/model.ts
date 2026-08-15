@@ -17,6 +17,12 @@ export interface SessionView {
   sessionVersion: number;
   issuedAt: string;
   expiresAt: string;
+  accessMode: "SHARED_READ_ONLY" | "MANAGED";
+}
+export interface SessionOption {
+  id: string;
+  label: string;
+  description: string;
 }
 const ACTIONS: Record<ProductRole, string[]> = {
   MAIN: [

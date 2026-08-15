@@ -62,12 +62,47 @@ class SessionStore:
         session_id: str | None = None,
     ) -> SessionView:
         identity = self._identities.authenticate(identity_id, login_secret)
+        return self._enter_identity(
+            identity,
+            now=now,
+            expires_at=expires_at,
+            session_id=session_id,
+        )
+
+    def enter_shared(
+        self,
+        *,
+        now: str,
+        expires_at: str,
+        session_id: str | None = None,
+    ) -> SessionView:
+        """Enter the shared read-only product view without browser credentials."""
+
+        identity = self._identities.first_enabled_by_role(ProductRole.MAIN)
+        return self._enter_identity(
+            identity,
+            now=now,
+            expires_at=expires_at,
+            session_id=session_id,
+            shared_read_only=True,
+        )
+
+    def _enter_identity(
+        self,
+        identity: ProductIdentity,
+        *,
+        now: str,
+        expires_at: str,
+        session_id: str | None,
+        shared_read_only: bool = False,
+    ) -> SessionView:
         if parse_utc(expires_at) <= parse_utc(now):
             raise ValueError("session expiry must be after login time")
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             if session_id is None:
-                session_id = self._ids()
+                generated = self._ids()
+                session_id = f"shared.{generated}" if shared_read_only else generated
                 connection.execute(
                     "INSERT INTO product_sessions("
                     "session_id,organization_id,active_identity_id,session_version,issued_at,"
@@ -164,6 +199,8 @@ class SessionStore:
         run_id: str | None,
         now: str,
     ) -> VerifiedCapability:
+        if session.session_id.startswith("shared."):
+            raise CapabilityError("CAPABILITY_DENIED")
         current = self.derive(session.session_id, now=now)
         if current != session:
             raise CapabilityError("CAPABILITY_DENIED")

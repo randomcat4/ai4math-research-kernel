@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "../design/Icon";
 import {
@@ -26,50 +26,34 @@ const navigation = [
   ["admin", "管理"],
 ] as const;
 
-function LoginPanel({
-  onLogin,
+function AccessPanel({
+  options,
+  onEnter,
   busy,
 }: {
-  onLogin: (identityId: string, secret: string) => Promise<void>;
+  options: { id: string; label: string; description: string }[];
+  onEnter: (option: string) => Promise<void>;
   busy: boolean;
 }) {
-  const [identityId, setIdentityId] = useState("");
-  const [secret, setSecret] = useState("");
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    await onLogin(identityId, secret);
-    setSecret("");
-  };
-
   return (
-    <form className="login-panel" onSubmit={(event) => void submit(event)}>
-      <div className="section-kicker">IDENTITY SESSION</div>
-      <h2>以托管身份进入</h2>
-      <p>角色与权限由服务端身份决定，页面不接收 capability。</p>
-      <label>
-        身份编号
-        <input
-          autoComplete="username"
-          onChange={(event) => setIdentityId(event.target.value)}
-          required
-          value={identityId}
-        />
-      </label>
-      <label>
-        登录密钥
-        <input
-          autoComplete="current-password"
-          onChange={(event) => setSecret(event.target.value)}
-          required
-          type="password"
-          value={secret}
-        />
-      </label>
-      <button className="primary-button" disabled={busy} type="submit">
-        {busy ? "正在建立会话…" : "建立会话"}
-      </button>
-    </form>
+    <section className="login-panel" aria-labelledby="access-heading">
+      <h2 id="access-heading">选择工作方式</h2>
+      <p>所有选项看到同一份研究内容；区别只在可以执行的工作。</p>
+      <div className="access-options">
+        {options.map((option) => (
+          <button
+            className="access-option"
+            disabled={busy}
+            key={option.id}
+            onClick={() => void onEnter(option.id)}
+            type="button"
+          >
+            <strong>{option.label}</strong>
+            <span>{option.description}</span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -112,7 +96,7 @@ export function App() {
   const [researchView, setResearchView] = useState<"evidence" | "setup">(
     "evidence",
   );
-  const [loginBusy, setLoginBusy] = useState(false);
+  const [accessBusy, setAccessBusy] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -127,12 +111,12 @@ export function App() {
     [connection.research, selectedRunId],
   );
 
-  const login = async (identityId: string, secret: string) => {
-    setLoginBusy(true);
+  const enter = async (option: string) => {
+    setAccessBusy(true);
     try {
-      await connection.login(identityId, secret);
+      await connection.enter(option);
     } finally {
-      setLoginBusy(false);
+      setAccessBusy(false);
     }
   };
 
@@ -226,6 +210,9 @@ export function App() {
                     : "无有效身份会话"}
               </span>
             </div>
+            {connection.session?.access_mode === "SHARED_READ_ONLY" ? (
+              <span className="shared-access-label">共享浏览</span>
+            ) : null}
           </div>
         </header>
 
@@ -246,7 +233,11 @@ export function App() {
 
         {connection.sessionRequired ? (
           <section className="login-gate" aria-label="登录">
-            <LoginPanel busy={loginBusy} onLogin={login} />
+            <AccessPanel
+              busy={accessBusy}
+              onEnter={enter}
+              options={connection.sessionOptions}
+            />
           </section>
         ) : (
           <ResearchOverview

@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rk.http.route_registry import PublishedRouteFactories
-from rk.migrations import MigrationRunner
 from rk.http_shell import HttpErrorClass, HttpResponse, ProductHttpError, RouteSpec, SessionRequest
+from rk.migrations import MigrationRunner
 from rk.product.identity import IdentityStore, ProductRole
 from rk.product.published_app import (
     PublishedAppConfig,
@@ -152,7 +152,14 @@ def build_application(
         sessions,
         clock=clock,
         cookie_name=config.cookie_name,
-        anonymous_routes=frozenset({("POST", "/v1/session/login"), ("GET", "/v1/meta")}),
+        anonymous_routes=frozenset(
+            {
+                ("GET", "/v1/meta"),
+                ("GET", "/v1/session/options"),
+                ("POST", "/v1/session/enter"),
+                ("POST", "/v1/session/login"),
+            }
+        ),
     )
     return PublishedHttpApplication(
         routers=(*factories.materialize(), _MetaRouter(config)),

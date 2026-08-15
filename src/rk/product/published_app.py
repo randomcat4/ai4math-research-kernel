@@ -186,9 +186,7 @@ class PublishedHttpApplication:
                     },
                     {
                         "content-type": "application/json",
-                        "allow": ", ".join(
-                            sorted({item.spec.method for item in matching_path})
-                        ),
+                        "allow": ", ".join(sorted({item.spec.method for item in matching_path})),
                     },
                 )
             return error_response(_error("ROUTE_NOT_FOUND", HttpErrorClass.NOT_FOUND, "$.path"))
@@ -217,7 +215,14 @@ def build_published_app(
         sessions,
         clock=clock,
         cookie_name=config.cookie_name,
-        anonymous_routes=frozenset({("POST", "/v1/session/login"), ("GET", "/v1/meta")}),
+        anonymous_routes=frozenset(
+            {
+                ("GET", "/v1/meta"),
+                ("GET", "/v1/session/options"),
+                ("POST", "/v1/session/enter"),
+                ("POST", "/v1/session/login"),
+            }
+        ),
     )
     return PublishedHttpApplication(
         routers=(

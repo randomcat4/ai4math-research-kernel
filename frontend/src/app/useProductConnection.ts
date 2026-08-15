@@ -5,6 +5,7 @@ import {
   type ProductMeta,
   type ProductSession,
   type ResearchSummary,
+  type SessionOption,
   productApi,
 } from "./api";
 
@@ -16,7 +17,8 @@ export type ConnectionModel = {
   error: string | null;
   research: ResearchSummary[];
   researchLoading: boolean;
-  login: (identityId: string, secret: string) => Promise<void>;
+  sessionOptions: SessionOption[];
+  enter: (option: string) => Promise<void>;
   logout: () => Promise<void>;
   retry: () => Promise<void>;
   refreshResearch: () => Promise<void>;
@@ -38,14 +40,14 @@ export function useProductConnection(): ConnectionModel {
   const [error, setError] = useState<string | null>(null);
   const [research, setResearch] = useState<ResearchSummary[]>([]);
   const [researchLoading, setResearchLoading] = useState(false);
+  const [sessionOptions, setSessionOptions] = useState<SessionOption[]>([]);
 
   const load = useCallback(async () => {
     setPhase("connecting");
     setError(null);
-    const [metaResult, sessionResult] = await Promise.allSettled([
-      productApi.meta(),
-      productApi.session(),
-    ]);
+    const [metaResult, sessionResult, optionsResult] = await Promise.allSettled(
+      [productApi.meta(), productApi.session(), productApi.sessionOptions()],
+    );
 
     if (metaResult.status === "rejected") {
       setMeta(null);
@@ -58,6 +60,9 @@ export function useProductConnection(): ConnectionModel {
 
     setMeta(metaResult.value);
     setPhase("connected");
+    setSessionOptions(
+      optionsResult.status === "fulfilled" ? optionsResult.value.options : [],
+    );
     if (sessionResult.status === "fulfilled") {
       setSession(sessionResult.value);
       setSessionRequired(false);
@@ -65,8 +70,18 @@ export function useProductConnection(): ConnectionModel {
       sessionResult.reason instanceof ProductApiError &&
       sessionResult.reason.status === 401
     ) {
-      setSession(null);
-      setSessionRequired(true);
+      try {
+        const defaultOption =
+          optionsResult.status === "fulfilled"
+            ? optionsResult.value.default
+            : "SHARED";
+        setSession(await productApi.enter(defaultOption));
+        setSessionRequired(false);
+      } catch (reason) {
+        setSession(null);
+        setSessionRequired(true);
+        setError(readableError(reason));
+      }
     } else {
       setSession(null);
       setSessionRequired(false);
@@ -98,10 +113,10 @@ export function useProductConnection(): ConnectionModel {
     void refreshResearch().catch(() => undefined);
   }, [refreshResearch]);
 
-  const login = useCallback(async (identityId: string, secret: string) => {
+  const enter = useCallback(async (option: string) => {
     setError(null);
     try {
-      const next = await productApi.login(identityId, secret);
+      const next = await productApi.enter(option);
       setSession(next);
       setSessionRequired(false);
     } catch (reason) {
@@ -125,7 +140,8 @@ export function useProductConnection(): ConnectionModel {
     error,
     research,
     researchLoading,
-    login,
+    sessionOptions,
+    enter,
     logout,
     retry: load,
     refreshResearch,

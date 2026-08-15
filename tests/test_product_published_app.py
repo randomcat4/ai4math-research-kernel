@@ -101,9 +101,9 @@ class EmptyInbox:
 def _database(tmp_path: Path) -> Path:
     db = tmp_path / "product.sqlite"
     with sqlite3.connect(db) as connection:
-        ProductMigrationAssembler(
-            ProductMigrationRegistry(ROOT / "schema_fragments")
-        ).apply(connection)
+        ProductMigrationAssembler(ProductMigrationRegistry(ROOT / "schema_fragments")).apply(
+            connection
+        )
     return db
 
 
@@ -181,9 +181,7 @@ def _app(tmp_path: Path) -> tuple[PublishedHttpApplication, Path]:
         activity=activity,
         identity=identity,
         review=review,
-        artifacts=ArtifactReadService(
-            metadata=EmptyMetadata(), cas_root=config.cas_root
-        ),
+        artifacts=ArtifactReadService(metadata=EmptyMetadata(), cas_root=config.cas_root),
         logs=cast(PublicLogStore, object()),
         artifact_authorizer=cast(ArtifactAccessAuthorizer, AllowArtifacts()),
     )
@@ -215,7 +213,7 @@ def test_published_app_mounts_one_complete_route_graph(tmp_path: Path) -> None:
 
     mounted = {(route.method, route.path) for route in app.routes}
 
-    assert len(mounted) == 17
+    assert len(mounted) == 19
     assert ("POST", "/v1/research/{run_id}/commands") in mounted
     assert ("POST", "/v1/research/{run_id}/queries") in mounted
     assert ("POST", "/v1/artifacts/operations") in mounted
@@ -223,6 +221,8 @@ def test_published_app_mounts_one_complete_route_graph(tmp_path: Path) -> None:
     assert ("GET", "/v1/research/{run_id}/events") in mounted
     assert ("GET", "/v1/reviews/inbox") in mounted
     assert ("GET", "/v1/meta") in mounted
+    assert ("GET", "/v1/session/options") in mounted
+    assert ("POST", "/v1/session/enter") in mounted
 
 
 def test_in_process_login_and_command_create_real_receipt_and_job(tmp_path: Path) -> None:

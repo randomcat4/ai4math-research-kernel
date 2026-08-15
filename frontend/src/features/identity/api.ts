@@ -1,4 +1,4 @@
-import type { ProductRole, SessionView } from "./model.js";
+import type { ProductRole, SessionOption, SessionView } from "./model.js";
 export class IdentityApiError extends Error {
   constructor(
     readonly status: number,
@@ -37,6 +37,31 @@ export class IdentityGateway {
   async me() {
     return session(
       await json(this.baseUrl + "/v1/session/me", { method: "GET" }),
+    );
+  }
+  async options(): Promise<SessionOption[]> {
+    const value = await json(this.baseUrl + "/v1/session/options", {
+      method: "GET",
+    });
+    if (!Array.isArray(value.options))
+      throw new IdentityApiError(200, "INVALID_SESSION_OPTIONS");
+    return value.options.map((item) => {
+      if (item === null || Array.isArray(item) || typeof item !== "object")
+        throw new IdentityApiError(200, "INVALID_SESSION_OPTION");
+      const option = item as Record<string, unknown>;
+      return {
+        id: required(option.id, "option_id"),
+        label: required(option.label, "option_label"),
+        description: required(option.description, "option_description"),
+      };
+    });
+  }
+  async enter(option: string) {
+    return session(
+      await json(this.baseUrl + "/v1/session/enter", {
+        method: "POST",
+        body: JSON.stringify({ option }),
+      }),
     );
   }
   async login(identityId: string, loginSecret: string) {
@@ -93,6 +118,10 @@ function session(value: Record<string, unknown>): SessionView {
     sessionVersion: number(value.session_version),
     issuedAt: required(value.issued_at, "issued_at"),
     expiresAt: required(value.expires_at, "expires_at"),
+    accessMode:
+      required(value.access_mode, "access_mode") === "SHARED_READ_ONLY"
+        ? "SHARED_READ_ONLY"
+        : "MANAGED",
   };
 }
 function required(value: unknown, path: string) {

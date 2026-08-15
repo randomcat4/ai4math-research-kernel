@@ -74,12 +74,8 @@ _ROLE_ACTIONS: Mapping[ProductRole, frozenset[str]] = MappingProxyType(
             }
         ),
         ProductRole.PEER_REVIEWER: frozenset({"CLAIM_REVIEW_TASK", "SUBMIT_REVIEW"}),
-        ProductRole.PAPER_REVIEWER: frozenset(
-            {"CLAIM_REVIEW_TASK", "SUBMIT_PAPER_REVIEW"}
-        ),
-        ProductRole.PUBLICATION_WORKER: frozenset(
-            {"COMPILE_FINAL_PDF", "GENERATE_CANDIDATE_TEX"}
-        ),
+        ProductRole.PAPER_REVIEWER: frozenset({"CLAIM_REVIEW_TASK", "SUBMIT_PAPER_REVIEW"}),
+        ProductRole.PUBLICATION_WORKER: frozenset({"COMPILE_FINAL_PDF", "GENERATE_CANDIDATE_TEX"}),
         ProductRole.ADMIN: frozenset(
             {
                 "CANCEL_JOB",
@@ -176,6 +172,20 @@ class IdentityStore:
             ).fetchone()
         if row is None:
             raise KeyError(identity_id)
+        return _identity(row)
+
+    def first_enabled_by_role(self, role: ProductRole) -> ProductIdentity:
+        """Return the deployment's shared identity for a product work mode."""
+
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT identity_id,subject_id,display_name,role,capability_id,enabled,"
+                "created_at,disabled_at FROM product_identities "
+                "WHERE role=? AND enabled=1 ORDER BY created_at,identity_id LIMIT 1",
+                (role.value,),
+            ).fetchone()
+        if row is None:
+            raise KeyError(role.value)
         return _identity(row)
 
     def authenticate(self, identity_id: str, login_secret: str) -> ProductIdentity:

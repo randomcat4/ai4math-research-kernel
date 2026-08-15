@@ -54,6 +54,7 @@ function reviewSession(
     sessionVersion: session.session_version,
     issuedAt: session.issued_at,
     expiresAt: session.expires_at,
+    accessMode: session.access_mode,
   };
 }
 

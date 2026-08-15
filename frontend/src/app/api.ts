@@ -16,6 +16,13 @@ export type ProductSession = {
   session_version: number;
   issued_at: string;
   expires_at: string;
+  access_mode: "SHARED_READ_ONLY" | "MANAGED";
+};
+
+export type SessionOption = {
+  id: string;
+  label: string;
+  description: string;
 };
 
 export type ResearchSummary = {
@@ -71,11 +78,27 @@ async function jsonRequest<T>(path: string, init?: RequestInit): Promise<T> {
 export const productApi = {
   meta: () => jsonRequest<ProductMeta>("/v1/meta"),
   session: () => jsonRequest<ProductSession>("/v1/session/me"),
+  sessionOptions: async () => {
+    const value = await jsonRequest<{
+      default: string;
+      options: SessionOption[];
+    }>("/v1/session/options");
+    return value;
+  },
+  enter: (option: string) =>
+    jsonRequest<ProductSession>("/v1/session/enter", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ option }),
+    }),
   login: (identityId: string, loginSecret: string) =>
     jsonRequest<ProductSession>("/v1/session/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ identity_id: identityId, login_secret: loginSecret }),
+      body: JSON.stringify({
+        identity_id: identityId,
+        login_secret: loginSecret,
+      }),
     }),
   logout: () =>
     jsonRequest<{ logged_out: boolean }>("/v1/session/logout", {
@@ -84,9 +107,9 @@ export const productApi = {
       body: "{}",
     }),
   research: async () => {
-    const envelope = await jsonRequest<{ result?: { items?: ResearchSummary[] } }>(
-      "/v1/research?limit=20&sort=RECENT_ACTIVITY_DESC",
-    );
+    const envelope = await jsonRequest<{
+      result?: { items?: ResearchSummary[] };
+    }>("/v1/research?limit=20&sort=RECENT_ACTIVITY_DESC");
     return Array.isArray(envelope.result?.items) ? envelope.result.items : [];
   },
 };

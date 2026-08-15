@@ -41,6 +41,8 @@ class IdentityRouter:
         self._cookie_name = cookie_name
         self._secure_cookie = secure_cookie
         self._routes = (
+            RouteSpec("GET", "/v1/session/options", self.options, "session-options"),
+            RouteSpec("POST", "/v1/session/enter", self.enter, "session-enter"),
             RouteSpec("POST", "/v1/session/login", self.login, "session-login"),
             RouteSpec("POST", "/v1/session/switch", self.switch, "session-switch"),
             RouteSpec("POST", "/v1/session/logout", self.logout, "session-logout"),
@@ -49,6 +51,47 @@ class IdentityRouter:
 
     def routes(self) -> Sequence[RouteSpec]:
         return self._routes
+
+    async def options(self, request: SessionRequest) -> HttpResponse:
+        if request.request.body:
+            raise _http_error("REQUEST_BODY_NOT_ALLOWED", HttpErrorClass.SCHEMA, "$")
+        return HttpResponse(
+            200,
+            {
+                "schema_version": "rk.product.session_options.v1",
+                "default": "SHARED",
+                "options": [
+                    {
+                        "id": "SHARED",
+                        "label": "共享研究",
+                        "description": "查看同一产品中的全部数学研究。权威写入仍需受管会话。",
+                    }
+                ],
+            },
+        )
+
+    async def enter(self, request: SessionRequest) -> HttpResponse:
+        body = _json_body(request)
+        _exact_keys(body, {"option"})
+        option = _string(body, "option")
+        if option != "SHARED":
+            raise _http_error("SESSION_OPTION_UNKNOWN", HttpErrorClass.SCHEMA, "$.payload.option")
+        now = self._clock()
+        session_id = await self._existing_session_id(request.principal, now)
+        try:
+            view = await asyncio.to_thread(
+                self._sessions.enter_shared,
+                now=now,
+                expires_at=self._expires_at(now),
+                session_id=session_id,
+            )
+        except KeyError as error:
+            raise _http_error(
+                "SESSION_OPTION_UNAVAILABLE",
+                HttpErrorClass.UNAVAILABLE,
+                "$.payload.option",
+            ) from error
+        return HttpResponse(200, _session_body(view), self._cookie_headers(view.session_id))
 
     async def login(self, request: SessionRequest) -> HttpResponse:
         body = _json_body(request)
@@ -253,6 +296,7 @@ def _session_body(view: SessionView) -> Mapping[str, JsonValue]:
         "session_version": view.session_version,
         "issued_at": view.issued_at,
         "expires_at": view.expires_at,
+        "access_mode": ("SHARED_READ_ONLY" if view.session_id.startswith("shared.") else "MANAGED"),
     }
 
 

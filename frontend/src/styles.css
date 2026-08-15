@@ -262,6 +262,14 @@ select:disabled {
   color: var(--ink-soft);
   font-size: 0.64rem;
 }
+.shared-access-label {
+  min-height: 28px;
+  border: 1px solid rgba(21, 37, 60, 0.22);
+  background: var(--paper);
+  padding: 6px 9px;
+  color: var(--ink-soft);
+  font: 0.64rem var(--sans);
+}
 .connection-dot {
   width: 9px;
   height: 9px;
@@ -300,7 +308,7 @@ select:disabled {
 }
 
 .login-gate {
-  width: min(430px, calc(100% - 56px));
+  width: min(760px, calc(100% - 56px));
   margin: 24px auto 0;
   padding: 24px;
   border: 1px solid rgba(21, 37, 60, 0.2);
@@ -308,6 +316,32 @@ select:disabled {
 }
 .login-gate .login-panel h2 {
   margin-top: 8px;
+}
+.access-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+.access-option {
+  display: grid;
+  flex: 1 1 220px;
+  gap: 5px;
+  min-height: 76px;
+  border: 1px solid rgba(21, 37, 60, 0.2);
+  background: var(--paper);
+  padding: 13px;
+  color: var(--ink);
+  text-align: left;
+}
+.access-option:hover:not(:disabled),
+.access-option:focus-visible {
+  border-color: var(--cobalt);
+}
+.access-option span {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  line-height: 1.45;
 }
 
 .research-overview {
@@ -351,10 +385,9 @@ select:disabled {
 }
 .overview-strip {
   display: grid;
-  grid-template-columns: minmax(130px, 0.75fr) minmax(220px, 1.35fr) minmax(
-      190px,
-      1fr
-    ) minmax(180px, 1fr);
+  grid-template-columns:
+    minmax(130px, 0.75fr) minmax(220px, 1.35fr) minmax(190px, 1fr)
+    minmax(180px, 1fr);
 }
 .overview-strip article {
   min-width: 0;

@@ -166,7 +166,9 @@ def test_one_app_mounts_all_generic_production_route_families_once(tmp_path: Pat
     routes = {(item.method, item.path) for item in app.routes}
 
     assert admin_bindings == ["DEPLOYMENT_OPERATION+DEPLOYMENT_STATUS"]
-    assert len(routes) == len(app.routes) == 17
+    assert len(routes) == len(app.routes) == 19
+    assert ("GET", "/v1/session/options") in routes
+    assert ("POST", "/v1/session/enter") in routes
     assert ("POST", "/v1/research/{run_id}/commands") in routes
     assert ("POST", "/v1/deployment/operations") in routes
     assert ("POST", "/v1/deployment/queries") in routes
