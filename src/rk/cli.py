@@ -1573,6 +1573,7 @@ def _lean_verify_fact_product(
         "source_relpath": source_relpath,
         "output_relpath": output_relpath,
         "declarations": [args.declaration],
+        "execution_mode": "reproducible/authoritative",
         "environment": _research_environment(config),
     }
     request_bytes = json.dumps(

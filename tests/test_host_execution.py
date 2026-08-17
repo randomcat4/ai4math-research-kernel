@@ -97,6 +97,7 @@ class LeanPassFixtureAdapter:
             "status": "COMPLETED",
             "exit_code": 0,
             "kernel_verdict": "REPLAY_PASS",
+            "execution_mode": "reproducible/authoritative",
             "source_sha256": self._artifact_sha256,
             "output_sha256": self._artifact_sha256,
             "axiom_dependencies": [],
@@ -357,7 +358,25 @@ def test_lean_authority_requires_kernel_verdict_and_allowed_axioms(
                 "expected_declaration_types": {"t": "True"},
                 "expected_declaration_module": "Main",
             },
-            result,
+            {**result, "execution_mode": "reproducible/authoritative"},
+        )
+
+
+def test_exploratory_lean_result_cannot_issue_authority() -> None:
+    with pytest.raises(StorageConflict, match="exploratory Lean replay"):
+        HostExecutionReceiptService._authority_result(
+            "lean-replay",
+            {
+                "allowed_axioms": [],
+                "expected_declaration_types": {"t": "True"},
+                "expected_declaration_module": "Main",
+            },
+            {
+                "status": "COMPLETED",
+                "exit_code": 0,
+                "execution_mode": "bootstrap/exploratory",
+                "kernel_verdict": "REPLAY_PASS",
+            },
         )
 
 

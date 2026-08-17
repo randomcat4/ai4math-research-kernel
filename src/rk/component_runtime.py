@@ -946,6 +946,9 @@ def build_component_runtime(
                     "type": "array", "items": {"type": "string"},
                     "minItems": 1, "uniqueItems": True,
                 },
+                "execution_mode": {
+                    "enum": ["bootstrap/exploratory", "reproducible/authoritative"]
+                },
             },
             "required": ["source_relpath", "output_relpath", "declarations"],
             "additionalProperties": False,

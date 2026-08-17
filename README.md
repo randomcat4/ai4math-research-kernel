@@ -17,8 +17,9 @@ Claim、研究路线、证据、验证回执、撤销关系和最终报告保存
 v0.3 修复了会话身份降级/升级混用、HTTP 请求和连接无界、SSE 空转与订阅无界、
 Managed Python 输入不可写和常见审计钩子旁路、备份递归、恢复整包读入内存、迁移非原子、
 SQLite 写入耐久性不一致、LaTeX 子进程越界、监督器并发竞争及 CLI 暂停误报成功。
-安装 wheel 现在携带 migrations、schema fragments 与冻结 JSON spec；Lean 的 Lake 环境缺少
-manifest 时会在任何依赖下载前 fail closed。完整边界与未关闭风险见
+安装 wheel 现在携带 migrations、schema fragments 与冻结 JSON spec。Lean 默认使用
+`bootstrap/exploratory`，允许 Lake 获取缺失依赖；显式的 `reproducible/authoritative`
+重放缺少 manifest 时会在任何依赖下载前 fail closed。完整边界与未关闭风险见
 `docs/audit/v0.3-backend-audit.md`。
 
 ## v0.2 包含什么

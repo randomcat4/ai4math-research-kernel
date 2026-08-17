@@ -28,6 +28,9 @@ _AXIOM_LIST = re.compile(r"depends on axioms:\s*\[([^\]]*)\]")
 _DECLARATION_AUDIT = re.compile(
     r"RK_DECL_AUDIT\s+(\S+)\s+(target_module|other_module)\s+(.+)"
 )
+_BOOTSTRAP_MODE = "bootstrap/exploratory"
+_AUTHORITATIVE_MODE = "reproducible/authoritative"
+_EXECUTION_MODES = frozenset({_BOOTSTRAP_MODE, _AUTHORITATIVE_MODE})
 
 
 class LeanReplayAdapter:
@@ -58,8 +61,14 @@ class LeanReplayAdapter:
         require_exact_keys(
             request,
             required=frozenset({"source_relpath", "output_relpath", "declarations", "environment"}),
+            optional=frozenset({"execution_mode"}),
             label="Lean replay request",
         )
+        execution_mode = str(request.get("execution_mode", _BOOTSTRAP_MODE))
+        if execution_mode not in _EXECUTION_MODES:
+            raise AdapterRequestError(
+                "execution_mode must be bootstrap/exploratory or reproducible/authoritative"
+            )
         environment = request["environment"]
         declarations = request["declarations"]
         if not isinstance(environment, Mapping):
@@ -93,7 +102,12 @@ class LeanReplayAdapter:
         env = self.profile.select_environment(environment)
         common = {
             **self.profile.provenance(),
-            "trust_limit": self.trust_limit,
+            "trust_limit": (
+                self.trust_limit
+                if execution_mode == _AUTHORITATIVE_MODE
+                else "LEAN_EXPLORATORY_REPLAY"
+            ),
+            "execution_mode": execution_mode,
             "environment_names": sorted(env),
             "toolchain": expected_toolchain,
             "binary_sha256": self.profile.binary_sha256,
@@ -105,7 +119,11 @@ class LeanReplayAdapter:
         lake_backed = any(
             Path(item).name in {"lake", "lake.exe"} for item in self.profile.argv_prefix
         )
-        if lake_backed and not (project_root / "lake-manifest.json").is_file():
+        if (
+            execution_mode == _AUTHORITATIVE_MODE
+            and lake_backed
+            and not (project_root / "lake-manifest.json").is_file()
+        ):
             return {
                 **common,
                 "status": "ENVIRONMENT_DRIFT",

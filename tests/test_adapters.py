@@ -1103,6 +1103,63 @@ def test_lean_replay_returns_kernel_pass_only_with_pinned_output(tmp_path: Path)
     assert Path(audit_call["env"]["LEAN_PATH"].split(os.pathsep)[0]) == output.resolve()
 
 
+def test_lean_replay_defaults_to_bootstrap_but_authority_requires_manifest(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    output = tmp_path / "output"
+    project.mkdir()
+    output.mkdir()
+    (project / "lean-toolchain").write_text("lean-exact\n", encoding="utf-8")
+    (project / "Main.lean").write_text("theorem t : True := by trivial\n", encoding="utf-8")
+    lake = project / "lake"
+    lean = project / "lean"
+    lake.write_bytes(b"fixture lake")
+    lean.write_bytes(b"fixture lean")
+
+    def create_output() -> None:
+        (output / "Main.olean").write_bytes(b"olean fixture")
+
+    profile = AdapterProfile.from_mapping(
+        profile_mapping(
+            name="lean-replay",
+            argv_prefix=[str(lake), "env", str(lean)],
+            workspace_root=str(project),
+            output_root=str(output),
+            expected_toolchain="lean-exact",
+            binary_path=str(lean),
+            binary_sha256=hashlib.sha256(lean.read_bytes()).hexdigest(),
+        )
+    )
+    request = {
+        "source_relpath": "Main.lean",
+        "output_relpath": "Main.olean",
+        "declarations": ["t"],
+        "environment": {},
+    }
+    runner = FakeRunner(
+        ProcessResult((), 0, "RK_DECL_AUDIT t target_module True", ""),
+        callback=create_output,
+    )
+    exploratory = LeanReplayAdapter(profile, runner=runner).run(request)
+    assert exploratory["status"] == "COMPLETED"
+    assert exploratory["execution_mode"] == "bootstrap/exploratory"
+    assert exploratory["trust_limit"] == "LEAN_EXPLORATORY_REPLAY"
+    assert runner.calls[0]["argv"][0] == str(lake)
+
+    (output / "Main.olean").unlink()
+    audit_source = output / "Main.olean.axioms.lean"
+    if audit_source.exists():
+        audit_source.unlink()
+    authoritative_runner = FakeRunner(ProcessResult((), 0, "", ""))
+    authoritative = LeanReplayAdapter(profile, runner=authoritative_runner).run(
+        {**request, "execution_mode": "reproducible/authoritative"}
+    )
+    assert authoritative["status"] == "ENVIRONMENT_DRIFT"
+    assert authoritative["reason"] == "MISSING_LAKE_MANIFEST"
+    assert authoritative_runner.calls == []
+
+
 def test_lean_replay_rejects_an_imported_declaration_as_the_local_target(
     tmp_path: Path,
 ) -> None:

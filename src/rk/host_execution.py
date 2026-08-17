@@ -304,6 +304,7 @@ class HostExecutionReceiptService:
                 f"AUTHORITY_RESULT_INVALID:{error}",
             )
         payload["kernel_verdict"] = authority_result.get("kernel_verdict")
+        payload["execution_mode"] = authority_result.get("execution_mode")
         payload["axiom_dependencies"] = authority_result.get("axiom_dependencies")
         payload["declaration_audit"] = authority_result.get("declaration_audit")
         payload["declaration_module"] = authority_result.get("declaration_module")
@@ -389,6 +390,8 @@ class HostExecutionReceiptService:
             }
         if result.get("status") != "COMPLETED" or result.get("exit_code") != 0:
             raise StorageConflict("Lean replay did not complete successfully")
+        if result.get("execution_mode") != "reproducible/authoritative":
+            raise StorageConflict("exploratory Lean replay cannot issue authority")
         if result.get("kernel_verdict") != "REPLAY_PASS":
             raise StorageConflict("Lean replay did not return a kernel pass verdict")
         axioms = result.get("axiom_dependencies")
@@ -442,6 +445,7 @@ class HostExecutionReceiptService:
             raise StorageConflict("Lean declaration type digest is inconsistent")
         return {
             "kernel_verdict": "REPLAY_PASS",
+            "execution_mode": "reproducible/authoritative",
             "axiom_dependencies": sorted(axioms),
             "declaration_audit": declarations,
             "declaration_module": declaration_module,

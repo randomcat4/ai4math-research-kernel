@@ -2,7 +2,6 @@ from pathlib import Path
 
 from setuptools import setup
 
-
 ROOT = Path(__file__).parent
 RESOURCE_PATTERNS = (
     "migrations/**/*.sql",
