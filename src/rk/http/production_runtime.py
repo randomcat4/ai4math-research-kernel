@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import faulthandler
 import hashlib
 import json
 import os
@@ -222,6 +223,30 @@ class _CasPublisher:
         return ExactArtifactRef(ref.artifact_id, ref.sha256, ref.byte_count, ref.media_type)
 
 
+class _RunArtifactLinker:
+    def __init__(self, storage: SQLiteStorage) -> None:
+        self._storage = storage
+
+    def link(
+        self,
+        *,
+        run_id: str,
+        artifact: ExactArtifactRef,
+        logical_name: str,
+        role: str,
+        linked_at: str,
+    ) -> None:
+        with self._storage.transaction() as connection:
+            self._storage.link_artifact(
+                connection,
+                run_id=run_id,
+                artifact_id=artifact.artifact_id,
+                logical_name=logical_name,
+                role=role,
+                linked_at=linked_at,
+            )
+
+
 def _session_resolver(
     db_path: Path,
     sessions: SessionStore,
@@ -281,15 +306,94 @@ def _session_resolver(
     return resolve
 
 
-def _lifecycle_payload(job: DurableJob, payload: Mapping[str, object]) -> Mapping[str, object]:
-    required = {
-        "START_RESEARCH": {"contract_version", "literature_plan_artifact_id", "budget_policy"},
-        "RESUME_RESEARCH": {"checkpoint_artifact_id", "lease_preflight", "budget_preflight"},
-    }
-    expected = required.get(job.kind)
-    if expected is None or set(payload) != expected:
-        raise ValueError("durable lifecycle payload differs from its frozen kernel binding")
-    return dict(payload)
+def _lifecycle_payload_resolver(
+    routes: RoutePlanStore,
+    publisher: _CasPublisher,
+    run_artifacts: _RunArtifactLinker,
+    jobs: JobStore,
+    clock: Callable[[], str],
+) -> Callable[[DurableJob, Mapping[str, object]], Mapping[str, object]]:
+    def resolve(job: DurableJob, payload: Mapping[str, object]) -> Mapping[str, object]:
+        if job.kind == "START_RESEARCH":
+            if set(payload) != {"route_plan_id", "checkpoint_id"}:
+                raise ValueError("START_RESEARCH payload differs from its frozen product contract")
+            route_plan_id = payload["route_plan_id"]
+            checkpoint_id = payload["checkpoint_id"]
+            if not isinstance(route_plan_id, str) or not isinstance(checkpoint_id, str):
+                raise ValueError("START_RESEARCH identities are invalid")
+            plan = routes.get(route_plan_id)
+            if plan.run_id != job.run_id or plan.state != "ACTIVE":
+                raise ValueError("START_RESEARCH route plan is not active for this run")
+            route_values = [
+                {
+                    "route_id": route.route_id,
+                    "method": route.method,
+                    "target": route.target,
+                    "expected_verifier": route.expected_verifier,
+                    "milestones": list(route.milestones),
+                    "termination_condition": route.termination_condition,
+                    "dependencies": list(route.dependencies),
+                    "priority": route.priority,
+                    "budget": dict(route.budget),
+                }
+                for route in plan.routes
+            ]
+            document = {
+                "schema_version": "rk.product.route-start.v1",
+                "run_id": plan.run_id,
+                "route_plan_id": plan.route_plan_id,
+                "plan_digest": plan.plan_digest,
+                "checkpoint_id": checkpoint_id,
+                "routes": route_values,
+            }
+            logical_name = f"{plan.route_plan_id}.route-start.json"
+            artifact = publisher.publish(
+                data=json.dumps(
+                    document, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+                ).encode(),
+                logical_name=logical_name,
+                media_type="application/json",
+            )
+            run_artifacts.link(
+                run_id=plan.run_id,
+                artifact=artifact,
+                logical_name=logical_name,
+                role="APPLY_INPUT",
+                linked_at=clock(),
+            )
+            return {
+                "contract_version": plan.contract_version,
+                "literature_plan_artifact_id": artifact.artifact_id,
+                "budget_policy": {
+                    "checkpoint_id": checkpoint_id,
+                    "global": {
+                        "WALL_SECOND": sum(
+                            int(route.budget.get("wall_seconds", 0)) for route in plan.routes
+                        ),
+                        "OUTPUT_TOKEN": sum(
+                            int(route.budget.get("output_tokens", 0)) for route in plan.routes
+                        ),
+                    },
+                },
+            }
+        if job.kind == "RESUME_RESEARCH":
+            if set(payload) != {"checkpoint_id", "resume_invalidated_items"}:
+                raise ValueError("RESUME_RESEARCH payload differs from its frozen product contract")
+            checkpoint_id = payload["checkpoint_id"]
+            if (
+                not isinstance(checkpoint_id, str)
+                or payload["resume_invalidated_items"] is not False
+            ):
+                raise ValueError("RESUME_RESEARCH checkpoint binding is invalid")
+            checkpoint = jobs.get_checkpoint(checkpoint_id)
+            return {
+                "checkpoint_artifact_id": checkpoint.artifact_id,
+                "lease_preflight": {"checkpoint_id": checkpoint_id},
+                "budget_preflight": {"resume_invalidated_items": False},
+            }
+        raise ValueError("durable lifecycle command is unsupported")
+
+    return resolve
 
 
 def _artifact_resolver(
@@ -667,6 +771,7 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
         busy_timeout_ms=config.busy_timeout_ms,
     )
     problem_pools = ProblemPoolStore(db_path, busy_timeout_ms=config.busy_timeout_ms)
+    run_artifacts = _RunArtifactLinker(storage)
     authority = build_domain_command_authority(
         capabilities=capabilities,
         fences=_ProductionCommandFences(fences, config.deployment_id),
@@ -675,6 +780,7 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
             kernel=kernel_authority,
             artifacts=artifact_reader,
             publisher=publisher,
+            run_artifacts=run_artifacts,
             routes=route_store,
             guidance=guidance,
             contracts=contracts,
@@ -792,7 +898,9 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
                 publication=publication,
                 authority=kernel_authority,
                 sessions=managed_sessions,
-                lifecycle_payload=_lifecycle_payload,
+                lifecycle_payload=_lifecycle_payload_resolver(
+                    route_store, publisher, run_artifacts, jobs, now
+                ),
                 artifact_ref=_artifact_resolver(artifact_reader),
                 managed_python=managed_python,
                 managed_request=managed_request,
@@ -949,6 +1057,7 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    faulthandler.register(signal.SIGUSR1, all_threads=True)
     parser = argparse.ArgumentParser(prog="rk-product-daemon")
     parser.add_argument("--data-root", type=Path, required=True)
     parser.add_argument("--deployment-id", required=True)

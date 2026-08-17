@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -139,7 +140,21 @@ def _kernel_capability(
     """Translate one authenticated product action at the sole kernel boundary."""
 
     return VerifiedCapability(
-        capability_id=product_capability.capability_id,
+        capability_id=str(
+            uuid.uuid5(
+                uuid.NAMESPACE_URL,
+                ":".join(
+                    (
+                        "rk-product-kernel-capability",
+                        product_capability.capability_id,
+                        kernel_action,
+                        ",".join(sorted(product_capability.run_scope)),
+                        product_capability.issued_at,
+                        product_capability.expires_at,
+                    )
+                ),
+            )
+        ),
         subject_id=product_capability.subject_id,
         issuer=product_capability.issuer,
         allowed_actions=frozenset({kernel_action}),

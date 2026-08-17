@@ -94,14 +94,18 @@ class KernelStub:
         self.applied_type: str | None = None
 
     def create(self, request: object, capability: VerifiedCapability) -> RunHandle:
-        assert capability.capability_id == "cap-1"
+        assert capability.capability_id != "cap-1"
+        assert capability.allowed_actions == frozenset({"CreateRun"})
+        assert capability.run_scope == frozenset({"*"})
         return RunHandle("run-new", 0, "OPEN", 1, "2026-08-13T00:00:00Z")
 
     def apply(self, request: object, capability: VerifiedCapability) -> CommandReceipt:
         from rk.domain import ApplyRequest
 
         assert isinstance(request, ApplyRequest)
-        assert capability.capability_id == "cap-1"
+        assert capability.capability_id != "cap-1"
+        assert capability.allowed_actions == frozenset({"FreezeContract"})
+        assert capability.run_scope == frozenset({"run-1"})
         self.applied_type = request.command.type
         return CommandReceipt(
             request.request_id,
@@ -161,7 +165,7 @@ def test_private_authority_maps_product_command_to_kernel_command() -> None:
 
     assert decision.accepted is True
     assert kernel.applied_type == "FreezeContract"
-    assert capabilities.actions == ["FreezeContract"]
+    assert capabilities.actions == ["CONFIRM_CONTRACT"]
     assert decision.kernel_receipts[0]["command_id"] == "command-1"
 
 

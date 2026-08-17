@@ -151,12 +151,8 @@ IMMEDIATE_COMMAND_SPECS: Mapping[str, CommandSpec] = MappingProxyType(
         "REGISTER_BRIDGE_SPEC": _spec("B06b", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "MAIN"),
         "SUBMIT_CLOSURE_WITNESS": _spec("B06b", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "MAIN"),
         "CREATE_REVIEW_TASK": _spec("B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "MAIN"),
-        "CLAIM_REVIEW_TASK": _spec(
-            "B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "PEER_REVIEWER"
-        ),
-        "SUBMIT_REVIEW": _spec(
-            "B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "PEER_REVIEWER"
-        ),
+        "CLAIM_REVIEW_TASK": _spec("B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "PEER_REVIEWER"),
+        "SUBMIT_REVIEW": _spec("B05b", "RUN", AuthorityBoundary.DOMAIN_ONLY, "PEER_REVIEWER"),
         "SUBMIT_PAPER_REVIEW": _spec(
             "B15a", "RUN", AuthorityBoundary.KERNEL_REQUIRED, "PAPER_REVIEWER"
         ),
@@ -370,7 +366,6 @@ def _assert_decision(
             decision.revision_after != decision.revision_before
             or decision.created_artifact_refs
             or decision.created_run_id is not None
-            or decision.kernel_receipts
         ):
             raise DomainCommandError("rejected service receipt reports authority mutation")
         return

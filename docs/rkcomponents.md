@@ -1,5 +1,14 @@
 # RK-PRD-2 部件与权重实接审计
 
+> 2026-08-12 证据口径更正：本文下方保留了旧远程数值作历史记录，
+> 不再默认它们是当前树发布证据。当前树产品 run
+> `019ff814-eb93-7b93-82c9-b96c88f444a3` 真实调用了 Crossref、研究模型、
+> LeanSearch、jixia 和 Lean；确定性工具 run
+> `019ff82c-212d-7100-af73-f8e759676f0d` 真实调用 Z3、SymPy 和精确枚举，
+> 三者均为 `COMPLETED`。Rethlas 仍是 `SCAFFOLD`，QED-Nano/DeepSeek-Prover
+> 仍只有旧 benchmark 与当前调度接缝，不是当前产品 E2E。权威口径以
+> `prdevidenceaudit.md` 为准。
+
 审计日期：2026-08-12。状态词：
 
 - `E2E_PASS`：当前树在远端真实调用且证据已回传；
@@ -16,7 +25,7 @@
 | Mathlib | commit `5352afc…5f44` | E2E_PASS | worktree HEAD、tracked clean、依赖输入摘要均记录 | `.lake` 为共享可写 cache |
 | LeanSearch | public endpoint；本地 repo `94f488…18080` | E2E_PASS | 2.796s，返回 8 条 premise candidates | 线上 commit/权重版本 UNKNOWN |
 | jixia | commit `995437…d42d2`，binary `8d454…e7b5` | E2E_PASS | 49.636s（预编译 13.289s，分析 36.125s）；全新模块路径回归通过 | 只做结构/状态，不授予真值 |
-| DeepSeek V4-Pro | `deepseek-v4-pro` API | E2E_PASS | 经 OpenCode 29.724s；1647 in / 33 out / 1143 reasoning；tool_calls=[] | 闭源服务版本由 provider 响应标识，不是本地权重 |
+| DeepSeek V4-Pro | `deepseek-v4-pro` API；当前官方后端名为 V4-Pro-0813 | E2E_PASS | 历史 OpenCode E2E；另在服务器直测 Responses 标准 function 两轮成功 | API 只返回滚动别名，缺少可核验的精确 0813 指纹；不得回填旧运行版本 |
 | OpenCode | 1.18.16，binary `8e4ac…1768` | E2E_PASS | `leane2efinal9` 中以非 root、E2E 自派生全工具禁用策略调用 DeepSeek；29.724s | 上游版本在完成事件后偶发不退出；adapter 已按 JSONL `step_finish` 收束并保留强制终止标记 |
 | Z3 SMT | 4.15.3.0 | SMOKE_PASS | `unsat`，43ms，固定 argv | 无 proof certificate，保持 heuristic |
 | SymPy CAS | 1.14.0 | SMOKE_PASS | 展开式核对，592ms | 无独立证书，保持 heuristic |
@@ -25,14 +34,15 @@
 | 文献检索 | Crossref REST | SMOKE_PASS | 真实 bibliographic query 返回 3 项 | 只给候选，NO_HIT 不是证明 |
 | 人类同行审查 | `RecordPeerReview` | ADAPTER_TESTED | command/独立性/晋级门测试 | 无真实人类签名 |
 | Archon-Horizon | commit `a4565a…122e1` | ADAPTER_TESTED | adapter 和 JSON 契约测试 | 完整真实模型 run 未验证 |
-| Rethlas | commit `887cc4…1d040` | ADAPTER_TESTED | verifier health 既有通过；soft-only adapter 测试 | Codex 0.80 + DeepSeek full loop 失败 |
+| Rethlas | commit `887cc4…1d040` | PRODUCT_SOFT_BACKEND | GAP_REVIEW 通过注册 `verify_rethlas` 工具调用；批评与修复提示回到同一 Claim | 永久 `SOFT_MODEL`；`correct` 不能独立晋级 |
 | Qwen3-Embedding-8B | 15G | ASSET_ONLY | ROCm shape `[3,4096]`、ranking_ok、peak 15.20GB | 未绑定本次公共 LeanSearch |
 | Qwen3-Reranker-8B | 16G | ASSET_ONLY | ROCm ranking_ok、peak 16.52GB | 未绑定本次公共 LeanSearch |
 | e5-mistral-7b-instruct | 27G | ASSET_ONLY | 权重在远端 | 本次无调用 |
 | GPT-5.6 Pro | 闭源服务 | BY_DESIGN | PRD 角色存在 | RK provider 未配置；无本地权重可下载 |
-| Codex 5.6 | 闭源服务 | BY_DESIGN | PRD 角色存在 | RK provider 未配置；无本地权重可下载 |
+| Codex + DeepSeek | Codex 0.147.0、官方 Responses 配置 | PARTIAL_REMOTE | 服务器纯文本 1/1；custom apply_patch 调用被识别 | shell 0/2 真成功，apply_patch 执行器失败；保持 soft-only，禁止工具控制权 |
+| CC Switch / Reasonix | 外部控制器候选 | RESEARCHED_NOT_CONNECTED | 已审阅转换、历史修复与 DeepSeek-native harness 方案 | 未接 RK runner；须经副作用、跨轮、流中断与重放验收 |
 | QED-Nano | `lm-provers/QED-Nano`，revision `1016dd…bb`，4B | BENCHMARKED | 远端 ROCm BF16，官方采样参数和 32768 输出上限，五个自然语言证明题；逐题 token/计时/GPU 峰值见模型报告 | 只产生自然语言候选；单样本 smoke 不是论文基准复现，更不授予真值 |
-| DeepSeek-Prover-V2-7B | `deepseek-ai/DeepSeek-Prover-V2-7B`，revision `a8d9e1…b7b` | BENCHMARKED | 远端 ROCm BF16、seed 30、官方 CoT prompt、8192 输出上限；五题中 4 个最终 Lean 工件过内核，1 个撞上限并含 `sorry` 被拒 | 已有统一 local proof-model adapter，但尚未替代主 E2E 的 OpenCode worker |
+| DeepSeek-Prover-V2-7B | `deepseek-ai/DeepSeek-Prover-V2-7B`，revision `a8d9e1…b7b` | PRODUCT_SOFT_GENERATOR | 远端 ROCm 五题 4 个 Lean 工件过内核、1 个撞上限被拒；硬件计划选中后经统一 local proof-model 工具进入逐 Claim 流程 | 输出仍须独立 Lean replay；不替代真值门 |
 
 ## 主 E2E 账本
 

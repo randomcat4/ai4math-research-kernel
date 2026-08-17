@@ -101,7 +101,8 @@ flowchart TD
 - 公共 LeanSearch 没有线上部署版本证明；
 - 语义忠实性和真实人类同行复核仍需外部责任人完成；
 - `AmendContract` 仍主动返回“暂不可用”；
-- QED-Nano、DeepSeek-Prover 已下载、实测并进入 soft-only 适配缝隙，但尚未成为默认
+- QED-Nano、DeepSeek-Prover 已下载、实测并由实时硬件计划选择进入 soft-only 候选工具；
+  未配置本地资产时使用 API 候选路径，不伪装为本地模型。
   路由；专用模型输出不能直接改变数学状态。
 
 因此，当前 RK 已是一个**能执行并审计小型 Lean 闭环的可信内部原型**，还不是完整、

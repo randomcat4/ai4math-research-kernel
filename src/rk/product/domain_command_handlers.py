@@ -47,12 +47,25 @@ class ArtifactPublisher(Protocol):
     def publish(self, *, data: bytes, logical_name: str, media_type: str) -> ExactArtifactRef: ...
 
 
+class RunArtifactLinker(Protocol):
+    def link(
+        self,
+        *,
+        run_id: str,
+        artifact: ExactArtifactRef,
+        logical_name: str,
+        role: str,
+        linked_at: str,
+    ) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class DomainHandlerServices:
     db_path: Path
     kernel: ProductAuthority
     artifacts: ArtifactReadService
     publisher: ArtifactPublisher
+    run_artifacts: RunArtifactLinker
     routes: RoutePlanStore
     guidance: GuidanceStore
     contracts: ContractStore
@@ -233,18 +246,20 @@ class _Handlers:
         anchors = _accepted_anchors(self.s.db_path, contract.contract_id, contract.version)
         if tuple(sorted(_strings(payload, "material_anchor_ids"))) != anchors:
             raise DomainCommandRejected("MATERIAL_ANCHOR_BINDING_MISMATCH")
+        logical_name = f"{i.request.request_id}.contract-confirmation.txt"
         artifact = self.s.publisher.publish(
             data=_text(payload, "confirmation_note").encode(),
-            logical_name=f"{i.request.request_id}.contract-confirmation.txt",
+            logical_name=logical_name,
             media_type="text/plain",
         )
-        self.s.contracts.confirm_by_user(
-            contract.contract_id,
-            confirmed_by=i.session.principal_subject_id,
-            actor_kind="USER",
-            now=self.s.clock(),
+        self.s.run_artifacts.link(
+            run_id=_run(i),
+            artifact=artifact,
+            logical_name=logical_name,
+            role="CONTRACT",
+            linked_at=self.s.clock(),
         )
-        return self._kernel(
+        decision = self._kernel(
             i,
             "CONFIRM_CONTRACT",
             {
@@ -252,6 +267,44 @@ class _Handlers:
                 "completeness_check_artifact_id": artifact.artifact_id,
             },
         )
+        if decision.accepted:
+            self.s.contracts.confirm_by_user(
+                contract.contract_id,
+                confirmed_by=i.session.principal_subject_id,
+                actor_kind="USER",
+                now=self.s.clock(),
+            )
+            now = self.s.clock()
+            source = {
+                "run_id": _run(i),
+                "contract_id": contract.contract_id,
+                "contract_digest": contract.content_digest,
+                "kernel_revision": decision.revision_after,
+                "confirmation_artifact_id": artifact.artifact_id,
+            }
+            self.s.catalog.project(
+                _run(i),
+                ResearchSummaryProjection(
+                    outcome_state="OPEN",
+                    execution_state="IDLE",
+                    authority_state="CONTRACT_CONFIRMED",
+                    publication_state="NOT_STARTED",
+                    phase="ROUTE_PLANNING",
+                    blockers=("ROUTE_PLAN_REQUIRED",),
+                    next_actions=("APPLY_ROUTE_PLAN",),
+                    available_actions=({"command_type": "APPLY_ROUTE_PLAN"},),
+                    budget=BudgetSummary(0, 0, 0, 0),
+                    recent_activity_at=now,
+                    recent_activity_summary="Contract confirmed; route plan required.",
+                    research_revision=decision.revision_after,
+                    contract_version=contract.version,
+                    last_cursor=self._cursor(),
+                    projection_source_digest=hashlib.sha256(
+                        canonical_json_bytes(source)
+                    ).hexdigest(),
+                ),
+            )
+        return decision
 
     def amend_contract(self, i: DomainInvocation) -> ProductDecision:
         payload = i.request.payload
@@ -511,9 +564,7 @@ class _Handlers:
 
     def freeze_problem_pool(self, i: DomainInvocation) -> ProductDecision:
         p = i.request.payload
-        semantic_audit = _exact_artifact(
-            self.s.artifacts, _object(p, "semantic_audit_artifact")
-        )
+        semantic_audit = _exact_artifact(self.s.artifacts, _object(p, "semantic_audit_artifact"))
         pool = self.s.problem_pool.freeze(
             _text(p, "pool_name"),
             frozen_by=i.session.principal_subject_id,

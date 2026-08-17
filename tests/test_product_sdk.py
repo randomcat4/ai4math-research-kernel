@@ -36,7 +36,19 @@ def test_client_exposes_only_four_transport_operations() -> None:
 
     def transport(operation: str, body: dict[str, Any]) -> dict[str, Any]:
         calls.append((operation, body))
-        return {"schema_version": "rk.product.query_result.v1", "data": {}}
+        return {
+            "schema_version": "rk.product.query_result.v1",
+            "result_type": "LIST_RESEARCH",
+            "stable_entity_id": "f1d10eee-4da4-49cf-ae78-870dff1c08ba",
+            "scope_kind": "GLOBAL",
+            "last_cursor": 0,
+            "result": {
+                "items": [],
+                "page": {"returned": 0, "total": 0, "truncated": False},
+            },
+            "deployment_id": "f1d10eee-4da4-49cf-ae78-870dff1c08ba",
+            "catalog_revision": 0,
+        }
 
     client = ResearchProductClient(transport)
     client.query(

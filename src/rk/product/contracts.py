@@ -298,14 +298,9 @@ class ContractStore:
                 "AND contract_version=? AND acceptance_state<>'USER_ACCEPTED'",
                 (contract_id, current.version),
             ).fetchone()
-            accepted = connection.execute(
-                "SELECT COUNT(*) FROM product_contract_material_references WHERE contract_id=? "
-                "AND contract_version=? AND acceptance_state='USER_ACCEPTED'",
-                (contract_id, current.version),
-            ).fetchone()
             if unresolved != (0,):
                 raise ContractError("contract still has unresolved ambiguity")
-            if proposed != (0,) or accepted == (0,):
+            if proposed != (0,):
                 raise ContractError("contract requires explicit user-accepted material anchors")
             revised_fields = connection.execute(
                 "SELECT p.changed_fields_json FROM "

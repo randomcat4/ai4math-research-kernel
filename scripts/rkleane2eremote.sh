@@ -23,6 +23,7 @@ log="${deployment_root}/${run_name}.log"
 started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 rm -f "${receipt}"
 set +e
+export PYTHONPATH="${deployment_root}/app/src:${deployment_root}/app${PYTHONPATH:+:${PYTHONPATH}}"
 "${deployment_root}/venv/bin/python" \
   "${deployment_root}/app/scripts/rkleane2e.py" "${deployment_root}" >"${log}" 2>&1
 exit_code=$?

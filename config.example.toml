@@ -18,6 +18,16 @@ capability_key_id = "replace-with-host-key-id"
 
 [verifier_profiles]
 
+# AUTO performs real host RAM/GPU discovery and records the resulting placement plan in every
+# research checkpoint/report. Set the two service flags to false when deployment has no such path.
+[product.hardware_plan]
+mode = "AUTO"
+api_candidate_available = true
+public_retrieval_available = true
+local_assets = []
+retrieval_top_k = 8
+require_jixia = false
+
 # Hard enforcement policy. Values use the same microunit convention as RecordBudget.
 [budget_policy]
 budget_controller_capability_ids = []

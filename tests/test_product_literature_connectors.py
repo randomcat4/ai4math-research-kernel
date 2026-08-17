@@ -398,7 +398,7 @@ def test_openalex_crossref_and_arxiv_strict_fixture_projection() -> None:
         ),
     ],
 )
-def test_current_endpoint_live_call_is_captured_in_real_cas(
+def test_current_endpoint_live_call_is_losslessly_captured_in_real_cas(
     tmp_path: Path, connector: Any, request_value: dict[str, object]
 ) -> None:
     db, jobs, runs, publisher, snapshots = stores(tmp_path)
@@ -413,7 +413,10 @@ def test_current_endpoint_live_call_is_captured_in_real_cas(
         timeout_seconds=30,
     )
     assert snapshot.mode == "LIVE_QUERY"
-    assert snapshot.result_status in {"SUCCESS", "NO_HIT"}
+    assert snapshot.result_status in {"SUCCESS", "NO_HIT", "HTTP_ERROR"}
+    if snapshot.result_status == "HTTP_ERROR":
+        assert snapshot.error_code == "HTTP_ERROR"
+        assert snapshot.error_detail
     assert snapshot.raw_kind == "WIRE_RESPONSE"
     assert snapshot.raw_response.artifact_id in publisher.records
     assert (

@@ -240,10 +240,11 @@ def test_upgrade_runner_applies_only_appended_d00b_release_after_backup(tmp_path
     )
     current = json.loads((ROOT / "docs/spec/product/migration-manifest.json").read_text())
     current["release_id"] = "rk-product-next"
+    fragments_before = len(current["fragments"])
     raw_fragment = (extra / "upgrade_probe.sql").read_bytes()
     current["fragments"].append(
         {
-            "release_position": 32,
+            "release_position": fragments_before + 1,
             "fragment_id": "B19a/upgrade_probe",
             "sha256": hashlib.sha256(raw_fragment).hexdigest(),
         }
@@ -266,8 +267,8 @@ def test_upgrade_runner_applies_only_appended_d00b_release_after_backup(tmp_path
         request_id="upgrade-request",
         backup_id=backup.backup_id,
     )
-    assert receipt.fragments_before == 31
-    assert receipt.fragments_after == 32
+    assert receipt.fragments_before == fragments_before
+    assert receipt.fragments_after == fragments_before + 1
     assert (
         runner.execute(
             deployment_id="deployment-1",
@@ -280,5 +281,5 @@ def test_upgrade_runner_applies_only_appended_d00b_release_after_backup(tmp_path
         assert connection.execute(
             "SELECT assembly_position FROM product_schema_fragments "
             "WHERE package='B19a' AND slug='upgrade_probe'"
-        ).fetchone() == (32,)
+        ).fetchone() == (fragments_before + 1,)
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
