@@ -6,10 +6,11 @@ their wire representations are the public seam shared by callers and tests.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from types import MappingProxyType
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 JsonObject = Mapping[str, Any]
 
@@ -158,6 +159,7 @@ class VerifiedCapability:
     run_scope: frozenset[str]
     issued_at: str
     expires_at: str
+    subject_role: str | None = None
 
     def allows(self, action: str, run_id: str | None = None) -> bool:
         action_allowed = action in self.allowed_actions or "*" in self.allowed_actions

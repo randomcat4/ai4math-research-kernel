@@ -1,0 +1,65 @@
+{
+  "dtype": "bfloat16",
+  "generation": {
+    "do_sample": true,
+    "max_new_tokens": 32768,
+    "temperature": 0.6,
+    "top_k": 20,
+    "top_p": 0.95
+  },
+  "gpu": "AMD Radeon Graphics",
+  "hip": "7.2.26015-fc0010cf6a",
+  "kind": "qed",
+  "load_seconds": 11.665753621608019,
+  "model_path": "/root/ai4math_repro_20260811/models/qed_nano",
+  "model_revision": "1016ddef8dd40552b97216ce34e3fece2fffa2bb",
+  "results": [
+    {
+      "id": "sqrt2",
+      "input_tokens": 24,
+      "output_sha256": "40e7a55447362dde9c4ebb6f43e1f4834af5acbb573780cd64ebf39082487f2a",
+      "output_tokens": 2123,
+      "peak_gpu_bytes": 8403697664,
+      "tokens_per_second": 24.990378340378847,
+      "wall_seconds": 84.95269543677568
+    },
+    {
+      "id": "odd_sum",
+      "input_tokens": 43,
+      "output_sha256": "06e21197ae1114730b5abebd9726a93051832c36c8a170cd944305c61a2b5307",
+      "output_tokens": 2428,
+      "peak_gpu_bytes": 8464615424,
+      "tokens_per_second": 25.817646192964805,
+      "wall_seconds": 94.04420456662774
+    },
+    {
+      "id": "inf_primes",
+      "input_tokens": 22,
+      "output_sha256": "7f0f3591a71f1df471756e282bc56ff571ee67120e5a62d483beecf00e4f7992",
+      "output_tokens": 2276,
+      "peak_gpu_bytes": 8427235328,
+      "tokens_per_second": 26.063586270679103,
+      "wall_seconds": 87.32489751651883
+    },
+    {
+      "id": "cube_identity",
+      "input_tokens": 44,
+      "output_sha256": "9f1e65f00ee365b68a9a5aa0ed04252eba417cd87deca92ff1f5ba1feb9e5c73",
+      "output_tokens": 3193,
+      "peak_gpu_bytes": 8564361216,
+      "tokens_per_second": 24.876966640594024,
+      "wall_seconds": 128.35166144371033
+    },
+    {
+      "id": "am_gm_two",
+      "input_tokens": 41,
+      "output_sha256": "62d2f446699b71937867948be57c1659524b7dce1bd30f55429738892e92af44",
+      "output_tokens": 1230,
+      "peak_gpu_bytes": 8275992576,
+      "tokens_per_second": 27.372778882859375,
+      "wall_seconds": 44.93515273928642
+    }
+  ],
+  "seed": 30,
+  "torch": "2.9.1+rocm7.2.0.git7e1940d4"
+}

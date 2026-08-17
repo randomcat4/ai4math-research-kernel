@@ -1,0 +1,62 @@
+{
+  "dtype": "bfloat16",
+  "generation": {
+    "do_sample": false,
+    "max_new_tokens": 8192
+  },
+  "gpu": "AMD Radeon Graphics",
+  "hip": "7.2.26015-fc0010cf6a",
+  "kind": "deepseek-prover",
+  "load_seconds": 25.61333131045103,
+  "model_path": "/root/ai4math_repro_20260811/models/deepseek_prover_v2_7b",
+  "model_revision": "a8d9e14432b2e8dd9df2a4d4e70f1ba9bc8d9b7b",
+  "results": [
+    {
+      "id": "add_zero",
+      "input_tokens": 119,
+      "output_sha256": "34b496f4ae14dc1e9be20d4454371c4f37dfa393f28a6a98c224a457d25f376d",
+      "output_tokens": 770,
+      "peak_gpu_bytes": 14298502656,
+      "tokens_per_second": 23.471208109791124,
+      "wall_seconds": 32.80615111067891
+    },
+    {
+      "id": "add_comm",
+      "input_tokens": 121,
+      "output_sha256": "7f1658f107b18425c4ee800b46a55f4dcc5921e1519fb8a2c0128bd98d13bd31",
+      "output_tokens": 1266,
+      "peak_gpu_bytes": 14547374592,
+      "tokens_per_second": 24.487805025220844,
+      "wall_seconds": 51.69920287653804
+    },
+    {
+      "id": "sq_nonneg",
+      "input_tokens": 125,
+      "output_sha256": "f63e1e7dd6976baa895449727f3e9dcb8d377a140a06a137f2512c9026686b82",
+      "output_tokens": 740,
+      "peak_gpu_bytes": 14286520832,
+      "tokens_per_second": 25.13832853171926,
+      "wall_seconds": 29.437120255082846
+    },
+    {
+      "id": "reverse_reverse",
+      "input_tokens": 126,
+      "output_sha256": "03bca6f4b7f9103e5a8e5b23a2fb533192a868d3abaa5b5cbe562d22856da773",
+      "output_tokens": 8192,
+      "peak_gpu_bytes": 18010989056,
+      "tokens_per_second": 17.310170779006835,
+      "wall_seconds": 473.24778620526195
+    },
+    {
+      "id": "official_abs",
+      "input_tokens": 153,
+      "output_sha256": "b8a1c3808be5a7523a7a8f04ad47ff2eeed4071404aa5441e7e428e80ecc4130",
+      "output_tokens": 779,
+      "peak_gpu_bytes": 14320058880,
+      "tokens_per_second": 25.045789504810394,
+      "wall_seconds": 31.103032302111387
+    }
+  ],
+  "seed": 30,
+  "torch": "2.9.1+rocm7.2.0.git7e1940d4"
+}

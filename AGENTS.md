@@ -1,7 +1,11 @@
 # Repository collaboration rules
 
-- The only public module interface is `ResearchKernel.create/apply/inspect/export` plus the
-  `rkctl` CLI. Keep storage, guards, adapters, and orchestration behind that seam.
+- `ResearchKernel.create/apply/inspect/export` remains the only mathematical-authority seam.
+  The graphical/HTTP/desktop product exposes one additional deep public module, `ResearchProduct`,
+  whose frozen interface is defined in `docs/product/product-architecture.md`. It must call ResearchKernel
+  for every mathematical state change. Keep storage, guards, adapters, orchestration, activity
+  projection, supervision, and deployment implementations behind those two nested seams; callers
+  must never bypass ResearchProduct to reach ResearchKernel internals.
 - Do not hard-code model names, providers, API keys, hostnames, ports, absolute workspace
   paths, budgets, Lean toolchains, Mathlib commits, adapter commits, or verifier profiles.
   Put varying values in configuration or the capability/profile registry.

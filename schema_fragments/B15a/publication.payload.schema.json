@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rk.local/schema/b15a-publication-payload.json",
+  "title": "B15a publication command payloads",
+  "oneOf": [
+    {"$ref": "#/$defs/generate"},
+    {"$ref": "#/$defs/review"},
+    {"$ref": "#/$defs/compile"}
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "id": {"type": "string", "minLength": 1},
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "sha256", "byte_count", "media_type"],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/id"},
+        "sha256": {"$ref": "#/$defs/digest"},
+        "byte_count": {"type": "integer", "minimum": 0},
+        "media_type": {"type": "string", "minLength": 1}
+      }
+    },
+    "chain": {
+      "type": "object",
+      "required": [
+        "finalized_revision",
+        "terminal_root_id",
+        "terminal_root_digest",
+        "closure_witness_id",
+        "dependency_closure_digest",
+        "generation_command_id",
+        "candidate_tex_artifact"
+      ],
+      "properties": {
+        "finalized_revision": {"type": "integer", "minimum": 1},
+        "terminal_root_id": {"$ref": "#/$defs/id"},
+        "terminal_root_digest": {"$ref": "#/$defs/digest"},
+        "closure_witness_id": {"$ref": "#/$defs/id"},
+        "dependency_closure_digest": {"$ref": "#/$defs/digest"},
+        "generation_command_id": {"$ref": "#/$defs/id"},
+        "candidate_tex_artifact": {"$ref": "#/$defs/artifact"}
+      }
+    },
+    "generate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finalized_revision",
+        "terminal_root_id",
+        "terminal_root_digest",
+        "closure_witness_id",
+        "dependency_closure_digest",
+        "candidate_tex_artifact"
+      ],
+      "properties": {
+        "finalized_revision": {"type": "integer", "minimum": 1},
+        "terminal_root_id": {"$ref": "#/$defs/id"},
+        "terminal_root_digest": {"$ref": "#/$defs/digest"},
+        "closure_witness_id": {"$ref": "#/$defs/id"},
+        "dependency_closure_digest": {"$ref": "#/$defs/digest"},
+        "candidate_tex_artifact": {"$ref": "#/$defs/artifact"}
+      }
+    },
+    "review": {
+      "allOf": [
+        {"$ref": "#/$defs/chain"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "finalized_revision",
+            "terminal_root_id",
+            "terminal_root_digest",
+            "closure_witness_id",
+            "dependency_closure_digest",
+            "generation_command_id",
+            "candidate_tex_artifact",
+            "paper_review_id",
+            "signed_review_artifact",
+            "paper_review_schema_version",
+            "reviewer_subject_id",
+            "verdict"
+          ],
+          "properties": {
+            "finalized_revision": true,
+            "terminal_root_id": true,
+            "terminal_root_digest": true,
+            "closure_witness_id": true,
+            "dependency_closure_digest": true,
+            "generation_command_id": true,
+            "candidate_tex_artifact": true,
+            "paper_review_id": {"$ref": "#/$defs/id"},
+            "signed_review_artifact": {"$ref": "#/$defs/artifact"},
+            "paper_review_schema_version": {"$ref": "#/$defs/id"},
+            "reviewer_subject_id": {"$ref": "#/$defs/id"},
+            "verdict": {"enum": ["ACCEPT", "REJECT"]}
+          }
+        }
+      ]
+    },
+    "compile": {
+      "allOf": [
+        {"$ref": "#/$defs/chain"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "finalized_revision",
+            "terminal_root_id",
+            "terminal_root_digest",
+            "closure_witness_id",
+            "dependency_closure_digest",
+            "generation_command_id",
+            "candidate_tex_artifact",
+            "paper_review_id",
+            "final_pdf_artifact",
+            "compiler_profile_id",
+            "compiler_profile_version"
+          ],
+          "properties": {
+            "finalized_revision": true,
+            "terminal_root_id": true,
+            "terminal_root_digest": true,
+            "closure_witness_id": true,
+            "dependency_closure_digest": true,
+            "generation_command_id": true,
+            "candidate_tex_artifact": true,
+            "paper_review_id": {"$ref": "#/$defs/id"},
+            "final_pdf_artifact": {"$ref": "#/$defs/artifact"},
+            "compiler_profile_id": {"$ref": "#/$defs/id"},
+            "compiler_profile_version": {"$ref": "#/$defs/id"}
+          }
+        }
+      ]
+    }
+  }
+}

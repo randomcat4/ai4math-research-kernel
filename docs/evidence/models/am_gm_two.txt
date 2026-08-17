@@ -1,0 +1,72 @@
+We need to generate a rigorous proof that for all positive real x and y, (x+y)/2 ≥ sqrt(xy), with equality iff x=y. This is the arithmetic mean-geometric mean inequality (AM-GM). The standard proof uses the fact that (sqrt(x)-sqrt(y))^2 ≥ 0, which expands to x + y - 2 sqrt(xy) ≥ 0, giving (x+y)/2 ≥ sqrt(xy). That's a simple proof. But we need to ensure it's rigorous: we need to show that sqrt(x) and sqrt(y) are defined (positive reals) and that the inequality holds. Since x,y>0, sqrt(x), sqrt(y) are real numbers. Then (sqrt(x)-sqrt(y))^2 ≥ 0 always, because any real square is non-negative. Expanding yields x + y - 2 sqrt(xy) ≥ 0 => x + y ≥ 2 sqrt(xy) => (x+y)/2 ≥ sqrt(xy). Equality occurs when sqrt(x)-sqrt(y)=0 => sqrt(x)=sqrt(y) => x=y (since sqrt is injective on positive reals). That's rigorous enough.
+
+But perhaps they want a more formal approach: define the function f(x,y) = (x+y)/2 - sqrt(xy). Show it's non-negative. The square method is simplest.
+
+We can also use the rearrangement or Cauchy-Schwarz, but the square method is standard.
+
+Thus the proof is:
+
+Given x>0, y>0. Consider the expression (√x - √y)^2. Since it's a square of a real number, it is ≥ 0. Expand: (√x)^2 - 2√x√y + (√y)^2 = x + y - 2√(xy) ≥ 0. Hence x + y ≥ 2√(xy). Dividing by 2 yields (x+y)/2 ≥ √(xy). Equality holds iff (√x - √y)^2 = 0, i.e., √x = √y, which implies x = y (since the square root function is strictly increasing on positive reals). Conversely, if x=y, then (x+y)/2 = x and √(xy) = x, so equality holds.
+
+That's the proof.
+
+We can also note that the inequality is symmetric.
+
+Thus the answer is a short proof.
+
+Now, the user says "Generate a rigorous proof". So we need to output a clear, step-by-step proof. Possibly they want a more formal approach: define variables, use properties of real numbers, etc.
+
+We should also note that the domain is positive real numbers; if x or y were zero or negative, sqrt(xy) might be undefined or not real, but the statement says positive real x and y, so it's fine.
+
+Thus final answer: a concise proof.
+
+But maybe they want a more detailed justification: For example, we need to justify that sqrt(x) and sqrt(y) are real numbers: Since x>0, there exists a unique positive real number t such that t^2 = x; denote it as √x. Similarly for y. Then we can use properties of real numbers: (√x - √y)^2 = (√x)^2 + (√y)^2 - 2√x√y = x + y - 2√(xy). Since the square of a real number is non-negative, we have x + y - 2√(xy) ≥ 0 => x + y ≥ 2√(xy). Then dividing by 2 yields the desired inequality.
+
+Equality: (√x - √y)^2 = 0 iff √x = √y, which because sqrt is injective on positive reals implies x = y. Conversely, if x = y, then √x = √y, so (√x - √y)^2 = 0, giving equality.
+
+Thus done.
+
+We can also mention that the inequality is known as AM-GM.
+
+Now, produce final answer.
+</think>
+
+**Proof (AM–GM inequality for two positive numbers).**  
+
+Let \(x,y>0\).  Define \(\sqrt{x},\sqrt{y}\) as the unique positive real numbers satisfying \((\sqrt{x})^{2}=x\) and \((\sqrt{y})^{2}=y\).  
+
+Consider the expression \((\sqrt{x}-\sqrt{y})^{2}\).  Because it is a square of a real number, it is always non‑negative:
+
+\[
+(\sqrt{x}-\sqrt{y})^{2}\ge 0 .
+\]
+
+Expanding the square gives  
+
+\[
+(\sqrt{x})^{2}-2\sqrt{x}\sqrt{y}+(\sqrt{y})^{2}=x+y-2\sqrt{xy}\ge 0 .
+\]
+
+Hence  
+
+\[
+x+y\ge 2\sqrt{xy}.
+\]
+
+Dividing by \(2\) (which is positive) yields  
+
+\[
+\frac{x+y}{2}\ge \sqrt{xy}.
+\]
+
+**Equality case.**  
+
+The inequality becomes equality exactly when \((\sqrt{x}-\sqrt{y})^{2}=0\), i.e. when \(\sqrt{x}=\sqrt{y}\).  Since the square‑root function is strictly increasing on \((0,\infty)\), this is equivalent to \(x=y\).  Conversely, if \(x=y\) then \(\sqrt{x}=\sqrt{y}\) and \((\sqrt{x}-\sqrt{y})^{2}=0\), so the original inequality holds as an equality.
+
+Thus for all positive real numbers \(x,y\),
+
+\[
+\frac{x+y}{2}\ge \sqrt{xy},
+\]
+
+with equality **iff** \(x=y\).  ∎

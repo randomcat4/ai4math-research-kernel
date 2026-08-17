@@ -1,0 +1,37 @@
+import { useEffect, useState } from "react";
+import type { ComputeGateway } from "./api.js";
+import type { RunView } from "./model.js";
+export function ArtifactViewer({
+  gateway,
+  artifact,
+}: {
+  gateway: ComputeGateway;
+  artifact: RunView["artifacts"][number];
+}) {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    if (artifact.view === "JSON" || artifact.view === "TABLE")
+      fetch(gateway.artifactUrl(artifact.artifact_id), {
+        credentials: "include",
+      })
+        .then((r) => r.text())
+        .then(setText);
+  }, [artifact, gateway]);
+  if (artifact.view === "CHART")
+    return (
+      <img
+        src={gateway.artifactUrl(artifact.artifact_id)}
+        alt={artifact.name}
+      />
+    );
+  if (artifact.view === "JSON") return <pre>{text}</pre>;
+  if (artifact.view === "TABLE")
+    return (
+      <div className="rk-table-artifact">
+        <pre>{text}</pre>
+      </div>
+    );
+  return (
+    <a href={gateway.artifactUrl(artifact.artifact_id)}>下载 {artifact.name}</a>
+  );
+}

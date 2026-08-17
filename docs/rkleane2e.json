@@ -1,0 +1,1850 @@
+{
+  "assets": {
+    "dependency_closure_sha256": "d54427597344dbb036012cf49ce8b5e65d55b77f94c3aa755a3e4d1f25e52023",
+    "jixia_binary_sha256": "8d4542e0d3142742cafb805327bfbd28624c2b2ef6adbb64aeac80856dffe7b5",
+    "jixia_commit": "995437281e103bf3ca7d876dd36dff649d0d42d2",
+    "lean_binary_sha256": "3e0d0d3d801675359f2d4cf9815bfdb417b20b92fdd9d48b3b14c95bbae28bbf",
+    "leansearch_commit": "94f4888cbaf9f4322535755f86cbac690ec18080",
+    "mathlib_commit": "5352afccd6866369be9de43f5b7ec47203555f44",
+    "mathlib_tracked_dirty": "",
+    "mathlib_worktree_head": "5352afccd6866369be9de43f5b7ec47203555f44",
+    "model": "deepseek-v4/deepseek-v4-pro",
+    "model_transport": "opencode-jsonl-headless-no-tools",
+    "opencode_binary_sha256": "8e4ac80fe535537e6ee03cee1a8e23af3d0da56db1ae0ce3fffad3ea188a1768",
+    "opencode_config_sha256": "13f7c65bc8f69712360936a59dfae84261df482a3383c1ded53016e9c7d1d784"
+  },
+  "budget_summary": {
+    "API_MICRO_CURRENCY": {
+      "actual": 0,
+      "refunded": 0,
+      "reserved": 0,
+      "unknown_count": 2
+    },
+    "CPU_SECOND": {
+      "actual": 0,
+      "refunded": 0,
+      "reserved": 0,
+      "unknown_count": 2
+    },
+    "INPUT_TOKEN": {
+      "actual": 1647000000,
+      "refunded": 50000000000,
+      "reserved": 50000000000,
+      "unknown_count": 1
+    },
+    "OUTPUT_TOKEN": {
+      "actual": 33000000,
+      "refunded": 0,
+      "reserved": 0,
+      "unknown_count": 0
+    },
+    "WALL_SECOND": {
+      "actual": 105329000,
+      "refunded": 1260000000,
+      "reserved": 1260000000,
+      "unknown_count": 0
+    }
+  },
+  "claim": {
+    "claim_id": "019ff489-027b-7f2b-8f32-e21f6733539d",
+    "closure": "NOT_REQUIRED",
+    "lifecycle": "ACTIVE",
+    "machine": "KERNEL_VERIFIED",
+    "peer": "UNREVIEWED",
+    "quality": "UNREVIEWED",
+    "route": "UNASSESSED",
+    "semantic": "UNREVIEWED",
+    "statement_hash": "4bd803ed991303d629917a80249158424883f28604d2642f23d46c974050f166"
+  },
+  "component_usage": {
+    "jixia:jixia-4.28": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "reasoning_tokens": 0,
+      "total_tokens": 0,
+      "unknown_count": 1,
+      "wall_time_ms": 49636
+    },
+    "lean-replay:lean-clean-4.28": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "reasoning_tokens": 0,
+      "total_tokens": 0,
+      "unknown_count": 1,
+      "wall_time_ms": 23173
+    },
+    "leansearch:public-v1": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "reasoning_tokens": 0,
+      "total_tokens": 0,
+      "unknown_count": 2,
+      "wall_time_ms": 2796
+    },
+    "opencode:deepseek-v4-pro": {
+      "cache_read_tokens": 1920,
+      "cache_write_tokens": 0,
+      "input_tokens": 1647,
+      "output_tokens": 33,
+      "reasoning_tokens": 1143,
+      "total_tokens": 4743,
+      "unknown_count": 1,
+      "wall_time_ms": 29724
+    }
+  },
+  "invocations": [
+    {
+      "adapter_name": "leansearch",
+      "adapter_version": "v1",
+      "host_receipt": {},
+      "request_hash": "13dcd7907dd4153242ae74d3eb283cadbc51057fa636f7af428cab21174a1115",
+      "result": {
+        "adapter_name": "leansearch",
+        "adapter_version": "v1",
+        "closure_axis_effect": "UNCHANGED",
+        "endpoint": "https://leansearch.net/search",
+        "evidence_type": "PREMISE_CANDIDATE",
+        "http_status": 200,
+        "machine_axis_effect": "UNCHANGED",
+        "payload": {
+          "batches": [
+            [
+              {
+                "distance": 0.2178514003753662,
+                "result": {
+                  "docstring": null,
+                  "informal_description": "For any binary natural number $ n $, adding zero to $ n $ results in $ n $ itself, i.e., $ n + 0 = n $.",
+                  "informal_name": "$ n + 0 = n $ for Binary Natural Numbers",
+                  "kind": "theorem",
+                  "module_name": [
+                    "Mathlib",
+                    "Data",
+                    "Num",
+                    "Lemmas"
+                  ],
+                  "name": [
+                    "Num",
+                    "add_zero"
+                  ],
+                  "signature": "(n : Num) : n + 0 = n",
+                  "type": "∀ (n : Num), n + 0 = n",
+                  "value": ":= by cases n <;> rfl"
+                }
+              },
+              {
+                "distance": 0.2157578468322754,
+                "result": {
+                  "docstring": null,
+                  "informal_description": "For any ordinal $ a $, the natural addition of $ a $ and the zero ordinal is equal to $ a $, i.e., $ a \\mathbin{\\#} 0 = a $.",
+                  "informal_name": "Natural Addition Zero Identity: $ a \\mathbin{\\#} 0 = a $",
+                  "kind": "theorem",
+                  "module_name": [
+                    "Mathlib",
+                    "SetTheory",
+                    "Ordinal",
+                    "NaturalOps"
+                  ],
+                  "name": [
+                    "Ordinal",
+                    "nadd_zero"
+                  ],
+                  "signature": "(a : Ordinal) : a ♯ 0 = a",
+                  "type": "∀ (a : Ordinal.{u_1}), a.nadd 0 = a",
+                  "value": ":= by\n  rw [nadd, ciSup_of_empty fun _ : Iio 0 ↦ _, sup_bot_eq]\n  convert _root_.iSup_succ a\n  rename_i x\n  cases x\n  exact nadd_zero _\ntermination_by a"
+                }
+              },
+              {
+                "distance": 0.2216162085533142,
+                "result": {
+                  "docstring": null,
+                  "informal_description": "For any binary natural number $ n $, $ 0 + n = n $.",
+                  "informal_name": "Left Additive Identity for Binary Natural Numbers",
+                  "kind": "theorem",
+                  "module_name": [
+                    "Mathlib",
+                    "Data",
+                    "Num",
+                    "Lemmas"
+                  ],
+                  "name": [
+                    "Num",
+                    "zero_add"
+                  ],
+                  "signature": "(n : Num) : 0 + n = n",
+                  "type": "∀ (n : Num), 0 + n = n",
+                  "value": ":= by cases n <;> rfl"
+                }
+              },
+              {
+                "distance": 0.2532796263694763,
+                "result": {
+                  "docstring": null,
+                  "informal_description": "For any ordinal $a$, the natural addition of zero and $a$ equals $a$, i.e., $0 \\mathbin{\\#} a = a$.",
+                  "informal_name": "Zero is the Left Identity for Natural Addition of Ordinals",
+                  "kind": "theorem",
+                  "module_name": [
+                    "Mathlib",
+                    "SetTheory",
+                    "Ordinal",
+                    "NaturalOps"
+                  ],
+                  "name": [
+                    "Ordinal",
+                    "zero_nadd"
+                  ],
+                  "signature": ": 0 ♯ a = a",
+                  "type": "∀ (a : Ordinal.{u}), Ordinal.nadd 0 a = a",
+                  "value": ":= by rw [nadd_comm, nadd_zero]"
+                }
+              },
+              {
+                "distance": 0.26648104190826416,
+                "result": {
+                  "docstring": null,
+                  "informal_description": "For any signed binary integer $ n $ in the ZNum type, adding zero to $ n $ yields $ n $ itself, i.e., $ 0 + n = n $. This establishes that zero is the additive identity element for the ZNum addition operation.",
+                  "informal_name": "Additive Identity for ZNum: 0 + n = n",
+                  "kind": "theorem",
+                  "module_name": [
+                    "Mathlib",
+                    "Data",
+                    "Num",
+                    "ZNum"
+                  ],
+                  "name": [
+                    "ZNum",
+                    "zero_add"
+                  ],
+                  "signature": "(n : ZNum) : 0 + n = n",
+                  "type": "∀ (n : ZNum), 0 + n = n",
+                  "value": ":= by cases n <;> rfl"
+                }
+              },
+              {
+                "distance": 0.26956725120544434,
+                "result": {
+                  "docstring": null,
+                  "informal_description": "For any type $ M $ equipped with an additive structure and a zero element, $ 0 + x = x $ for all $ x \\in M $.",
+                  "informal_name": "Left Identity of Addition",
+                  "kind": "theorem",
+                  "module_name": [
+                    "Mathlib",
+                    "Algebra",
+                    "Group",
+                    "Basic"
+                  ],
+                  "name": [
+                    "zero_add_eq_id"
+                  ],
+                  "signature": "∀ {M : Type u_4} [inst : AddZeroClass M], (fun x => 0 + x) = id",
+                  "type": "∀ {M : Type u_4} [inst : AddZeroClass M], (fun x => 0 + x) = id",
+                  "value": ""
+                }
+              },
+              {
+                "distance": 0.2807878255844116,
+                "result": {
+                  "docstring": null,
+                  "informal_description": "For any ordinal notation $ o $, $ 0 + o = o $.",
+                  "informal_name": "Zero Plus Ordinal Equals Ordinal",
+                  "kind": "theorem",
+                  "module_name": [
+                    "Mathlib",
+                    "SetTheory",
+                    "Ordinal",
+                    "Notation"
+                  ],
+                  "name": [
+                    "ONote",
+                    "zero_add"
+                  ],
+                  "signature": "(o : ONote) : 0 + o = o",
+                  "type": "∀ (o : ONote), 0 + o = o",
+                  "value": ":=\n  rfl"
+                }
+              },
+              {
+                "distance": 0.2819932699203491,
+                "result": {
+                  "docstring": null,
+                  "informal_description": "For any element $a$ in a type $M$ equipped with an additive structure containing a zero element, it holds that $a + 0 = a$.",
+                  "informal_name": "Additive Identity: $a + 0 = a$",
+                  "kind": "theorem",
+                  "module_name": [
+                    "Mathlib",
+                    "Algebra",
+                    "Group",
+                    "Defs"
+                  ],
+                  "name": [
+                    "add_zero"
+                  ],
+                  "signature": "∀ {M : Type u} [inst : AddZeroClass M] (a : M), a + 0 = a",
+                  "type": "∀ {M : Type u} [inst : AddZeroClass M] (a : M), a + 0 = a",
+                  "value": ""
+                }
+              }
+            ]
+          ]
+        },
+        "query_hash": "13dcd7907dd4153242ae74d3eb283cadbc51057fa636f7af428cab21174a1115",
+        "response_hash": "d2401afb39d86bdb252e6c3c47df1de70dc357d42457e1835abea10d00eff7fe",
+        "semantic_axis_effect": "UNCHANGED",
+        "source_commit": "94f4888cbaf9f4322535755f86cbac690ec18080",
+        "status": "COMPLETED",
+        "trust_limit": "PREMISE_CANDIDATE"
+      },
+      "result_hash": "d647a8ec37f30d519f0debe71c9f5c3241b4816e4a74cce490881f86a4c87142",
+      "status": "COMPLETED",
+      "usage": {
+        "wall_time_ms": 2796
+      },
+      "wall_time_ms": 2796
+    },
+    {
+      "adapter_name": "opencode",
+      "adapter_version": "v1",
+      "host_receipt": {},
+      "request_hash": "cfa5720830ea1d4c510c9e8c924ef88272df61107c5a9694c2c396e680edad04",
+      "result": {
+        "adapter_name": "opencode",
+        "adapter_version": "v1",
+        "endpoint": null,
+        "environment_names": [
+          "DEEPSEEK_API_KEY",
+          "HOME",
+          "OPENCODE_CONFIG",
+          "XDG_CACHE_HOME",
+          "XDG_CONFIG_HOME",
+          "XDG_DATA_HOME",
+          "XDG_STATE_HOME"
+        ],
+        "evidence_strength": "SOFT_MODEL",
+        "evidence_type": "MODEL_JUDGE",
+        "exit_code": 0,
+        "forced_termination_after_protocol_completion": false,
+        "machine_axis_effect": "UNCHANGED",
+        "payload": {
+          "text": "```lean\nimport Mathlib\n\ntheorem rk_add_zero (n : Nat) : n + 0 = n := by\n  simp\n```"
+        },
+        "protocol_completed": true,
+        "source_commit": "8e4ac80fe535537e6ee03cee1a8e23af3d0da56db1ae0ce3fffad3ea188a1768",
+        "status": "COMPLETED",
+        "tool_calls": [],
+        "tool_policy": {
+          "config_sha256": "13f7c65bc8f69712360936a59dfae84261df482a3383c1ded53016e9c7d1d784",
+          "deny_all_required": true
+        },
+        "transient_execution_output": {
+          "stderr": "",
+          "stdout": "{\"type\":\"step_start\",\"timestamp\":1786514056576,\"sessionID\":\"ses_00b76e5f3ffeqMEgoh5JJ5TC7Y\",\"part\":{\"id\":\"prt_ff489257b001apSOxvnpl0H6FH\",\"messageID\":\"msg_ff4891e9d001Z43khb65t5xDMH\",\"sessionID\":\"ses_00b76e5f3ffeqMEgoh5JJ5TC7Y\",\"type\":\"step-start\"}}\n{\"type\":\"text\",\"timestamp\":1786514080733,\"sessionID\":\"ses_00b76e5f3ffeqMEgoh5JJ5TC7Y\",\"part\":{\"id\":\"prt_ff48982b8001yNjKjur7XTYzJ1\",\"messageID\":\"msg_ff4891e9d001Z43khb65t5xDMH\",\"sessionID\":\"ses_00b76e5f3ffeqMEgoh5JJ5TC7Y\",\"type\":\"text\",\"text\":\"```lean\\nimport Mathlib\\n\\ntheorem rk_add_zero (n : Nat) : n + 0 = n := by\\n  simp\\n```\",\"time\":{\"start\":1786514080440,\"end\":1786514080690}}}\n{\"type\":\"step_finish\",\"timestamp\":1786514080733,\"sessionID\":\"ses_00b76e5f3ffeqMEgoh5JJ5TC7Y\",\"part\":{\"id\":\"prt_ff48983bc001qkutVOan1S1tQh\",\"reason\":\"stop\",\"messageID\":\"msg_ff4891e9d001Z43khb65t5xDMH\",\"sessionID\":\"ses_00b76e5f3ffeqMEgoh5JJ5TC7Y\",\"type\":\"step-finish\",\"tokens\":{\"total\":4743,\"input\":1647,\"output\":33,\"reasoning\":1143,\"cache\":{\"write\":0,\"read\":1920}},\"cost\":0}}\n"
+        },
+        "trust_limit": "SOFT_MODEL",
+        "usage": {
+          "cache_read_tokens": 1920,
+          "cache_write_tokens": 0,
+          "input_tokens": 1647,
+          "output_tokens": 33,
+          "reasoning_tokens": 1143,
+          "total_tokens": 4743
+        }
+      },
+      "result_hash": "61ec30eadfdfffb4fb980605e93d8f212d8d2cd39a58e44a2aae37a5154ecebf",
+      "status": "COMPLETED",
+      "usage": {
+        "cache_read_tokens": 1920,
+        "cache_write_tokens": 0,
+        "input_tokens": 1647,
+        "output_tokens": 33,
+        "reasoning_tokens": 1143,
+        "total_tokens": 4743,
+        "wall_time_ms": 29724
+      },
+      "wall_time_ms": 29724
+    },
+    {
+      "adapter_name": "jixia",
+      "adapter_version": "v1",
+      "host_receipt": {},
+      "request_hash": "a25bd29fc9ac150136cebbe47b8e4824a2d323a408dff144f89770f0c1f8b760",
+      "result": {
+        "adapter_name": "jixia",
+        "adapter_version": "v1",
+        "binary_match": true,
+        "endpoint": null,
+        "environment_names": [
+          "PATH"
+        ],
+        "exit_code": 0,
+        "kernel_verdict": "NOT_PROVIDED",
+        "machine_axis_effect": "UNCHANGED",
+        "output_summary_hash": "be58f1742038bcfaa48de60f7eb784fcab94ffbd58154c8d11748b4c4237305c",
+        "outputs_sha256": {
+          "declarations": "5d57b904fd191a37cb788baa7cbdd4d08e67947f9b7c1f6982b9965b26899cf5",
+          "elaboration": "8a318bb5c257fc2bd44cc37e915cbbe85b1b3d280260a2886f82a0cb6c7c0550",
+          "lines": "1b2853b5533d653dee657574013c35fb54d06ffd18ab6d40a6736d9a17795bf2",
+          "symbols": "d6bf0f2ded4b1c7cd61a4575d9ec65eebb7752a6d5507be64b62789e6fe82e7c"
+        },
+        "payload": {
+          "declarations": [
+            {
+              "id": {
+                "original": true,
+                "range": [
+                  24,
+                  35
+                ]
+              },
+              "kind": "theorem",
+              "modifiers": {
+                "attrs": [],
+                "computeKind": "regular",
+                "isProtected": false,
+                "isUnsafe": false,
+                "recKind": "default",
+                "stx": null,
+                "visibility": "regular"
+              },
+              "name": [
+                "rk_add_zero"
+              ],
+              "params": [
+                {
+                  "bi": "default",
+                  "id": [
+                    37,
+                    38
+                  ],
+                  "ref": [
+                    37,
+                    38
+                  ],
+                  "type": [
+                    41,
+                    44
+                  ]
+                }
+              ],
+              "ref": {
+                "original": true,
+                "pp": "theorem rk_add_zero (n : Nat) : n + 0 = n := by simp",
+                "range": [
+                  16,
+                  70
+                ]
+              },
+              "scopeInfo": {
+                "currNamespace": [],
+                "includeVars": [],
+                "levelNames": [],
+                "omitVars": [],
+                "openDecl": [],
+                "scopedOpenDecl": [],
+                "varDecls": []
+              },
+              "signature": {
+                "original": true,
+                "pp": " (n : Nat) : n + 0 = n",
+                "range": [
+                  36,
+                  57
+                ]
+              },
+              "type": {
+                "original": true,
+                "pp": "n + 0 = n",
+                "range": [
+                  48,
+                  57
+                ]
+              },
+              "value": {
+                "original": true,
+                "pp": " := by simp",
+                "range": [
+                  58,
+                  70
+                ]
+              }
+            }
+          ],
+          "elaboration": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "info": {
+                        "simple": "completion"
+                      },
+                      "ref": {
+                        "kind": [
+                          "ident"
+                        ],
+                        "original": true,
+                        "pp": "Nat",
+                        "range": [
+                          41,
+                          44
+                        ]
+                      }
+                    },
+                    {
+                      "children": [],
+                      "info": {
+                        "term": {
+                          "context": [],
+                          "expectedType": "Type",
+                          "special": {
+                            "const": [
+                              "Nat"
+                            ]
+                          },
+                          "type": "Type",
+                          "value": "ℕ"
+                        }
+                      },
+                      "ref": {
+                        "kind": [
+                          "ident"
+                        ],
+                        "original": true,
+                        "pp": "Nat",
+                        "range": [
+                          41,
+                          44
+                        ]
+                      }
+                    }
+                  ],
+                  "info": {
+                    "term": {
+                      "context": [],
+                      "expectedType": "Type",
+                      "special": {
+                        "const": [
+                          "Nat"
+                        ]
+                      },
+                      "type": "Type",
+                      "value": "ℕ"
+                    }
+                  },
+                  "ref": {
+                    "kind": [
+                      "ident"
+                    ],
+                    "original": true,
+                    "pp": "Nat",
+                    "range": [
+                      41,
+                      44
+                    ]
+                  }
+                },
+                {
+                  "children": [],
+                  "info": {
+                    "term": {
+                      "context": [
+                        {
+                          "binderInfo": "default",
+                          "id": [
+                            "_uniq",
+                            2
+                          ],
+                          "isLet": false,
+                          "isProp": false,
+                          "isReferencedLater": false,
+                          "name": [
+                            "n"
+                          ],
+                          "type": "ℕ"
+                        }
+                      ],
+                      "expectedType": null,
+                      "special": {
+                        "fvar": [
+                          "_uniq",
+                          2
+                        ]
+                      },
+                      "type": "ℕ",
+                      "value": "n"
+                    }
+                  },
+                  "ref": {
+                    "kind": [
+                      "ident"
+                    ],
+                    "original": true,
+                    "pp": "n",
+                    "range": [
+                      37,
+                      38
+                    ]
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "info": {
+                                                "simple": "completion"
+                                              },
+                                              "ref": {
+                                                "kind": [
+                                                  "ident"
+                                                ],
+                                                "original": false,
+                                                "pp": " Eq ",
+                                                "range": [
+                                                  48,
+                                                  57
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "children": [],
+                                              "info": {
+                                                "simple": "completion"
+                                              },
+                                              "ref": {
+                                                "kind": [
+                                                  "ident"
+                                                ],
+                                                "original": false,
+                                                "pp": " HAdd.hAdd ",
+                                                "range": [
+                                                  48,
+                                                  53
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "info": {
+                                                    "simple": "completion"
+                                                  },
+                                                  "ref": {
+                                                    "kind": [
+                                                      "ident"
+                                                    ],
+                                                    "original": true,
+                                                    "pp": "n",
+                                                    "range": [
+                                                      48,
+                                                      49
+                                                    ]
+                                                  }
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "info": {
+                                                    "term": {
+                                                      "context": [
+                                                        {
+                                                          "binderInfo": "default",
+                                                          "id": [
+                                                            "_uniq",
+                                                            2
+                                                          ],
+                                                          "isLet": false,
+                                                          "isProp": false,
+                                                          "isReferencedLater": false,
+                                                          "name": [
+                                                            "n"
+                                                          ],
+                                                          "type": "ℕ"
+                                                        }
+                                                      ],
+                                                      "expectedType": null,
+                                                      "special": {
+                                                        "fvar": [
+                                                          "_uniq",
+                                                          2
+                                                        ]
+                                                      },
+                                                      "type": "ℕ",
+                                                      "value": "n"
+                                                    }
+                                                  },
+                                                  "ref": {
+                                                    "kind": [
+                                                      "ident"
+                                                    ],
+                                                    "original": true,
+                                                    "pp": "n",
+                                                    "range": [
+                                                      48,
+                                                      49
+                                                    ]
+                                                  }
+                                                }
+                                              ],
+                                              "info": {
+                                                "term": {
+                                                  "context": [
+                                                    {
+                                                      "binderInfo": "default",
+                                                      "id": [
+                                                        "_uniq",
+                                                        2
+                                                      ],
+                                                      "isLet": false,
+                                                      "isProp": false,
+                                                      "isReferencedLater": false,
+                                                      "name": [
+                                                        "n"
+                                                      ],
+                                                      "type": "ℕ"
+                                                    }
+                                                  ],
+                                                  "expectedType": null,
+                                                  "special": {
+                                                    "fvar": [
+                                                      "_uniq",
+                                                      2
+                                                    ]
+                                                  },
+                                                  "type": "ℕ",
+                                                  "value": "n"
+                                                }
+                                              },
+                                              "ref": {
+                                                "kind": [
+                                                  "ident"
+                                                ],
+                                                "original": true,
+                                                "pp": "n",
+                                                "range": [
+                                                  48,
+                                                  49
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "children": [],
+                                              "info": {
+                                                "term": {
+                                                  "context": [
+                                                    {
+                                                      "binderInfo": "default",
+                                                      "id": [
+                                                        "_uniq",
+                                                        2
+                                                      ],
+                                                      "isLet": false,
+                                                      "isProp": false,
+                                                      "isReferencedLater": false,
+                                                      "name": [
+                                                        "n"
+                                                      ],
+                                                      "type": "ℕ"
+                                                    }
+                                                  ],
+                                                  "expectedType": null,
+                                                  "type": "ℕ",
+                                                  "value": "0"
+                                                }
+                                              },
+                                              "ref": {
+                                                "kind": [
+                                                  "num"
+                                                ],
+                                                "original": true,
+                                                "pp": "0",
+                                                "range": [
+                                                  52,
+                                                  53
+                                                ]
+                                              }
+                                            }
+                                          ],
+                                          "info": {
+                                            "term": {
+                                              "context": [
+                                                {
+                                                  "binderInfo": "default",
+                                                  "id": [
+                                                    "_uniq",
+                                                    2
+                                                  ],
+                                                  "isLet": false,
+                                                  "isProp": false,
+                                                  "isReferencedLater": false,
+                                                  "name": [
+                                                    "n"
+                                                  ],
+                                                  "type": "ℕ"
+                                                }
+                                              ],
+                                              "expectedType": null,
+                                              "type": "ℕ",
+                                              "value": "n + 0"
+                                            }
+                                          },
+                                          "ref": {
+                                            "kind": [
+                                              "Lean",
+                                              "Parser",
+                                              "Term",
+                                              "binop"
+                                            ],
+                                            "original": false,
+                                            "pp": " binop%  HAdd.hAdd n 0 ",
+                                            "range": [
+                                              48,
+                                              53
+                                            ]
+                                          }
+                                        }
+                                      ],
+                                      "info": {
+                                        "macro": {
+                                          "expanded": {
+                                            "kind": [
+                                              "Lean",
+                                              "Parser",
+                                              "Term",
+                                              "binop"
+                                            ],
+                                            "original": false,
+                                            "pp": " binop%  HAdd.hAdd n 0 ",
+                                            "range": [
+                                              48,
+                                              53
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "ref": {
+                                        "kind": [
+                                          "term_+_"
+                                        ],
+                                        "original": true,
+                                        "pp": "n + 0",
+                                        "range": [
+                                          48,
+                                          53
+                                        ]
+                                      }
+                                    }
+                                  ],
+                                  "info": {
+                                    "term": {
+                                      "context": [
+                                        {
+                                          "binderInfo": "default",
+                                          "id": [
+                                            "_uniq",
+                                            2
+                                          ],
+                                          "isLet": false,
+                                          "isProp": false,
+                                          "isReferencedLater": false,
+                                          "name": [
+                                            "n"
+                                          ],
+                                          "type": "ℕ"
+                                        }
+                                      ],
+                                      "expectedType": null,
+                                      "type": "ℕ",
+                                      "value": "n + 0"
+                                    }
+                                  },
+                                  "ref": {
+                                    "kind": [
+                                      "term_+_"
+                                    ],
+                                    "original": true,
+                                    "pp": "n + 0",
+                                    "range": [
+                                      48,
+                                      53
+                                    ]
+                                  }
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "info": {
+                                        "simple": "completion"
+                                      },
+                                      "ref": {
+                                        "kind": [
+                                          "ident"
+                                        ],
+                                        "original": true,
+                                        "pp": "n",
+                                        "range": [
+                                          56,
+                                          57
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "children": [],
+                                      "info": {
+                                        "term": {
+                                          "context": [
+                                            {
+                                              "binderInfo": "default",
+                                              "id": [
+                                                "_uniq",
+                                                2
+                                              ],
+                                              "isLet": false,
+                                              "isProp": false,
+                                              "isReferencedLater": false,
+                                              "name": [
+                                                "n"
+                                              ],
+                                              "type": "ℕ"
+                                            }
+                                          ],
+                                          "expectedType": null,
+                                          "special": {
+                                            "fvar": [
+                                              "_uniq",
+                                              2
+                                            ]
+                                          },
+                                          "type": "ℕ",
+                                          "value": "n"
+                                        }
+                                      },
+                                      "ref": {
+                                        "kind": [
+                                          "ident"
+                                        ],
+                                        "original": true,
+                                        "pp": "n",
+                                        "range": [
+                                          56,
+                                          57
+                                        ]
+                                      }
+                                    }
+                                  ],
+                                  "info": {
+                                    "term": {
+                                      "context": [
+                                        {
+                                          "binderInfo": "default",
+                                          "id": [
+                                            "_uniq",
+                                            2
+                                          ],
+                                          "isLet": false,
+                                          "isProp": false,
+                                          "isReferencedLater": false,
+                                          "name": [
+                                            "n"
+                                          ],
+                                          "type": "ℕ"
+                                        }
+                                      ],
+                                      "expectedType": null,
+                                      "special": {
+                                        "fvar": [
+                                          "_uniq",
+                                          2
+                                        ]
+                                      },
+                                      "type": "ℕ",
+                                      "value": "n"
+                                    }
+                                  },
+                                  "ref": {
+                                    "kind": [
+                                      "ident"
+                                    ],
+                                    "original": true,
+                                    "pp": "n",
+                                    "range": [
+                                      56,
+                                      57
+                                    ]
+                                  }
+                                }
+                              ],
+                              "info": {
+                                "term": {
+                                  "context": [
+                                    {
+                                      "binderInfo": "default",
+                                      "id": [
+                                        "_uniq",
+                                        2
+                                      ],
+                                      "isLet": false,
+                                      "isProp": false,
+                                      "isReferencedLater": false,
+                                      "name": [
+                                        "n"
+                                      ],
+                                      "type": "ℕ"
+                                    }
+                                  ],
+                                  "expectedType": null,
+                                  "type": "Prop",
+                                  "value": "n + 0 = n"
+                                }
+                              },
+                              "ref": {
+                                "kind": [
+                                  "Lean",
+                                  "Parser",
+                                  "Term",
+                                  "binrel"
+                                ],
+                                "original": false,
+                                "pp": " binrel%  Eq n + 0 n ",
+                                "range": [
+                                  48,
+                                  57
+                                ]
+                              }
+                            }
+                          ],
+                          "info": {
+                            "term": {
+                              "context": [
+                                {
+                                  "binderInfo": "default",
+                                  "id": [
+                                    "_uniq",
+                                    2
+                                  ],
+                                  "isLet": false,
+                                  "isProp": false,
+                                  "isReferencedLater": false,
+                                  "name": [
+                                    "n"
+                                  ],
+                                  "type": "ℕ"
+                                }
+                              ],
+                              "expectedType": "Sort ?u.3",
+                              "type": "Prop",
+                              "value": "n + 0 = n"
+                            }
+                          },
+                          "ref": {
+                            "kind": [
+                              "Lean",
+                              "Parser",
+                              "Term",
+                              "binrel"
+                            ],
+                            "original": false,
+                            "pp": " binrel%  Eq n + 0 n ",
+                            "range": [
+                              48,
+                              57
+                            ]
+                          }
+                        }
+                      ],
+                      "info": {
+                        "macro": {
+                          "expanded": {
+                            "kind": [
+                              "Lean",
+                              "Parser",
+                              "Term",
+                              "binrel"
+                            ],
+                            "original": false,
+                            "pp": " binrel%  Eq n + 0 n ",
+                            "range": [
+                              48,
+                              57
+                            ]
+                          }
+                        }
+                      },
+                      "ref": {
+                        "kind": [
+                          "term_=_"
+                        ],
+                        "original": true,
+                        "pp": "n + 0 = n",
+                        "range": [
+                          48,
+                          57
+                        ]
+                      }
+                    }
+                  ],
+                  "info": {
+                    "term": {
+                      "context": [
+                        {
+                          "binderInfo": "default",
+                          "id": [
+                            "_uniq",
+                            2
+                          ],
+                          "isLet": false,
+                          "isProp": false,
+                          "isReferencedLater": false,
+                          "name": [
+                            "n"
+                          ],
+                          "type": "ℕ"
+                        }
+                      ],
+                      "expectedType": "Sort ?u.3",
+                      "type": "Prop",
+                      "value": "n + 0 = n"
+                    }
+                  },
+                  "ref": {
+                    "kind": [
+                      "term_=_"
+                    ],
+                    "original": true,
+                    "pp": "n + 0 = n",
+                    "range": [
+                      48,
+                      57
+                    ]
+                  }
+                },
+                {
+                  "children": [],
+                  "info": {
+                    "term": {
+                      "context": [
+                        {
+                          "binderInfo": "default",
+                          "id": [
+                            "_uniq",
+                            83
+                          ],
+                          "isLet": false,
+                          "isProp": false,
+                          "isReferencedLater": false,
+                          "name": [
+                            "n"
+                          ],
+                          "type": "ℕ"
+                        }
+                      ],
+                      "expectedType": null,
+                      "special": {
+                        "fvar": [
+                          "_uniq",
+                          83
+                        ]
+                      },
+                      "type": "ℕ",
+                      "value": "n"
+                    }
+                  },
+                  "ref": {
+                    "kind": [
+                      "ident"
+                    ],
+                    "original": true,
+                    "pp": "n",
+                    "range": [
+                      37,
+                      38
+                    ]
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "info": {
+                                        "tactic": {
+                                          "after": [],
+                                          "before": [
+                                            {
+                                              "context": [
+                                                {
+                                                  "binderInfo": "default",
+                                                  "id": [
+                                                    "_uniq",
+                                                    83
+                                                  ],
+                                                  "isLet": false,
+                                                  "isProp": false,
+                                                  "isReferencedLater": false,
+                                                  "name": [
+                                                    "n"
+                                                  ],
+                                                  "type": "ℕ"
+                                                }
+                                              ],
+                                              "extra": {
+                                                "newGoals": [],
+                                                "newHypotheses": [],
+                                                "typeMVars": [],
+                                                "typeUses": [
+                                                  "_uniq.83"
+                                                ],
+                                                "valueUses": []
+                                              },
+                                              "isProp": true,
+                                              "mvarId": [
+                                                "_uniq",
+                                                84
+                                              ],
+                                              "pp": "n : ℕ\n⊢ n + 0 = n",
+                                              "tag": [],
+                                              "type": "n + 0 = n"
+                                            }
+                                          ],
+                                          "extra": {
+                                            "usedTheorems": [
+                                              "add_zero",
+                                              "eq_self"
+                                            ]
+                                          },
+                                          "references": []
+                                        }
+                                      },
+                                      "ref": {
+                                        "kind": [
+                                          "Lean",
+                                          "Parser",
+                                          "Tactic",
+                                          "simp"
+                                        ],
+                                        "original": true,
+                                        "pp": "simp",
+                                        "range": [
+                                          66,
+                                          70
+                                        ]
+                                      }
+                                    }
+                                  ],
+                                  "info": {
+                                    "tactic": {
+                                      "after": [],
+                                      "before": [
+                                        {
+                                          "context": [
+                                            {
+                                              "binderInfo": "default",
+                                              "id": [
+                                                "_uniq",
+                                                83
+                                              ],
+                                              "isLet": false,
+                                              "isProp": false,
+                                              "isReferencedLater": false,
+                                              "name": [
+                                                "n"
+                                              ],
+                                              "type": "ℕ"
+                                            }
+                                          ],
+                                          "extra": {
+                                            "newGoals": [],
+                                            "newHypotheses": [],
+                                            "typeMVars": [],
+                                            "typeUses": [
+                                              "_uniq.83"
+                                            ],
+                                            "valueUses": []
+                                          },
+                                          "isProp": true,
+                                          "mvarId": [
+                                            "_uniq",
+                                            84
+                                          ],
+                                          "pp": "n : ℕ\n⊢ n + 0 = n",
+                                          "tag": [],
+                                          "type": "n + 0 = n"
+                                        }
+                                      ],
+                                      "references": []
+                                    }
+                                  },
+                                  "ref": {
+                                    "kind": [
+                                      "Lean",
+                                      "Parser",
+                                      "Tactic",
+                                      "tacticSeq1Indented"
+                                    ],
+                                    "original": true,
+                                    "pp": "simp",
+                                    "range": [
+                                      66,
+                                      70
+                                    ]
+                                  }
+                                }
+                              ],
+                              "info": {
+                                "tactic": {
+                                  "after": [],
+                                  "before": [
+                                    {
+                                      "context": [
+                                        {
+                                          "binderInfo": "default",
+                                          "id": [
+                                            "_uniq",
+                                            83
+                                          ],
+                                          "isLet": false,
+                                          "isProp": false,
+                                          "isReferencedLater": false,
+                                          "name": [
+                                            "n"
+                                          ],
+                                          "type": "ℕ"
+                                        }
+                                      ],
+                                      "extra": {
+                                        "newGoals": [],
+                                        "newHypotheses": [],
+                                        "typeMVars": [],
+                                        "typeUses": [
+                                          "_uniq.83"
+                                        ],
+                                        "valueUses": []
+                                      },
+                                      "isProp": true,
+                                      "mvarId": [
+                                        "_uniq",
+                                        84
+                                      ],
+                                      "pp": "n : ℕ\n⊢ n + 0 = n",
+                                      "tag": [],
+                                      "type": "n + 0 = n"
+                                    }
+                                  ],
+                                  "references": []
+                                }
+                              },
+                              "ref": {
+                                "kind": [
+                                  "Lean",
+                                  "Parser",
+                                  "Tactic",
+                                  "tacticSeq"
+                                ],
+                                "original": true,
+                                "pp": "simp",
+                                "range": [
+                                  66,
+                                  70
+                                ]
+                              }
+                            }
+                          ],
+                          "info": {
+                            "tactic": {
+                              "after": [],
+                              "before": [
+                                {
+                                  "context": [
+                                    {
+                                      "binderInfo": "default",
+                                      "id": [
+                                        "_uniq",
+                                        83
+                                      ],
+                                      "isLet": false,
+                                      "isProp": false,
+                                      "isReferencedLater": false,
+                                      "name": [
+                                        "n"
+                                      ],
+                                      "type": "ℕ"
+                                    }
+                                  ],
+                                  "extra": {
+                                    "newGoals": [],
+                                    "newHypotheses": [],
+                                    "typeMVars": [],
+                                    "typeUses": [
+                                      "_uniq.83"
+                                    ],
+                                    "valueUses": []
+                                  },
+                                  "isProp": true,
+                                  "mvarId": [
+                                    "_uniq",
+                                    84
+                                  ],
+                                  "pp": "n : ℕ\n⊢ n + 0 = n",
+                                  "tag": [],
+                                  "type": "n + 0 = n"
+                                }
+                              ],
+                              "references": []
+                            }
+                          },
+                          "ref": {
+                            "kind": [
+                              "by"
+                            ],
+                            "original": true,
+                            "pp": "by",
+                            "range": [
+                              61,
+                              63
+                            ]
+                          }
+                        }
+                      ],
+                      "info": {
+                        "tactic": {
+                          "after": [],
+                          "before": [
+                            {
+                              "context": [
+                                {
+                                  "binderInfo": "default",
+                                  "id": [
+                                    "_uniq",
+                                    83
+                                  ],
+                                  "isLet": false,
+                                  "isProp": false,
+                                  "isReferencedLater": false,
+                                  "name": [
+                                    "n"
+                                  ],
+                                  "type": "ℕ"
+                                }
+                              ],
+                              "extra": {
+                                "newGoals": [],
+                                "newHypotheses": [],
+                                "typeMVars": [],
+                                "typeUses": [
+                                  "_uniq.83"
+                                ],
+                                "valueUses": []
+                              },
+                              "isProp": true,
+                              "mvarId": [
+                                "_uniq",
+                                84
+                              ],
+                              "pp": "n : ℕ\n⊢ n + 0 = n",
+                              "tag": [],
+                              "type": "n + 0 = n"
+                            }
+                          ],
+                          "references": []
+                        }
+                      },
+                      "ref": {
+                        "kind": [
+                          "Lean",
+                          "Parser",
+                          "Term",
+                          "byTactic"
+                        ],
+                        "original": true,
+                        "pp": "by\n  simp",
+                        "range": [
+                          61,
+                          70
+                        ]
+                      }
+                    }
+                  ],
+                  "info": {
+                    "simple": "custom"
+                  },
+                  "ref": {
+                    "kind": [
+                      "Lean",
+                      "Parser",
+                      "Term",
+                      "byTactic"
+                    ],
+                    "original": true,
+                    "pp": "by\n  simp",
+                    "range": [
+                      61,
+                      70
+                    ]
+                  }
+                },
+                {
+                  "children": [],
+                  "info": {
+                    "term": {
+                      "context": [],
+                      "expectedType": null,
+                      "special": {
+                        "const": [
+                          "rk_add_zero"
+                        ]
+                      },
+                      "type": "∀ (n : ℕ), n + 0 = n",
+                      "value": "rk_add_zero"
+                    }
+                  },
+                  "ref": {
+                    "kind": [
+                      "ident"
+                    ],
+                    "original": true,
+                    "pp": "rk_add_zero",
+                    "range": [
+                      24,
+                      35
+                    ]
+                  }
+                },
+                {
+                  "children": [],
+                  "info": {
+                    "term": {
+                      "context": [],
+                      "expectedType": null,
+                      "special": {
+                        "fvar": [
+                          "_uniq",
+                          82
+                        ]
+                      },
+                      "type": "∀ (n : ℕ), n + 0 = n",
+                      "value": "rk_add_zero"
+                    }
+                  },
+                  "ref": {
+                    "kind": [
+                      "Lean",
+                      "Parser",
+                      "Command",
+                      "declId"
+                    ],
+                    "original": true,
+                    "pp": "rk_add_zero",
+                    "range": [
+                      24,
+                      35
+                    ]
+                  }
+                }
+              ],
+              "info": {
+                "simple": "command"
+              },
+              "ref": {
+                "kind": [
+                  "Lean",
+                  "Parser",
+                  "Command",
+                  "declaration"
+                ],
+                "original": true,
+                "pp": "theorem rk_add_zero (n : Nat) : n + 0 = n := by\n  simp",
+                "range": [
+                  16,
+                  70
+                ]
+              }
+            },
+            {
+              "children": [],
+              "info": {
+                "simple": "command"
+              },
+              "ref": {
+                "kind": [
+                  "Lean",
+                  "Parser",
+                  "Command",
+                  "eoi"
+                ],
+                "original": true,
+                "pp": "",
+                "range": [
+                  71,
+                  71
+                ]
+              }
+            }
+          ],
+          "lines": [
+            {
+              "start": 0,
+              "state": []
+            },
+            {
+              "start": 15,
+              "state": []
+            },
+            {
+              "start": 16,
+              "state": []
+            },
+            {
+              "start": 64,
+              "state": [
+                {
+                  "context": [
+                    {
+                      "binderInfo": "default",
+                      "id": [
+                        "_uniq",
+                        83
+                      ],
+                      "isLet": false,
+                      "isProp": false,
+                      "isReferencedLater": false,
+                      "name": [
+                        "n"
+                      ],
+                      "type": "ℕ"
+                    }
+                  ],
+                  "isProp": true,
+                  "mvarId": [
+                    "_uniq",
+                    84
+                  ],
+                  "pp": "n : ℕ\n⊢ n + 0 = n",
+                  "tag": [],
+                  "type": "n + 0 = n"
+                }
+              ]
+            },
+            {
+              "start": 71,
+              "state": []
+            },
+            {
+              "start": 71,
+              "state": []
+            }
+          ],
+          "symbols": [
+            {
+              "isProp": true,
+              "kind": "theorem",
+              "name": [
+                "rk_add_zero"
+              ],
+              "typeFallback": "forall (n : Nat), Eq.{1} Nat (HAdd.hAdd.{0, 0, 0} Nat Nat Nat (instHAdd.{0} Nat instAddNat) n (OfNat.ofNat.{0} Nat 0 (instOfNatNat 0))) n",
+              "typeFull": "∀ (n : ℕ), n + 0 = n",
+              "typeReadable": "∀ (n : ℕ), n + 0 = n",
+              "typeReferences": [
+                [
+                  "instAddNat"
+                ],
+                [
+                  "HAdd",
+                  "hAdd"
+                ],
+                [
+                  "Nat"
+                ],
+                [
+                  "instOfNatNat"
+                ],
+                [
+                  "instHAdd"
+                ],
+                [
+                  "Eq"
+                ],
+                [
+                  "OfNat",
+                  "ofNat"
+                ]
+              ],
+              "valueReferences": [
+                [
+                  "instAddNat"
+                ],
+                [
+                  "Nat",
+                  "instAddMonoid"
+                ],
+                [
+                  "Eq",
+                  "trans"
+                ],
+                [
+                  "True"
+                ],
+                [
+                  "instHAdd"
+                ],
+                [
+                  "add_zero"
+                ],
+                [
+                  "OfNat",
+                  "ofNat"
+                ],
+                [
+                  "congrArg"
+                ],
+                [
+                  "HAdd",
+                  "hAdd"
+                ],
+                [
+                  "eq_self"
+                ],
+                [
+                  "Nat"
+                ],
+                [
+                  "of_eq_true"
+                ],
+                [
+                  "instOfNatNat"
+                ],
+                [
+                  "congrFun'"
+                ],
+                [
+                  "Eq"
+                ],
+                [
+                  "AddMonoid",
+                  "toAddZeroClass"
+                ]
+              ]
+            }
+          ]
+        },
+        "phase_wall_time_ms": {
+          "analysis": 36125,
+          "preflight_compile": 13289
+        },
+        "source_commit": "995437281e103bf3ca7d876dd36dff649d0d42d2",
+        "source_sha256": "50db191b9badcdf5ad4e3312f9b79069e2380be18c63d9cbd264846341d5c386",
+        "status": "COMPLETED",
+        "toolchain_match": true,
+        "transient_execution_output": {
+          "preflight_stderr": "",
+          "preflight_stdout": "",
+          "stderr": "",
+          "stdout": ""
+        },
+        "trust_limit": "STATIC_STRUCTURE_AND_PROOF_STATE"
+      },
+      "result_hash": "5ace099dcfadd1cef988a9b21c77843968f54c91b818c3adcd2a59fdab5c78db",
+      "status": "COMPLETED",
+      "usage": {
+        "wall_time_ms": 49636
+      },
+      "wall_time_ms": 49636
+    },
+    {
+      "adapter_name": "lean-replay",
+      "adapter_version": "v1",
+      "host_receipt": {
+        "payload": {
+          "adapter_name": "lean-replay",
+          "adapter_version": "v1",
+          "attempt_id": "019ff48a-487c-7e3f-bf11-06dd7bb108a7",
+          "binary_sha256": "3e0d0d3d801675359f2d4cf9815bfdb417b20b92fdd9d48b3b14c95bbae28bbf",
+          "binding_id": "019ff48a-488e-709e-8f88-84ba5a8ee405",
+          "environment_profile_id": "lean-clean-4.28",
+          "exit_code": 0,
+          "invocation_nonce": "019ff48a-488e-7994-953e-d2227deb07c8",
+          "output_sha256": "e13b8053904b58d8ee7cb9f8e0987d2285fe241ac44aadef2d06eca614f909f6",
+          "request_hash": "bfe40cc83da550b7b13eb466522638ec38481a2f5202c3fbbaf2612aad03ed6b",
+          "result_hash": "f8d2d7a2e071c06db6c11b12947a12bc90f9569e1f04d75bdc017fa31c8b7da0",
+          "run_id": "019ff489-0268-7e8c-888a-6095c24788a9",
+          "source_commit": "5352afccd6866369be9de43f5b7ec47203555f44",
+          "source_sha256": "50db191b9badcdf5ad4e3312f9b79069e2380be18c63d9cbd264846341d5c386",
+          "status": "COMPLETED"
+        },
+        "signature": "6eeba2cc471d14f24ce15e93b44e1cda4a3deab5f80ce4b00df7ce043dd192b4"
+      },
+      "request_hash": "bfe40cc83da550b7b13eb466522638ec38481a2f5202c3fbbaf2612aad03ed6b",
+      "result": {
+        "adapter_name": "lean-replay",
+        "adapter_version": "v1",
+        "axiom_dependencies": [
+          "propext"
+        ],
+        "binary_sha256": "3e0d0d3d801675359f2d4cf9815bfdb417b20b92fdd9d48b3b14c95bbae28bbf",
+        "endpoint": null,
+        "environment_names": [
+          "PATH"
+        ],
+        "exit_code": 0,
+        "kernel_verdict": "REPLAY_PASS",
+        "output_byte_count": 49016,
+        "output_sha256": "e13b8053904b58d8ee7cb9f8e0987d2285fe241ac44aadef2d06eca614f909f6",
+        "phase_wall_time_ms": {
+          "axiom_audit": 11410,
+          "compile": 11761
+        },
+        "source_commit": "5352afccd6866369be9de43f5b7ec47203555f44",
+        "source_sha256": "50db191b9badcdf5ad4e3312f9b79069e2380be18c63d9cbd264846341d5c386",
+        "status": "COMPLETED",
+        "toolchain": "leanprover/lean4:v4.28.0-rc1",
+        "transient_execution_output": {
+          "axiom_stderr": "",
+          "axiom_stdout": "'rk_add_zero' depends on axioms: [propext]\n",
+          "stderr": "",
+          "stdout": ""
+        },
+        "trust_limit": "LEAN_KERNEL_REPLAY"
+      },
+      "result_hash": "f8d2d7a2e071c06db6c11b12947a12bc90f9569e1f04d75bdc017fa31c8b7da0",
+      "status": "COMPLETED",
+      "usage": {
+        "wall_time_ms": 23173
+      },
+      "wall_time_ms": 23173
+    }
+  ],
+  "isolation": {
+    "model_tool_surface": "NONE_OPENCODE_POLICY_AND_TOOL_REGISTRY",
+    "network": "UNENFORCED",
+    "per_invocation_output_collision_check": "ENFORCED",
+    "per_run_worktree": "ENFORCED",
+    "readonly_mathlib_cache": "UNENFORCED"
+  },
+  "revision": 60,
+  "run_id": "019ff489-0268-7e8c-888a-6095c24788a9",
+  "run_status": "CLOSED",
+  "status": "SUCCESS"
+}

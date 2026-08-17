@@ -1,0 +1,72 @@
+import type { DossierView } from "./model.js";
+import "./dossier.css";
+export function DossierPanel({ dossier }: { dossier?: DossierView }) {
+  if (!dossier)
+    return (
+      <section className="rk-dossier rk-unavailable">
+        <h2>卷宗当前不可用</h2>
+        <p>DOSSIER 查询未发布或尚未返回；不会用页面缓存伪造卷宗。</p>
+      </section>
+    );
+  return (
+    <section className="rk-dossier">
+      <header>
+        <div>
+          <p>IMMUTABLE RESEARCH DOSSIER</p>
+          <h2>{dossier.title}</h2>
+        </div>
+        <span>{dossier.state}</span>
+      </header>
+      <p className="rk-question">{dossier.question}</p>
+      <dl>
+        <div>
+          <dt>合同</dt>
+          <dd>v{dossier.contractVersion}</dd>
+        </div>
+        <div>
+          <dt>修订</dt>
+          <dd>r{dossier.researchRevision}</dd>
+        </div>
+        <div>
+          <dt>结果</dt>
+          <dd>{dossier.outcome}</dd>
+        </div>
+        <div>
+          <dt>Claim</dt>
+          <dd>{dossier.claimCount}</dd>
+        </div>
+        <div>
+          <dt>审查</dt>
+          <dd>{dossier.reviewCount}</dd>
+        </div>
+        <div>
+          <dt>工件</dt>
+          <dd>{dossier.artifactCount}</dd>
+        </div>
+      </dl>
+      <article>
+        <h3>公开摘要</h3>
+        <p>{dossier.publicSummary}</p>
+      </article>
+      {dossier.blockers.length > 0 && (
+        <aside>
+          <h3>仍有阻塞</h3>
+          <ul>
+            {dossier.blockers.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ul>
+        </aside>
+      )}
+      <ol>
+        {dossier.timeline.map((x) => (
+          <li key={x.cursor}>
+            <time>{x.at}</time>
+            <strong>{x.type}</strong>
+            <p>{x.summary}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}

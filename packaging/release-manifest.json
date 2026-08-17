@@ -1,0 +1,16 @@
+{
+  "schema_version": "rk.packaging.release.v1",
+  "product_version": "RK-PRODUCT-1.1",
+  "artifact_kind": "SERVICE_LIFECYCLE_CONTRACTS",
+  "payloads": [
+    "windows/rk-product-service.xml",
+    "windows/install-service.ps1",
+    "tauri/sidecar-lifecycle.json",
+    "linux/rk-product.service"
+  ],
+  "native_acceptance": {
+    "windows_msi": "REQUIRES_WINDOWS_RUNNER",
+    "windows_service": "REQUIRES_WINDOWS_RUNNER",
+    "tauri_bundle": "REQUIRES_WINDOWS_RUNNER"
+  }
+}

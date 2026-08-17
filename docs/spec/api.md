@@ -154,11 +154,11 @@ rename 必须是原子操作。
 | `RecordFailure` | `route_id?`, `claim_id?`, `failure_kind`, `normalized_fingerprint`, `equivalence_key`, `first_failed_obligation_id?`, `evidence_artifact_id?`, `applicability`, `novelty_delta` |
 | `RequestExpansion` | `route_id`, `batch_kind`, `reservation`, `novelty_delta`, `expected_information_gain`, `decision_ids[]` |
 | `ProposeContractDefect` | `contract_version`, `defect_type`, `evidence_refs[]`, `affected_claim_ids[]`, `proposed_patch_artifact_id` |
-| `RecordPeerReview` | `claim_id`, `contract_version`, `statement_hash`, `review_artifact_id`, `verdict`, `checklist`, `source_graph`, `independence_profile` |
+| `RecordPeerReview` | `claim_id`, `contract_version`, `statement_hash`, `review_artifact_id`, `verdict`, `checklist`, `source_graph`；五维 `independence_profile` 由宿主从来源谱系派生，调用者不得自报 |
 | `RecordQualityReview` | `claim_id`, `contract_version`, `review_artifact_id`, `verdict`, `dimensions`, `training_pool` |
 | `RecordLiterature` | `contract_version`, `claim_id?`, `status`, `relation?`, `scope`, `cutoff_date`, `query_families[]`, `query_log_artifact_id`, `reference_artifact_id?`, `assessment_artifact_id` |
 | `RegisterBridge` | `bridge_id?`, `contract_version`, `source_claim_id`, `target_claim_id`, `directionality`, `term_mapping`, `forward_obligations[]`, `reverse_obligations[]`, `loss_accounting`, `target_audit_review_id?`, `backtranslation_artifact_id?` |
-| `RecordLeanFeedback` | `claim_id`, `attempt_id?`, `contract_version`, `environment_profile_id`, `toolchain`, `mathlib_commit?`, `source_artifact_id`, `output_artifact_id`, `feedback_kind`, `first_failed_obligation_id?`, `diagnostic` |
+| `RecordLeanFeedback` | `claim_id`, `attempt_id?`（`REPLAY_PASS` 时必需）, `contract_version`, `environment_profile_id`, `toolchain`, `mathlib_commit?`, `source_artifact_id`, `output_artifact_id`, `feedback_kind`, `first_failed_obligation_id?`, `diagnostic` |
 | `RegisterClaim` | `contract_version`, `claim_kind`, `stable_label`, `statement_artifact_id`, `statement_hash`, `normalized_statement`, `target_route_id?` |
 | `RegisterClaimEdge` | `contract_version`, `from_claim_id`, `to_claim_id`, `edge_kind`, `direction`, `justification_kind`, `justification_ref` |
 | `RegisterRoute` | `contract_version`, `target_claim_id`, `label`, `representation`, `tool_family`, `approach_root`, `budget_policy` |

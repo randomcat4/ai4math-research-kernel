@@ -1,0 +1,128 @@
+{
+  "lake_binary": "/root/ai4math_repro_20260811/env/lean_toolchains/lean-4.28.0-rc1-linux/bin/lake",
+  "project_root": "/root/ai4math_repro_20260811/rk/leane2eopenfix1/project",
+  "results": [
+    {
+      "axiom_audit": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_tail": "",
+        "stdout_sha256": "e08161bd2bf2057eb14e10f26880b140a6e0b10329ceb01812f20c5a6f8c09b2",
+        "stdout_tail": "/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:14:20: warning: This simp argument is unused:\n  Nat.add_assoc\n\nHint: Omit it from the simp argument list.\n  simp_all [̵N̵a̵t̵.̵a̵d̵d̵_̵a̵s̵s̵o̵c̵,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵c̵o̵m̵m̵,̵[̲N̲a̲t̲.̲a̲d̲d̲_̲c̲o̲m̲m̲,̲ Nat.add_left_comm]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:14:35: warning: This simp argument is unused:\n  Nat.add_comm\n\nHint: Omit it from the simp argument list.\n  simp_all [Nat.add_assoc, Nat.add_c̵o̵m̵m̵,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵left_comm]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:14:49: warning: This simp argument is unused:\n  Nat.add_left_comm\n\nHint: Omit it from the simp argument list.\n  simp_all [Nat.add_assoc, Nat.add_comm,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵l̵e̵f̵t̵_̵c̵o̵m̵m̵]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:20:20: warning: This simp argument is unused:\n  Nat.add_assoc\n\nHint: Omit it from the simp argument list.\n  simp_all [̵N̵a̵t̵.̵a̵d̵d̵_̵a̵s̵s̵o̵c̵,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵c̵o̵m̵m̵,̵[̲N̲a̲t̲.̲a̲d̲d̲_̲c̲o̲m̲m̲,̲ Nat.add_left_comm]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:20:49: warning: This simp argument is unused:\n  Nat.add_left_comm\n\nHint: Omit it from the simp argument list.\n  simp_all [Nat.add_assoc, Nat.add_comm,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵l̵e̵f̵t̵_̵c̵o̵m̵m̵]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:23:20: warning: This simp argument is unused:\n  Nat.add_assoc\n\nHint: Omit it from the simp argument list.\n  simp_all [̵N̵a̵t̵.̵a̵d̵d̵_̵a̵s̵s̵o̵c̵,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵c̵o̵m̵m̵,̵[̲N̲a̲t̲.̲a̲d̲d̲_̲c̲o̲m̲m̲,̲ Nat.add_left_comm]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:15:14: warning: this tactic is never executed\n\nNote: This linter can be disabled with `set_option linter.unreachableTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:21:14: warning: this tactic is never executed\n\nNote: This linter can be disabled with `set_option linter.unreachableTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:24:14: warning: this tactic is never executed\n\nNote: This linter can be disabled with `set_option linter.unreachableTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:15:14: warning: 'omega' tactic does nothing\n\nNote: This linter can be disabled with `set_option linter.unusedTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:21:14: warning: 'omega' tactic does nothing\n\nNote: This linter can be disabled with `set_option linter.unusedTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.axioms.lean:24:14: warning: 'omega' tactic does nothing\n\nNote: This linter can be disabled with `set_option linter.unusedTactic false`\n'rk_ds_add_comm' depends on axioms: [propext]\n",
+        "timed_out": false,
+        "wall_seconds": 12.475056447088718
+      },
+      "compile": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_tail": "",
+        "stdout_sha256": "03c4248e8aa5be5595a7edf74ae05f192c079647d46c430acba430c35bc50279",
+        "stdout_tail": "/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:14:20: warning: This simp argument is unused:\n  Nat.add_assoc\n\nHint: Omit it from the simp argument list.\n  simp_all [̵N̵a̵t̵.̵a̵d̵d̵_̵a̵s̵s̵o̵c̵,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵c̵o̵m̵m̵,̵[̲N̲a̲t̲.̲a̲d̲d̲_̲c̲o̲m̲m̲,̲ Nat.add_left_comm]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:14:35: warning: This simp argument is unused:\n  Nat.add_comm\n\nHint: Omit it from the simp argument list.\n  simp_all [Nat.add_assoc, Nat.add_c̵o̵m̵m̵,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵left_comm]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:14:49: warning: This simp argument is unused:\n  Nat.add_left_comm\n\nHint: Omit it from the simp argument list.\n  simp_all [Nat.add_assoc, Nat.add_comm,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵l̵e̵f̵t̵_̵c̵o̵m̵m̵]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:20:20: warning: This simp argument is unused:\n  Nat.add_assoc\n\nHint: Omit it from the simp argument list.\n  simp_all [̵N̵a̵t̵.̵a̵d̵d̵_̵a̵s̵s̵o̵c̵,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵c̵o̵m̵m̵,̵[̲N̲a̲t̲.̲a̲d̲d̲_̲c̲o̲m̲m̲,̲ Nat.add_left_comm]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:20:49: warning: This simp argument is unused:\n  Nat.add_left_comm\n\nHint: Omit it from the simp argument list.\n  simp_all [Nat.add_assoc, Nat.add_comm,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵l̵e̵f̵t̵_̵c̵o̵m̵m̵]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:23:20: warning: This simp argument is unused:\n  Nat.add_assoc\n\nHint: Omit it from the simp argument list.\n  simp_all [̵N̵a̵t̵.̵a̵d̵d̵_̵a̵s̵s̵o̵c̵,̵ ̵N̵a̵t̵.̵a̵d̵d̵_̵c̵o̵m̵m̵,̵[̲N̲a̲t̲.̲a̲d̲d̲_̲c̲o̲m̲m̲,̲ Nat.add_left_comm]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:15:14: warning: this tactic is never executed\n\nNote: This linter can be disabled with `set_option linter.unreachableTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:21:14: warning: this tactic is never executed\n\nNote: This linter can be disabled with `set_option linter.unreachableTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:24:14: warning: this tactic is never executed\n\nNote: This linter can be disabled with `set_option linter.unreachableTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:15:14: warning: 'omega' tactic does nothing\n\nNote: This linter can be disabled with `set_option linter.unusedTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:21:14: warning: 'omega' tactic does nothing\n\nNote: This linter can be disabled with `set_option linter.unusedTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/add_comm.lean:24:14: warning: 'omega' tactic does nothing\n\nNote: This linter can be disabled with `set_option linter.unusedTactic false`\n",
+        "timed_out": false,
+        "wall_seconds": 12.696481794118881
+      },
+      "declarations": [
+        "rk_ds_add_comm"
+      ],
+      "extracted": true,
+      "forbidden": [],
+      "id": "add_comm",
+      "kernel_verified": true,
+      "sorry_ax": false
+    },
+    {
+      "axiom_audit": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_tail": "",
+        "stdout_sha256": "1e137b39f40d6da0ef7df8e3ca31c31c07ad796c894d87b00dafb2f8b5d6c5a2",
+        "stdout_tail": "'rk_ds_add_zero' does not depend on any axioms\n",
+        "timed_out": false,
+        "wall_seconds": 12.53363574668765
+      },
+      "compile": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_tail": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_tail": "",
+        "timed_out": false,
+        "wall_seconds": 12.518453013151884
+      },
+      "declarations": [
+        "rk_ds_add_zero"
+      ],
+      "extracted": true,
+      "forbidden": [],
+      "id": "add_zero",
+      "kernel_verified": true,
+      "sorry_ax": false
+    },
+    {
+      "axiom_audit": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_tail": "",
+        "stdout_sha256": "80ec7d71bcb041bea902231297b56ba568b12ca86abd8bf45bda1b9cb57abf6e",
+        "stdout_tail": "/root/ai4math_repro_20260811/rk/modelbench_dsp1/official_abs.axioms.lean:10:10: warning: This simp argument is unused:\n  abs_of_nonneg\n\nHint: Omit it from the simp argument list.\n  simp ̵[̵a̵b̵s̵_̵o̵f̵_̵n̵o̵n̵n̵e̵g̵]̵\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/official_abs.axioms.lean:11:8: warning: this tactic is never executed\n\nNote: This linter can be disabled with `set_option linter.unreachableTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/official_abs.axioms.lean:11:8: warning: 'norm_num' tactic does nothing\n\nNote: This linter can be disabled with `set_option linter.unusedTactic false`\n'rk_ds_official_abs' depends on axioms: [propext, Classical.choice, Quot.sound]\n",
+        "timed_out": false,
+        "wall_seconds": 11.938421592116356
+      },
+      "compile": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_tail": "",
+        "stdout_sha256": "189bfb2918207098d984fa64907fea0970b220cc7f47518a5df1c1e6b58a0d4a",
+        "stdout_tail": "/root/ai4math_repro_20260811/rk/modelbench_dsp1/official_abs.lean:10:10: warning: This simp argument is unused:\n  abs_of_nonneg\n\nHint: Omit it from the simp argument list.\n  simp ̵[̵a̵b̵s̵_̵o̵f̵_̵n̵o̵n̵n̵e̵g̵]̵\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/official_abs.lean:11:8: warning: this tactic is never executed\n\nNote: This linter can be disabled with `set_option linter.unreachableTactic false`\n/root/ai4math_repro_20260811/rk/modelbench_dsp1/official_abs.lean:11:8: warning: 'norm_num' tactic does nothing\n\nNote: This linter can be disabled with `set_option linter.unusedTactic false`\n",
+        "timed_out": false,
+        "wall_seconds": 12.881377428770065
+      },
+      "declarations": [
+        "rk_ds_official_abs"
+      ],
+      "extracted": true,
+      "forbidden": [],
+      "id": "official_abs",
+      "kernel_verified": true,
+      "sorry_ax": false
+    },
+    {
+      "declarations": [
+        "rk_ds_reverse_reverse"
+      ],
+      "extracted": true,
+      "forbidden": [
+        "sorry"
+      ],
+      "id": "reverse_reverse"
+    },
+    {
+      "axiom_audit": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_tail": "",
+        "stdout_sha256": "2911916e5c499d3e125d43de6d1700179afd7442b9a82574d54782ead848b46d",
+        "stdout_tail": "'rk_ds_sq_nonneg' depends on axioms: [propext, Classical.choice, Quot.sound]\n",
+        "timed_out": false,
+        "wall_seconds": 12.250721082091331
+      },
+      "compile": {
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_tail": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_tail": "",
+        "timed_out": false,
+        "wall_seconds": 13.020668614655733
+      },
+      "declarations": [
+        "rk_ds_sq_nonneg"
+      ],
+      "extracted": true,
+      "forbidden": [],
+      "id": "sq_nonneg",
+      "kernel_verified": true,
+      "sorry_ax": false
+    }
+  ]
+}

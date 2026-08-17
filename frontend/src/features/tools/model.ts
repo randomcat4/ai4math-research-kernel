@@ -1,0 +1,2 @@
+import type {CapabilityState} from "../compute/model.js";export interface ToolView{toolId:string;version:string;functionName:string;schemaDigest:string;state:CapabilityState;placement:string;authorityCeiling:string;description:string}
+export interface ToolRunView{toolRunId:string;toolId:string;state:string;validationState:"NOT_REVIEWED"|"VALIDATION_ACCEPTED"|"VALIDATION_REJECTED";authorityState:"NO_FACT_GRAPH_WRITE"|"PROMOTED_BY_KERNEL";outputArtifactIds:string[]}

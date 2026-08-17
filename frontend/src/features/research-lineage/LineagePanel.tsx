@@ -1,0 +1,123 @@
+import { useState } from "react";
+import { F11Gateway, ref } from "../problem-pool/api.js";
+import type { LineageCase, ConfirmationItem } from "./model.js";
+import "./lineage.css";
+export function LineagePanel({
+  gateway,
+  cases,
+  confirmations,
+}: {
+  gateway: F11Gateway;
+  cases: LineageCase[];
+  confirmations: ConfirmationItem[];
+}) {
+  const [status, setStatus] = useState("");
+  async function importCase(x: LineageCase) {
+    try {
+      const common = {
+        mode: x.mode,
+        source_project_id: x.projectId,
+        source_versions: [x.manifestDigest],
+        candidate_artifacts: x.candidateArtifacts.map(ref),
+        historical_conclusions_injected: false,
+        promote_as_verified: false,
+      };
+      if (x.mode === "CLEAN_ROOM_REDISCOVERY")
+        await gateway.runCommand("IMPORT_RESEARCH_LINEAGE", {
+          ...common,
+          clean_room_input_manifest: {
+            manifest_id: x.manifestId,
+            digest: x.manifestDigest,
+          },
+        });
+      else if (x.mode === "CERTIFICATE_IMPORT")
+        await gateway.runCommand("IMPORT_RESEARCH_LINEAGE", {
+          ...common,
+          certificate_import_report: {
+            report_id: x.reportId ?? "",
+            manifest_digest: x.manifestDigest,
+          },
+        });
+      else await gateway.runCommand("IMPORT_RESEARCH_LINEAGE", common);
+      setStatus("谱系导入已提交：候选态，不写事实图");
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "谱系接口不可用");
+    }
+  }
+  const zhao = cases.filter((x) => x.projectId === "ZHAO_C61");
+  const n2 = cases.filter((x) => x.projectId === "N2_AJT5");
+  return (
+    <section className="rk-lineage">
+      <header>
+        <p>RESEARCH LINEAGE</p>
+        <h2>科研谱系与确认待办</h2>
+      </header>
+      <div className="rk-zhao">
+        <h3>ZHAO_C61：两个独立 run / manifest</h3>
+        {zhao.map((x) => (
+          <article key={x.lineageId} data-mode={x.mode}>
+            <strong>{x.mode}</strong>
+            <code>run {x.runId}</code>
+            <code>
+              manifest {x.manifestId} · {x.manifestDigest}
+            </code>
+            {x.mode === "CLEAN_ROOM_REDISCOVERY" && x.noRediscovery && (
+              <b className="rk-no">
+                NO_REDISCOVERY：净室没有重新发现，不得改写成成功。
+              </b>
+            )}
+            <span>{x.conclusionState}</span>
+            <button onClick={() => void importCase(x)}>
+              按此独立模式正式导入
+            </button>
+          </article>
+        ))}
+      </div>
+      <div className="rk-n2">
+        <h3>N2 固定别名：N2_AJT5</h3>
+        <p>TOTAL_22 是独立项目，不进入本区，也不复用 N2 的证明、反例或状态。</p>
+        {n2.map((x) => (
+          <article key={x.lineageId}>
+            <strong>{x.projectId}</strong>
+            <span>{x.mode}</span>
+            <b>
+              {x.conclusionState === "VERIFIED"
+                ? "PENDING_VERIFICATION"
+                : x.conclusionState}
+            </b>
+            <small>历史迁移只形成候选证据；本页不接受“已验证”输入。</small>
+            <button
+              onClick={() =>
+                void importCase({
+                  ...x,
+                  conclusionState: "PENDING_VERIFICATION",
+                })
+              }
+            >
+              导入历史候选
+            </button>
+          </article>
+        ))}
+      </div>
+      <div className="rk-confirmations">
+        <h3>专家确认</h3>
+        {confirmations
+          .filter((x) => x.kind === "EXPERT")
+          .map((x) => (
+            <p key={x.id}>
+              {x.candidateId} · {x.state} · {x.question}
+            </p>
+          ))}
+        <h3>作者确认</h3>
+        {confirmations
+          .filter((x) => x.kind === "AUTHOR")
+          .map((x) => (
+            <p key={x.id}>
+              {x.candidateId} · {x.state} · {x.question}
+            </p>
+          ))}
+      </div>
+      <output>{status}</output>
+    </section>
+  );
+}

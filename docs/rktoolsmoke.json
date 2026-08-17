@@ -1,0 +1,235 @@
+{
+  "invocations": [
+    {
+      "adapter_name": "z3-smt2",
+      "adapter_version": "v1",
+      "host_receipt": {},
+      "request_hash": "f495e25d360f4b5d6179a8c1b5e8086b5aca6f097c3a3d5eadfb1debb5924aa9",
+      "result": {
+        "adapter_name": "z3-smt2",
+        "adapter_version": "v1",
+        "binary_sha256": "233a2a59f68a4793479d8429426d7833c6a7bd03782b415b8f38e1737ccab373",
+        "capability_kind": "SMT",
+        "endpoint": null,
+        "environment_names": [
+          "PATH"
+        ],
+        "exit_code": 0,
+        "input_sha256": "7a72a4217b48307e20daa081ffc284de6a7e731bc410a788aa23954b83849067",
+        "machine_axis_effect": "UNCHANGED",
+        "payload": "unsat",
+        "source_commit": "233a2a59f68a4793479d8429426d7833c6a7bd03782b415b8f38e1737ccab373",
+        "status": "COMPLETED",
+        "transient_execution_output": {
+          "stderr": "",
+          "stdout": "unsat\n"
+        },
+        "trust_limit": "HEURISTIC_EMPIRICAL_UNLESS_CERTIFICATE_REPLAYED"
+      },
+      "result_hash": "4d453507ea20afce78ce18ce212450fa08508cbe5180f453fc2a72e32cf3c2da",
+      "status": "COMPLETED",
+      "usage": {
+        "wall_time_ms": 43
+      },
+      "wall_time_ms": 43
+    },
+    {
+      "adapter_name": "sympy-cas",
+      "adapter_version": "v1",
+      "host_receipt": {},
+      "request_hash": "7992f236a7b16dde2bc11360ce547741d88e6c0923e2cc1fd15604d9fff2055c",
+      "result": {
+        "adapter_name": "sympy-cas",
+        "adapter_version": "v1",
+        "binary_sha256": "8295ee25cfdb239f3e165afceda7f46de73e2b606ff0e2e3d8623e3facd30acc",
+        "capability_kind": "CAS",
+        "endpoint": null,
+        "environment_names": [
+          "PATH"
+        ],
+        "exit_code": 0,
+        "input_sha256": "54eef2fbd4f80b7cb9c901a031c102a2027c7537a5d3dce8c84fe54c75cbcc28",
+        "machine_axis_effect": "UNCHANGED",
+        "payload": {
+          "expanded": "x**3 + 3*x**2 + 3*x + 1"
+        },
+        "source_commit": "8295ee25cfdb239f3e165afceda7f46de73e2b606ff0e2e3d8623e3facd30acc",
+        "status": "COMPLETED",
+        "transient_execution_output": {
+          "stderr": "",
+          "stdout": "{\"expanded\": \"x**3 + 3*x**2 + 3*x + 1\"}\n"
+        },
+        "trust_limit": "HEURISTIC_EMPIRICAL"
+      },
+      "result_hash": "52ee7053e27852091605e8970932963c2841d728a148303759f00ca3118fd506",
+      "status": "COMPLETED",
+      "usage": {
+        "wall_time_ms": 592
+      },
+      "wall_time_ms": 592
+    },
+    {
+      "adapter_name": "python-enumeration",
+      "adapter_version": "v1",
+      "host_receipt": {},
+      "request_hash": "13f7756c810bb2b858a35085f0fea6862333fa5f992b5a8279a4bb7ff069017a",
+      "result": {
+        "adapter_name": "python-enumeration",
+        "adapter_version": "v1",
+        "binary_sha256": "8295ee25cfdb239f3e165afceda7f46de73e2b606ff0e2e3d8623e3facd30acc",
+        "capability_kind": "EXACT_ENUMERATION",
+        "endpoint": null,
+        "environment_names": [
+          "PATH"
+        ],
+        "exit_code": 0,
+        "input_sha256": "11643378bc2190fcdc75fbcee4a7306e230201f743823f9f26af39498e2d8e80",
+        "machine_axis_effect": "UNCHANGED",
+        "payload": {
+          "count": 11,
+          "witnesses": [
+            [
+              0,
+              10
+            ],
+            [
+              1,
+              9
+            ],
+            [
+              2,
+              8
+            ],
+            [
+              3,
+              7
+            ],
+            [
+              4,
+              6
+            ],
+            [
+              5,
+              5
+            ],
+            [
+              6,
+              4
+            ],
+            [
+              7,
+              3
+            ],
+            [
+              8,
+              2
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              10,
+              0
+            ]
+          ]
+        },
+        "source_commit": "8295ee25cfdb239f3e165afceda7f46de73e2b606ff0e2e3d8623e3facd30acc",
+        "status": "COMPLETED",
+        "transient_execution_output": {
+          "stderr": "",
+          "stdout": "{\"count\": 11, \"witnesses\": [[0, 10], [1, 9], [2, 8], [3, 7], [4, 6], [5, 5], [6, 4], [7, 3], [8, 2], [9, 1], [10, 0]]}\n"
+        },
+        "trust_limit": "HARD_ONLY_AFTER_CHECKER_REPLAY"
+      },
+      "result_hash": "2b981f8bb8b56e801a22cf33f8935a6eabd6d5792233adfdf9cc883ab6930a1a",
+      "status": "COMPLETED",
+      "usage": {
+        "wall_time_ms": 46
+      },
+      "wall_time_ms": 46
+    },
+    {
+      "adapter_name": "registered-code",
+      "adapter_version": "v1",
+      "host_receipt": {},
+      "request_hash": "13f7756c810bb2b858a35085f0fea6862333fa5f992b5a8279a4bb7ff069017a",
+      "result": {
+        "adapter_name": "registered-code",
+        "adapter_version": "v1",
+        "binary_sha256": "8295ee25cfdb239f3e165afceda7f46de73e2b606ff0e2e3d8623e3facd30acc",
+        "capability_kind": "CODE_EXECUTION",
+        "endpoint": null,
+        "environment_names": [
+          "PATH"
+        ],
+        "exit_code": 0,
+        "input_sha256": "11643378bc2190fcdc75fbcee4a7306e230201f743823f9f26af39498e2d8e80",
+        "machine_axis_effect": "UNCHANGED",
+        "payload": {
+          "count": 11,
+          "witnesses": [
+            [
+              0,
+              10
+            ],
+            [
+              1,
+              9
+            ],
+            [
+              2,
+              8
+            ],
+            [
+              3,
+              7
+            ],
+            [
+              4,
+              6
+            ],
+            [
+              5,
+              5
+            ],
+            [
+              6,
+              4
+            ],
+            [
+              7,
+              3
+            ],
+            [
+              8,
+              2
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              10,
+              0
+            ]
+          ]
+        },
+        "source_commit": "8295ee25cfdb239f3e165afceda7f46de73e2b606ff0e2e3d8623e3facd30acc",
+        "status": "COMPLETED",
+        "transient_execution_output": {
+          "stderr": "",
+          "stdout": "{\"count\": 11, \"witnesses\": [[0, 10], [1, 9], [2, 8], [3, 7], [4, 6], [5, 5], [6, 4], [7, 3], [8, 2], [9, 1], [10, 0]]}\n"
+        },
+        "trust_limit": "HEURISTIC_EMPIRICAL"
+      },
+      "result_hash": "4cafda274753182366b9e948a0b56a6b83bac56d93da1d3abb29ac2791020156",
+      "status": "COMPLETED",
+      "usage": {
+        "wall_time_ms": 47
+      },
+      "wall_time_ms": 47
+    }
+  ],
+  "status": "SUCCESS"
+}

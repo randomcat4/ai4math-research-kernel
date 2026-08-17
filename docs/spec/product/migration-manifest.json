@@ -1,0 +1,185 @@
+{
+  "schema_version": "rk.product.migration-manifest.v1",
+  "release_id": "rk-product-1.1-backend-20260814",
+  "product_version": "RK-PRODUCT-1.1",
+  "release_status": "BACKEND_ONLY",
+  "sealed": false,
+  "source_registry": "schema_fragments",
+  "fragments": [
+    {
+      "release_position": 1,
+      "fragment_id": "D00a/product_activity",
+      "sha256": "8a186b26e9cc1105d3ac9d3023d3139e84da48cbad5b174b0ba4305a85b4cf95"
+    },
+    {
+      "release_position": 2,
+      "fragment_id": "B01b/catalog",
+      "sha256": "512fc61efa7de6af814be7865a351e0bd856e511d1e8eb1ef72bf1cdac581278"
+    },
+    {
+      "release_position": 3,
+      "fragment_id": "B02a/operations",
+      "sha256": "4fa9b1eb173a0cb3440bbe43010823a9bea34b87d1ac71ca9d130d9443df2d5f"
+    },
+    {
+      "release_position": 4,
+      "fragment_id": "B02b/activity_retention",
+      "sha256": "48edf852f807d44982aa5ef1ab8eba81fe3580a1ad8deded609db5d7a6a807d5"
+    },
+    {
+      "release_position": 5,
+      "fragment_id": "B03/jobs",
+      "sha256": "6a0dd1dcd26f683e1cc3eca7c86bb4708d02adb984970b199e42e99b9fd5b6b0"
+    },
+    {
+      "release_position": 6,
+      "fragment_id": "B04a/upload",
+      "sha256": "f2f92f7baee0590131c1f1d594ec220f91184225582d894b0c77b337f13a3ec4"
+    },
+    {
+      "release_position": 7,
+      "fragment_id": "B04b/logs",
+      "sha256": "eef2d0ce0626c699f6894fb3ab41fea7e0c7363700aa2ef06f2f3cebe12091fb"
+    },
+    {
+      "release_position": 8,
+      "fragment_id": "B05a/identity",
+      "sha256": "c67ff0f5adede3271a113502515c4e17c70c91bdbbbb322b03cbb298172859b8"
+    },
+    {
+      "release_position": 9,
+      "fragment_id": "B05b/reviews",
+      "sha256": "6b7f05f443be5bf3f07246061180bcc4714e9239ec4d5b1c015f010e873d53a7"
+    },
+    {
+      "release_position": 10,
+      "fragment_id": "B06a/graph_index",
+      "sha256": "caa6563c5e57dd22edfcc81183ffb3df54487b3e807ad6923c5b5656d9bd637b"
+    },
+    {
+      "release_position": 11,
+      "fragment_id": "B07a/materials",
+      "sha256": "8ec57f8a524c7512739453c43305f8425b51ed82065d8386c6f990236e431795"
+    },
+    {
+      "release_position": 12,
+      "fragment_id": "B07b/contracts",
+      "sha256": "ea2095d44210cb1932b83ca78aef09975335ecb37c35fac2f2f0138e2483a403"
+    },
+    {
+      "release_position": 13,
+      "fragment_id": "B08a/literature",
+      "sha256": "f0f250e72fc38bb160f20c7dd843e0476fef5612bf9d2ecd233785fc3f3b2c99"
+    },
+    {
+      "release_position": 14,
+      "fragment_id": "B08b/literature_graph",
+      "sha256": "d89c6de54750dce91b3d18f33eb99a24783ba2908808abf7a246d255a301bbac"
+    },
+    {
+      "release_position": 15,
+      "fragment_id": "B09a/work_activity",
+      "sha256": "4b6616693e8d12c06aa63079d0929bef295712e341f212cc9d5a1cea18ebc90a"
+    },
+    {
+      "release_position": 16,
+      "fragment_id": "B09b/route_plan",
+      "sha256": "5faf22f0dfbb8498217102b314f189a2aaeadd02a7da08ead3949c04290ba430"
+    },
+    {
+      "release_position": 17,
+      "fragment_id": "B09c/ablation",
+      "sha256": "aa159123f64c70a8b3811bbd221377a924efdda119a2d15b51f7ea94f2cb0a8f"
+    },
+    {
+      "release_position": 18,
+      "fragment_id": "B10/claims",
+      "sha256": "65347df14a9cef8efe5eedbdf4259e4a29efe245d2bb99ae17e735863e7299e4"
+    },
+    {
+      "release_position": 19,
+      "fragment_id": "B10b/research_draft",
+      "sha256": "4a9aa01c6a18470c2319cb276067eaeeab94a983278458fba239e08829674f2e"
+    },
+    {
+      "release_position": 20,
+      "fragment_id": "B11a/invalidation",
+      "sha256": "eec6e4c440c15f6e7ef1e3e067faafd781795afe666cf4e1f3cfe87afee97345"
+    },
+    {
+      "release_position": 21,
+      "fragment_id": "B11b/revocation",
+      "sha256": "3ee8d1a3be46cac85ac1ea16ab17916d06b1b702b157c9fb59bf7ecffbcbb5d9"
+    },
+    {
+      "release_position": 22,
+      "fragment_id": "B12a/tool_runs",
+      "sha256": "0803d917e9c5d9f450aa2881c4bccff5880c153a3a0325ef960839373cbffff1"
+    },
+    {
+      "release_position": 23,
+      "fragment_id": "B12b/environments",
+      "sha256": "e3fd885f1da46df7e7ad2f851a5a6a2229f323edfa4ae15ab48e8519db5dfc27"
+    },
+    {
+      "release_position": 24,
+      "fragment_id": "B13/scheduling",
+      "sha256": "1290e2bd92e89e7ec6c1172df7b6b6a2c2babdcfe8b9d0c6f9b7b3a1dc11d2f2"
+    },
+    {
+      "release_position": 25,
+      "fragment_id": "B14/guidance",
+      "sha256": "e5a61c452cd50e8634880a4337e31cdbe62e93dc6612506624a9078f50b60a3f"
+    },
+    {
+      "release_position": 26,
+      "fragment_id": "B15a/publication",
+      "sha256": "3a9133f762bcc31c4c66317c46b856acd929ef0f7e03e2243a2346e2b2e04b43"
+    },
+    {
+      "release_position": 27,
+      "fragment_id": "B15b/publication_artifacts",
+      "sha256": "f43b66b709a17b4c8b7d60e0a4e07c894f6abd87bdf98187fde3e2529ca1e709"
+    },
+    {
+      "release_position": 28,
+      "fragment_id": "B16a/deployment",
+      "sha256": "ba4ddf4b3abb1c7ef36aba2ec57fc7fe91d33978943142ed343e6fe6f9cb88b7"
+    },
+    {
+      "release_position": 29,
+      "fragment_id": "B18/research_lineage",
+      "sha256": "5ebb8cca26b0399f5a96134773011cf785f9905fd22d1c2ea50f93a5950d9ff6"
+    },
+    {
+      "release_position": 30,
+      "fragment_id": "B17/problem_pool",
+      "sha256": "660848ee9f01383ef472af75df2cb8a165ebc3ab85ccd981e0ea837242077191"
+    },
+    {
+      "release_position": 31,
+      "fragment_id": "B16c/backup",
+      "sha256": "72fb523667271c32f618cbbfffcdd1e0fba6de2a5e3420fad359d863ad818f84"
+    },
+    {
+      "release_position": 32,
+      "fragment_id": "B03b/job_requests",
+      "sha256": "01254ac13ce74947aaec86b3ba716d9fe42aaa0a6f65623b5988a89702f82ea2"
+    },
+    {
+      "release_position": 33,
+      "fragment_id": "B05c/identity_roles",
+      "sha256": "eb1a35c42dfcf1c78f61718318f24d8e24c5de0865bd5ab0dc64fbb74610f30a"
+    },
+    {
+      "release_position": 34,
+      "fragment_id": "B17b/pool_artifacts",
+      "sha256": "0ac7601f071e64c0d1c7daad9d177e40fda7833d9d8a9a7297722fc7d557c81b"
+    },
+    {
+      "release_position": 35,
+      "fragment_id": "B05d/managed_sessions",
+      "sha256": "eb63d27e7b53f168b4d2c4ff17e1013cb880146065d5bc5a3248e4ec42ae6716"
+    }
+  ]
+}

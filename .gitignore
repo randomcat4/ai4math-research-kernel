@@ -7,6 +7,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+node_modules/
 .coverage
 htmlcov/
 .rk/
@@ -20,3 +21,5 @@ secrets/
 capability*.json
 artifacts/
 runs/
+frontend/tsconfig.app.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo

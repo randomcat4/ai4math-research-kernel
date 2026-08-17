@@ -1,0 +1,20 @@
+{
+  "schema_version": "rk.product.meta.v1",
+  "product_version": "RK-PRODUCT-1.1",
+  "authority_version": "RK-PRODUCT-AUTHORITY-1.1",
+  "architecture_version": "RK-PRODUCT-ARCH-1.1",
+  "frontend_version": "RK-FRONTEND-1.1",
+  "work_queue_version": "RK-WORK-3",
+  "operation_families": ["command", "query", "subscribe", "artifact"],
+  "benchmark_profile": {
+    "profile_id": "benchmark-profile-v1",
+    "fixed_seed_required": true,
+    "minimum_non_isolated_fraction_millionths": 800000,
+    "minimum_graph_depth": 60,
+    "minimum_fact_count": 10000,
+    "minimum_edge_count": 30000,
+    "cold_and_warm_required": true,
+    "concurrency_record_required": true,
+    "sample_count_record_required": true
+  }
+}

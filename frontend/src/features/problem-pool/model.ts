@@ -1,0 +1,4 @@
+export interface ExactArtifact{artifact_id:string;sha256:string;byte_count:number;media_type:string}
+export interface PoolRules{dateFrom:string;dateTo:string;subjectClasses:string[];versionRule:"LATEST_VERSION_AS_OF_CUTOFF"|"ALL_VERSIONS";withdrawnRule:"EXCLUDE"|"INCLUDE_FLAGGED";semanticSampleSize:number;inclusionRules:string[];exclusionRules:string[]}
+export interface Candidate{candidateId:string;arxivId:string;version:string;date:string;subjects:string[];title:string;state:"INCLUDED"|"EXCLUDED"|"FAILED"|"EXTERNAL_BLOCKED"|"PENDING_EXPERT"|"PENDING_AUTHOR";reason:string;semanticAudit:"MATCH"|"MISMATCH"|"NOT_SAMPLED"}
+export interface ProblemPoolView{poolId:string;name:string;rules:PoolRules;candidates:Candidate[];sourceSnapshotIds:string[];semanticAuditArtifact:ExactArtifact;contractTemplateArtifact?:ExactArtifact}

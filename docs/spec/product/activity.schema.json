@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.ai4math/rk/product/activity.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "cursor", "event_id", "run_id", "source", "research_revision", "type", "payload", "recorded_at"],
+  "properties": {
+    "schema_version": {"const": "rk.product.activity.v1"}, "cursor": {"type": "integer", "minimum": 1},
+    "event_id": {"type": "string", "format": "uuid"}, "run_id": {"type": "string", "format": "uuid"},
+    "source": {"enum": ["KERNEL", "ORCHESTRATOR", "WORKER", "TOOL", "REVIEW", "DEPLOYMENT"]},
+    "research_revision": {"type": "integer", "minimum": 0}, "contract_version": {"type": "integer", "minimum": 1},
+    "type": {"type": "string", "minLength": 1}, "work_item_id": {"type": "string", "format": "uuid"},
+    "worker_run_id": {"type": "string", "format": "uuid"}, "attempt_id": {"type": "string", "format": "uuid"},
+    "route_id": {"type": "string", "format": "uuid"}, "claim_id": {"type": "string", "format": "uuid"},
+    "tool_run_id": {"type": "string", "format": "uuid"}, "review_task_id": {"type": "string", "format": "uuid"},
+    "payload": {"type": "object"}, "recorded_at": {"type": "string", "format": "date-time"}
+  }
+}
