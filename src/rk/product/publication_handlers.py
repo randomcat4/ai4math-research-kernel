@@ -12,6 +12,7 @@ from typing import Any
 from rk.domain import Decision, MissingCondition, RejectionCode, frozen_mapping
 from rk.extensions import ClosedRunPermission, ExtensionRegistry, ProductCommandContext
 from rk.projector import ProjectionContext
+from rk.sqlite import open_sqlite
 
 
 class PublicationBindingError(ValueError):
@@ -416,7 +417,7 @@ class PublicationHandlers:
             return _review_in(connection, review_id)
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path, timeout=self.busy_timeout_ms / 1_000)
+        connection = open_sqlite(self.db_path, timeout=self.busy_timeout_ms / 1_000)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys=ON")
         return connection

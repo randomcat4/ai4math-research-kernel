@@ -12,6 +12,7 @@ from typing import Any, Protocol
 from rk.product.artifact_read import ArtifactReadService, ExactArtifactRef
 from rk.product.literature_connectors import ConnectorFetch, LiteratureConnector
 from rk.product.tool_runs import ToolRunStore
+from rk.sqlite import open_sqlite
 from rk.wire import canonical_json_bytes
 
 
@@ -249,7 +250,7 @@ class SourceSnapshotStore:
             connection.commit()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, isolation_level=None)
+        connection = open_sqlite(self._db_path, isolation_level=None)
         connection.execute(f"PRAGMA busy_timeout={self._busy_timeout_ms}")
         connection.execute("PRAGMA foreign_keys=ON")
         return connection

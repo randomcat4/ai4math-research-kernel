@@ -14,6 +14,7 @@ from rk.cas import ContentAddressedStore
 from rk.product.artifact_read import ExactArtifactRef
 from rk.product.artifact_upload import ArtifactRegistry
 from rk.runtime import format_utc
+from rk.sqlite import open_sqlite
 from rk.wire import canonical_json_bytes
 
 
@@ -142,7 +143,7 @@ class ProductDossierService:
         return ExactArtifactRef(artifact_id, str(row[0]), int(row[1]), str(row[2]))
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.execute("PRAGMA foreign_keys=ON")
         return connection
 

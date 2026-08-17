@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from rk.domain import VerifiedCapability
+from rk.sqlite import open_sqlite
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -58,7 +59,7 @@ class SQLiteStorage:
         self._busy_timeout_ms = busy_timeout_ms
 
     def connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path,
             timeout=self._busy_timeout_ms / 1_000,
             isolation_level=None,

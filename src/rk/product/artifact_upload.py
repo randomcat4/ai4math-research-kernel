@@ -15,6 +15,7 @@ from typing import Protocol
 from rk.cas import CommittedArtifact, ContentAddressedStore
 from rk.domain import ArtifactInput, ArtifactRef
 from rk.runtime import format_utc
+from rk.sqlite import open_sqlite
 from rk.storage import SQLiteStorage
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -410,7 +411,7 @@ class ArtifactUploadStore:
             self._fault_hook(point, session)
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(f"PRAGMA busy_timeout = {self._busy_timeout_ms}")
         return connection

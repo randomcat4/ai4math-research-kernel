@@ -11,6 +11,7 @@ from typing import Any, cast
 
 from rk.extensions import ProductActivity
 from rk.product.activity_store import ActivityStore
+from rk.sqlite import open_sqlite
 
 _WORKER_TERMINAL = frozenset({"COMPLETED", "FAILED", "CANCELLED"})
 _WORKER_TRANSITIONS: Mapping[str, frozenset[str]] = {
@@ -647,7 +648,7 @@ class WorkActivityStore:
         return str(row[0])
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path,
             timeout=self._busy_timeout_ms / 1_000,
             isolation_level=None,

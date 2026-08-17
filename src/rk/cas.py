@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import shutil
 import stat
 from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass
@@ -263,6 +264,21 @@ class ContentAddressedStore:
         path = self._safe_final_path(relpath)
         self._verify_final(path, str(record["sha256"]), int(record["byte_count"]))
         return path.read_bytes()
+
+    def copy_to(self, artifact_id: str, target: Path) -> None:
+        """Stream a verified immutable object without materializing it in memory."""
+
+        if self._artifact_lookup is None:
+            raise CasLookupError("artifact lookup is not configured")
+        record = self._artifact_lookup(artifact_id)
+        if record is None or record.get("ingest_state") != "COMMITTED":
+            raise CasLookupError("artifact is not committed")
+        path = self._safe_final_path(str(record["cas_relpath"]))
+        self._verify_final(path, str(record["sha256"]), int(record["byte_count"]))
+        with path.open("rb") as source, target.open("xb") as destination:
+            shutil.copyfileobj(source, destination, length=1024 * 1024)
+            destination.flush()
+            os.fsync(destination.fileno())
 
     def scan_orphans(
         self,

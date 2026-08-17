@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -34,6 +33,7 @@ from rk.product.research_lineage import (
     ResearchLineageStore,
 )
 from rk.product.source_snapshots import SourceSnapshotStore
+from rk.sqlite import open_sqlite
 from rk.wire import canonical_json_bytes
 
 
@@ -203,7 +203,7 @@ class _BatchPort:
             job.receipt_id,
             "PENDING",
         )
-        with sqlite3.connect(self.d.db_path, isolation_level=None) as connection:
+        with open_sqlite(self.d.db_path, isolation_level=None) as connection:
             connection.execute("PRAGMA foreign_keys=ON")
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
@@ -260,7 +260,7 @@ class _AblationPort:
             )
             plan_id = _text(payload, "ablation_plan_id")
             store = AblationStore(self.d.db_path)
-            with sqlite3.connect(self.d.db_path) as connection:
+            with open_sqlite(self.d.db_path) as connection:
                 row = connection.execute(
                     "SELECT run_id,frozen_digest FROM product_ablation_plans "
                     "WHERE ablation_plan_id=?",
@@ -488,7 +488,7 @@ def _frozen_pool_digest(d: _Dependencies, problem_ids: tuple[str, ...]) -> str:
 
 
 def _profile(db_path: Path, profile_id: str) -> dict[str, object]:
-    with sqlite3.connect(db_path) as connection:
+    with open_sqlite(db_path) as connection:
         rows = connection.execute(
             "SELECT tool_id,tool_version,function_name,provider,build_version,"
             "function_schema_digest,availability,authority_ceiling FROM "
@@ -522,7 +522,7 @@ def _profile(db_path: Path, profile_id: str) -> dict[str, object]:
 def _verifier_receipt(
     db_path: Path, run_id: str, revision: int, contract: int, profile_id: str
 ) -> str:
-    with sqlite3.connect(db_path) as connection:
+    with open_sqlite(db_path) as connection:
         rows = connection.execute(
             "SELECT DISTINCT r.validation_receipt_id FROM product_tool_runs r "
             "JOIN product_tool_catalog c ON c.tool_id=r.tool_id "
@@ -545,7 +545,7 @@ def _run_fence(db_path: Path, scope: Mapping[str, object]) -> tuple[str, int, in
     run_id = _text(scope, "run_id")
     expected_revision = _integer(scope, "expected_revision")
     expected_contract = _integer(scope, "expected_contract_version")
-    with sqlite3.connect(db_path) as connection:
+    with open_sqlite(db_path) as connection:
         row = connection.execute(
             "SELECT revision,current_contract_version FROM runs WHERE run_id=?", (run_id,)
         ).fetchone()
@@ -570,7 +570,7 @@ def _source_versions(
     if not ids:
         raise _EvidenceRejected("LINEAGE_SOURCE_ARTIFACTS_MISSING")
     placeholders = ",".join("?" for _ in ids)
-    with sqlite3.connect(db_path) as connection:
+    with open_sqlite(db_path) as connection:
         rows = connection.execute(
             "SELECT lineage_artifact_id,source_version FROM product_research_lineage_artifacts "
             f"WHERE lineage_artifact_id IN ({placeholders}) ORDER BY lineage_artifact_id",

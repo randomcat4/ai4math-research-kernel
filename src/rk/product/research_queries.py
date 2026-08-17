@@ -21,6 +21,7 @@ from rk.product.domain_queries import (
     FenceSource,
     RunFence,
 )
+from rk.sqlite import open_sqlite
 
 
 class ResearchQueries:
@@ -535,7 +536,7 @@ class ResearchQueries:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys=ON")
         return connection

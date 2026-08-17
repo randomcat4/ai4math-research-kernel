@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import time
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from pathlib import Path
@@ -49,13 +50,14 @@ class SseActivityBody:
         heartbeat_interval_seconds: float,
         wait: Callable[[float], None],
         monotonic: Callable[[], float],
+        on_close: Callable[[], None] = lambda: None,
     ) -> None:
         if not 1 <= page_size <= 1_000:
             raise ValueError("SSE page_size must be between 1 and 1000")
         if not 0 < poll_interval_seconds <= 0.5:
             raise ValueError("SSE SQLite polling interval must be within (0, 0.5]")
-        if heartbeat_interval_seconds < 0:
-            raise ValueError("SSE heartbeat interval cannot be negative")
+        if heartbeat_interval_seconds <= 0:
+            raise ValueError("SSE heartbeat interval must be positive")
         self._stream = stream
         self._page_size = page_size
         self._poll_interval = poll_interval_seconds
@@ -64,6 +66,7 @@ class SseActivityBody:
         self._monotonic = monotonic
         self._last_heartbeat = monotonic()
         self._closed = False
+        self._on_close = on_close
 
     def __iter__(self) -> Iterator[bytes]:
         while not self._closed:
@@ -82,8 +85,11 @@ class SseActivityBody:
             self._wait(self._poll_interval)
 
     def close(self) -> None:
+        if self._closed:
+            return
         self._closed = True
         self._stream.close()
+        self._on_close()
 
 
 class ActivityRouter:
@@ -99,7 +105,10 @@ class ActivityRouter:
         heartbeat_interval_seconds: float = 15.0,
         wait: Callable[[float], None] = time.sleep,
         monotonic: Callable[[], float] = time.monotonic,
+        max_subscriptions: int = 64,
     ) -> None:
+        if max_subscriptions < 1:
+            raise ValueError("max_subscriptions must be positive")
         self._db_path = Path(db_path)
         self._store = store
         self._authorizer = authorizer
@@ -109,6 +118,7 @@ class ActivityRouter:
         self._heartbeat_interval = heartbeat_interval_seconds
         self._wait = wait
         self._monotonic = monotonic
+        self._subscriptions = threading.BoundedSemaphore(max_subscriptions)
 
     def routes(self) -> Sequence[RouteSpec]:
         return (
@@ -126,6 +136,9 @@ class ActivityRouter:
         if match is None or split.fragment:
             return _problem("SUBSCRIPTION_PATH_INVALID", HttpErrorClass.SCHEMA, "$.path")
         run_id = match.group(1)
+        acquired = self._subscriptions.acquire(blocking=False)
+        if not acquired:
+            return _problem("SUBSCRIPTION_LIMIT_REACHED", HttpErrorClass.UNAVAILABLE, "$.events")
         try:
             self._authorizer.authorize_subscription(request.principal, run_id)
             after_cursor = _query_cursor(split.query)
@@ -145,14 +158,19 @@ class ActivityRouter:
                 heartbeat_interval_seconds=self._heartbeat_interval,
                 wait=self._wait,
                 monotonic=self._monotonic,
+                on_close=self._subscriptions.release,
             )
         except CursorExpired:
+            self._subscriptions.release()
             return _problem("CURSOR_EXPIRED", HttpErrorClass.GONE, "$.after_cursor")
         except ValueError:
+            self._subscriptions.release()
             return _problem("SUBSCRIPTION_CURSOR_INVALID", HttpErrorClass.SCHEMA, "$.after_cursor")
         except ProductHttpError as error:
+            self._subscriptions.release()
             return error_response(error)
         except ActivityStreamError:
+            self._subscriptions.release()
             return _problem("ACTIVITY_STREAM_UNAVAILABLE", HttpErrorClass.UNAVAILABLE, "$.events")
         return HttpStreamResponse(
             status=200,

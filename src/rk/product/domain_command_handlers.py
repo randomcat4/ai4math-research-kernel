@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -40,6 +39,7 @@ from rk.product.revocation import RevocationService
 from rk.product.route_plan import RoutePlanStore
 from rk.product.summary import BudgetSummary, ResearchSummaryProjection
 from rk.product.theorem_applicability import TheoremApplicabilityStore
+from rk.sqlite import open_sqlite
 from rk.wire import canonical_json_bytes
 
 
@@ -154,7 +154,7 @@ class _Handlers:
             owner,
             _json(list(sorted(set(labels)))),
         )
-        with sqlite3.connect(self.s.db_path) as connection:
+        with open_sqlite(self.s.db_path) as connection:
             row = connection.execute(
                 "SELECT title,question_summary,owner,labels_json FROM research_catalog "
                 "WHERE run_id=?",
@@ -231,7 +231,7 @@ class _Handlers:
             last_cursor=self._cursor(),
             projection_source_digest=hashlib.sha256(canonical_json_bytes(source)).hexdigest(),
         )
-        with sqlite3.connect(self.s.db_path) as connection:
+        with open_sqlite(self.s.db_path) as connection:
             projected = connection.execute(
                 "SELECT 1 FROM research_summary_projection WHERE run_id=?", (run_id,)
             ).fetchone()
@@ -649,7 +649,7 @@ class _Handlers:
         )
 
     def _cursor(self) -> int:
-        with sqlite3.connect(self.s.db_path) as connection:
+        with open_sqlite(self.s.db_path) as connection:
             row = connection.execute(
                 "SELECT COALESCE(MAX(cursor),0) FROM product_activity_events"
             ).fetchone()
@@ -663,7 +663,7 @@ def _run(i: DomainInvocation) -> str:
 
 
 def _contract_id(path: Path, run_id: str) -> str:
-    with sqlite3.connect(path) as connection:
+    with open_sqlite(path) as connection:
         rows = connection.execute(
             "SELECT contract_id FROM product_contracts WHERE run_id=?", (run_id,)
         ).fetchall()
@@ -673,7 +673,7 @@ def _contract_id(path: Path, run_id: str) -> str:
 
 
 def _accepted_anchors(path: Path, contract_id: str, version: int) -> tuple[str, ...]:
-    with sqlite3.connect(path) as connection:
+    with open_sqlite(path) as connection:
         rows = connection.execute(
             "SELECT anchor_id FROM product_contract_material_references "
             "WHERE contract_id=? AND contract_version=? AND acceptance_state='USER_ACCEPTED' "
@@ -684,7 +684,7 @@ def _accepted_anchors(path: Path, contract_id: str, version: int) -> tuple[str, 
 
 
 def _identity(path: Path, subject_id: str) -> str:
-    with sqlite3.connect(path) as connection:
+    with open_sqlite(path) as connection:
         rows = connection.execute(
             "SELECT identity_id FROM product_identities WHERE subject_id=? AND enabled=1",
             (subject_id,),
@@ -701,7 +701,7 @@ def _paper_kernel_payload(
     imported: ImportedReview,
 ) -> dict[str, object]:
     candidate = _object(payload, "candidate_tex_artifact")
-    with sqlite3.connect(path) as connection:
+    with open_sqlite(path) as connection:
         rows = connection.execute(
             "SELECT generation_command_id,finalized_revision,terminal_root_id,"
             "terminal_root_digest,closure_witness_id,dependency_closure_digest "

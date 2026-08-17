@@ -15,6 +15,7 @@ from rk.cas import ContentAddressedStore
 from rk.domain import ArtifactInput, ArtifactRef
 from rk.product.artifact_upload import ArtifactRegistry
 from rk.runtime import format_utc
+from rk.sqlite import open_sqlite
 
 _SCOPES = frozenset({"GLOBAL", "RUN", "DEPLOYMENT"})
 _STREAMS = frozenset({"STDOUT", "STDERR"})
@@ -364,7 +365,7 @@ class PublicLogStore:
         return ArtifactRef(artifact_id, str(row[0]), int(row[1]), str(row[2]), 0)
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path,
             timeout=self._busy_timeout_ms / 1_000,
             isolation_level=None,

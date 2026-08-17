@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, cast
@@ -23,6 +22,7 @@ from rk.product.managed_python import (
     NamedInputArtifact,
 )
 from rk.product.tool_runs import ToolCatalogStore, ToolRunStore
+from rk.sqlite import open_sqlite
 
 
 class ManagedBindingRejected(ValueError):
@@ -40,7 +40,7 @@ class ActiveLeaseResolver:
         self._db_path = Path(db_path)
 
     def __call__(self, job: DurableJob) -> JobLease:
-        with sqlite3.connect(self._db_path) as connection:
+        with open_sqlite(self._db_path) as connection:
             row = connection.execute(
                 "SELECT lease_id,job_id,lease_generation,holder_id,process_token,"
                 "claimed_at,heartbeat_at,expires_at FROM product_job_leases "

@@ -23,6 +23,7 @@ from rk.product.graph_index import (
     IndexedGraphNode,
     ProjectionLag,
 )
+from rk.sqlite import open_sqlite
 
 GraphMode = Literal["VERIFIED", "RESEARCH_HISTORY"]
 SliceDirection = Literal["PREDECESSORS", "SUCCESSORS", "BOTH"]
@@ -804,7 +805,7 @@ class GraphQueryService:
             raise ValueError("page_limit must be between 1 and 200")
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(f"PRAGMA busy_timeout = {self._busy_timeout_ms}")
         return connection

@@ -25,6 +25,7 @@ from rk.product.api import (
 from rk.product.artifact_read import ExactArtifactRef
 from rk.product.problem_pool import ProblemPool, ProblemPoolStore, SourceEntry
 from rk.product.source_snapshots import SourceSnapshot
+from rk.sqlite import open_sqlite
 
 
 class ArxivBatchError(RuntimeError):
@@ -461,7 +462,7 @@ class ArxivBatchPipeline:
         return body
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, isolation_level=None)
+        connection = open_sqlite(self._db_path, isolation_level=None)
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute(f"PRAGMA busy_timeout={self._busy_timeout_ms}")
         return connection

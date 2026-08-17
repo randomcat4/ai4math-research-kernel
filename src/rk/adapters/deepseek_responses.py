@@ -97,10 +97,7 @@ class DeepSeekResponsesControllerAdapter:
         environment = request["environment"]
         if not isinstance(environment, Mapping):
             raise AdapterRequestError("environment must be an object")
-        env = self.profile.select_environment(environment)
-        api_key = env.get("DEEPSEEK_API_KEY")
-        if not api_key:
-            raise AdapterRequestError("registered DEEPSEEK_API_KEY is missing")
+        api_key = self.profile.select_credential(environment)
 
         tools = [
             {

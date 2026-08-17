@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from rk.extensions import ProductActivity
+from rk.sqlite import open_sqlite
 
 
 class ActivityStoreError(RuntimeError):
@@ -139,7 +140,7 @@ class ActivityStore:
         connection = (
             self._connection_factory()
             if self._connection_factory is not None
-            else sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+            else open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         )
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(f"PRAGMA busy_timeout = {self._busy_timeout_ms}")

@@ -115,6 +115,7 @@ class ArtifactRangeResult:
             "content-disposition": self.descriptor.content_disposition,
             "etag": f'"sha256:{self.descriptor.ref.sha256}"',
             "x-rk-artifact-id": self.descriptor.ref.artifact_id,
+            "x-content-type-options": "nosniff",
         }
         if self.partial:
             headers["content-range"] = self.byte_range.content_range

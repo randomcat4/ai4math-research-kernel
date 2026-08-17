@@ -13,6 +13,7 @@ from rk.product_release_migrations import (
     ProductReleaseMigrationError,
 )
 from rk.runtime import format_utc
+from rk.sqlite import open_sqlite
 
 
 class UpgradeError(RuntimeError):
@@ -217,7 +218,7 @@ class UpgradeRunner:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path, timeout=self._busy_timeout_ms / 1_000, isolation_level=None
         )
         connection.execute("PRAGMA foreign_keys=ON")

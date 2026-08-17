@@ -1,3 +1,5 @@
+BEGIN IMMEDIATE;
+
 CREATE TABLE research_hints (
     hint_id                    TEXT PRIMARY KEY,
     run_id                     TEXT NOT NULL REFERENCES runs(run_id) ON DELETE RESTRICT,
@@ -53,3 +55,5 @@ CREATE TABLE atomic_verifications (
 );
 
 CREATE INDEX ix_atomic_verifications_claim ON atomic_verifications(claim_id, created_at);
+
+COMMIT;

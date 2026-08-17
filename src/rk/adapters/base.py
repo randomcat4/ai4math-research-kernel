@@ -124,6 +124,7 @@ class AdapterProfile:
     max_tool_calls: int = 0
     require_deny_all_tools: bool = False
     run_as_user: str | None = None
+    credential_env: str | None = None
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> AdapterProfile:
@@ -150,6 +151,7 @@ class AdapterProfile:
             "max_tool_calls",
             "require_deny_all_tools",
             "run_as_user",
+            "credential_env",
         }
         required = {
             "name",
@@ -225,6 +227,9 @@ class AdapterProfile:
             max_tool_calls=int(value.get("max_tool_calls", 0)),
             require_deny_all_tools=value.get("require_deny_all_tools", False),
             run_as_user=(str(value["run_as_user"]) if value.get("run_as_user") else None),
+            credential_env=(
+                str(value["credential_env"]) if value.get("credential_env") else None
+            ),
         )
         profile._validate()
         return profile
@@ -254,6 +259,8 @@ class AdapterProfile:
             raise AdapterConfigurationError("run_as_user must name a POSIX account")
         if any(not name or "=" in name or "\x00" in name for name in self.env_whitelist):
             raise AdapterConfigurationError("env_whitelist contains an invalid variable name")
+        if self.credential_env is not None and self.credential_env not in self.env_whitelist:
+            raise AdapterConfigurationError("credential_env must be in env_whitelist")
         if any(not item or "\x00" in item for item in self.argv_prefix):
             raise AdapterConfigurationError("argv_prefix contains an invalid argument")
         if any(not item or "\x00" in item for item in self.preflight_argv_prefix):
@@ -315,6 +322,20 @@ class AdapterProfile:
                 raise AdapterRequestError(f"environment variable {key!r} contains NUL")
             result[key] = rendered
         return result
+
+    def select_credential(self, supplied: Mapping[str, Any] | None) -> str:
+        selected = self.select_environment(supplied)
+        name = self.credential_env
+        if name is None:
+            if len(self.env_whitelist) != 1:
+                raise AdapterConfigurationError(
+                    "network adapter profile must declare credential_env"
+                )
+            name = next(iter(self.env_whitelist))
+        value = selected.get(name)
+        if not value:
+            raise AdapterRequestError(f"registered credential environment {name} is missing")
+        return value
 
     def provenance(self) -> dict[str, Any]:
         """Return non-secret stable provenance; paths and environment values stay private."""
@@ -472,6 +493,7 @@ class CurlHttpClient:
         completed = subprocess.run(
             [
                 self.executable,
+                "--disable",
                 "--silent",
                 "--show-error",
                 "--max-time",
@@ -495,6 +517,11 @@ class CurlHttpClient:
             timeout=timeout + 1,
             check=False,
             shell=False,
+            env={
+                key: value
+                for key, value in os.environ.items()
+                if key in {"PATH", "SYSTEMROOT", "SSL_CERT_FILE", "SSL_CERT_DIR"}
+            },
         )
         if completed.returncode != 0:
             raise OSError(completed.stderr.decode("utf-8", errors="replace"))

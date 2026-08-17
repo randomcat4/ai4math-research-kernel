@@ -19,6 +19,7 @@ from rk.product.guidance import (
 )
 from rk.product.route_plan import RoutePlanStore
 from rk.product.work_activity import WorkActivityError, WorkActivityStore, WorkItem
+from rk.sqlite import open_sqlite
 
 
 class GuidedWorkDeriver:
@@ -261,7 +262,7 @@ class GuidedWorkDeriver:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path,
             timeout=self._busy_timeout_ms / 1_000,
             isolation_level=None,

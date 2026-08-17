@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +31,7 @@ from rk.product.research_lineage import LineageMode, ResearchLineageStore
 from rk.product.restore import RestoreRunner
 from rk.product.source_snapshots import SourceSnapshotStore
 from rk.product.upgrade import UpgradeRunner
+from rk.sqlite import open_sqlite
 
 type SessionResolver = Callable[[str], ProductSession]
 type ExactArtifactResolver = Callable[[Mapping[str, object]], ExactArtifactRef]
@@ -185,7 +185,7 @@ class _AssignAblation:
         plan_id = _text(payload, "ablation_plan_id")
         config = resolver(job, payload)
         store = AblationStore(self.dependencies.db_path)
-        with sqlite3.connect(self.dependencies.db_path) as connection:
+        with open_sqlite(self.dependencies.db_path) as connection:
             row = connection.execute(
                 "SELECT frozen_digest FROM product_ablation_plans WHERE ablation_plan_id=?",
                 (plan_id,),
@@ -723,7 +723,7 @@ class _RetryUnknown:
         payload = _payload(request)
         receipt_id = _text(payload, "outcome_unknown_receipt_id")
         external_ref = _text(payload, "unknown_external_call_ref")
-        with sqlite3.connect(self.dependencies.db_path) as connection:
+        with open_sqlite(self.dependencies.db_path) as connection:
             row = connection.execute(
                 "SELECT state,unknown_external_call_ref,receipt_json "
                 "FROM product_receipts WHERE receipt_id=?",
@@ -752,7 +752,7 @@ class _RetryUnknown:
 
 
 def _tool_attempt(path: Path, job_id: str) -> tuple[str, str]:
-    with sqlite3.connect(path) as connection:
+    with open_sqlite(path) as connection:
         rows = connection.execute(
             "SELECT tool_run_id,attempt_id FROM product_tool_attempts WHERE job_id=?",
             (job_id,),
@@ -763,7 +763,7 @@ def _tool_attempt(path: Path, job_id: str) -> tuple[str, str]:
 
 
 def _generation_for_candidate(path: Path, artifact_id: str, digest: str) -> str:
-    with sqlite3.connect(path) as connection:
+    with open_sqlite(path) as connection:
         rows = connection.execute(
             "SELECT generation_command_id FROM product_publication_candidates "
             "WHERE candidate_tex_artifact_id=? AND candidate_tex_sha256=?",
@@ -876,7 +876,7 @@ def _product_command(
 
 
 def _backup_id_for_artifact(path: Path, artifact_id: str) -> str:
-    with sqlite3.connect(path) as connection:
+    with open_sqlite(path) as connection:
         rows = connection.execute(
             "SELECT backup_id FROM product_backups "
             "WHERE backup_artifact_id=? AND state='SUCCEEDED'",

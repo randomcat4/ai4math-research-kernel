@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from rk.sqlite import open_sqlite
+
 
 class BridgeOpportunityError(RuntimeError):
     pass
@@ -278,7 +280,7 @@ class BridgeOpportunityStore:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        c = sqlite3.connect(self._db, isolation_level=None)
+        c = open_sqlite(self._db, isolation_level=None)
         c.execute("PRAGMA foreign_keys=ON")
         return c
 

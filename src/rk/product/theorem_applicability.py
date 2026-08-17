@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
+
+from rk.sqlite import open_sqlite
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,7 +37,7 @@ class TheoremApplicabilityStore:
     ) -> ApplicabilityReview:
         if not reviewed_by or not all((quantifiers, assumptions, symbols)):
             raise ValueError("manual quantifier, assumption, and symbol reviews are required")
-        with sqlite3.connect(self._db) as c:
+        with open_sqlite(self._db) as c:
             c.execute("PRAGMA foreign_keys=ON")
             c.execute(
                 "INSERT INTO product_theorem_applicability_reviews VALUES(?,?,?,?,?,?,?,?,?)",

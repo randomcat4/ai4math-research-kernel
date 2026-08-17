@@ -1,9 +1,9 @@
 # Implementation status
 
-更新时间：2026-08-12。本文区分“历史集成实测”和“当前 v0.2 权威状态”；历史成功日志
+更新时间：2026-08-17。本文区分“历史集成实测”和“当前 v0.3 权威状态”；历史成功日志
 不等于当前内核授予数学权威。
 
-## 当前 v0.2 可执行
+## 当前 v0.3 可执行
 
 - `ResearchKernel.create/apply/inspect/export`、SQLite/CAS、幂等收据、能力校验、27 个
   命令的 guard 与投影可以执行。
@@ -24,8 +24,8 @@
   UNKNOWN_COST 等 ACTUAL 统计在接入宿主执行回执前不进入权威账本。v0.1 自报统计保留
   为 `legacy_untrusted_component_usage`，不会计入 `component_usage` 或可信 budget totals。
 
-当前测试基线：187 项通过；Ruff 通过；变更核心模块的 strict mypy 通过。Windows 对
-OpenCode 的 POSIX-only 类型名仍有五个既存 mypy 报错，跨平台清理尚未完成。
+v0.3 的安全与可靠性修复、验证环境及明确未关闭的架构风险见
+`docs/audit/v0.3-backend-audit.md`。
 
 ## 历史 v0.1 集成实测（不授予 v0.2 权威）
 
@@ -41,9 +41,9 @@ OpenCode 的 POSIX-only 类型名仍有五个既存 mypy 报错，跨平台清�
 
 ## 当前明确不可用
 
-- 尚无 DB-backed `HostExecutionReceiptService`。v0.1 `StrategyRunner` 的 HMAC key 和
-  caller-supplied receipt context 在同一进程，不能证明 claim scope，故
-  `machine_evidence_is_trusted` 当前恒为 false。
+- 已有 DB-backed `HostExecutionReceiptService`，并执行一次性 nonce、scope、profile、
+  invocation/result/usage 与环境绑定。只有配置并通过独立宿主回执的路径才可晋级；普通
+  caller-supplied receipt 仍然 fail closed。
 - 没有受管人类身份、盲审包和一次性签名，因此同行、HUMAN_ATTESTED、质量晋级不可用。
 - 没有受信的文献等价性、合同缺陷裁决或反例 checker 回执，因此
   `PREVIOUSLY_KNOWN`、`CONTRACT_DEFECTIVE`、`DISPROVED` 不可作为终态。

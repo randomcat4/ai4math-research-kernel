@@ -662,7 +662,10 @@ class ResearchOrchestrator:
         capability: VerifiedCapability | None = None,
         environment: Mapping[str, str] | None = None,
         extensions: ExtensionRegistry | None = None,
+        max_parallel_falsifiers: int = 8,
     ) -> None:
+        if max_parallel_falsifiers < 1:
+            raise ValueError("max_parallel_falsifiers must be positive")
         self._runtime = runtime
         self._clock = clock or SystemClock()
         self._id_factory = id_factory or Uuid7Generator().new
@@ -672,6 +675,7 @@ class ResearchOrchestrator:
         self._capability = capability
         self._environment = _frozen(environment)
         self._extensions = extensions or ExtensionRegistry()
+        self._max_parallel_falsifiers = max_parallel_falsifiers
 
     @classmethod
     def from_config(
@@ -784,7 +788,9 @@ class ResearchOrchestrator:
                             finished_ns=parsed.finished_ns or finished_ns,
                         )
 
-                    with ThreadPoolExecutor(max_workers=len(batch)) as pool:
+                    with ThreadPoolExecutor(
+                        max_workers=min(len(batch), self._max_parallel_falsifiers)
+                    ) as pool:
                         futures = [
                             None
                             if isinstance(candidate.context.get("parallel_precomputed"), Mapping)

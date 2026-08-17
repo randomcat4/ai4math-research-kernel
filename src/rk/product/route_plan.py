@@ -12,6 +12,7 @@ from typing import Any
 
 from rk.extensions import ProductActivity
 from rk.product.activity_store import ActivityStore
+from rk.sqlite import open_sqlite
 
 _STATES = frozenset({"PROPOSED", "APPROVED", "ACTIVE", "PAUSED", "STOPPED"})
 _ACTIONS = frozenset({"APPROVE", "START", "PAUSE", "STOP", "SET_PRIORITY", "SET_BUDGET"})
@@ -556,7 +557,7 @@ class RoutePlanStore:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path,
             timeout=self._busy_timeout_ms / 1_000,
             isolation_level=None,

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import secrets
-import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +19,8 @@ from rk.product.published_app import (
 )
 from rk.product.sessions import SessionStore
 from rk.product_migrations import ProductMigrationAssembler, ProductMigrationRegistry
+from rk.resources import resource_root
+from rk.sqlite import open_sqlite
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,9 +96,9 @@ def bootstrap_admin_session(
     os.chmod(cas_root, 0o700)
     os.chmod(spool_root, 0o700)
     db_path = root / "product.sqlite"
-    migration_root = Path(__file__).resolve().parents[3] / "migrations"
+    migration_root = resource_root() / "migrations"
     MigrationRunner(db_path, migration_root, 5_000).migrate()
-    with sqlite3.connect(db_path) as connection:
+    with open_sqlite(db_path) as connection:
         ProductMigrationAssembler(ProductMigrationRegistry(schema_fragments)).apply(connection)
     os.chmod(db_path, 0o600)
 

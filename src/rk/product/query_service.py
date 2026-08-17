@@ -33,6 +33,7 @@ from rk.product.listing import (
 )
 from rk.product.receipt_query import ReceiptJobQuery
 from rk.product.sessions import SessionAuthenticationError, SessionStore
+from rk.sqlite import open_sqlite
 
 
 class ProductQueryServiceError(RuntimeError):
@@ -120,7 +121,7 @@ class SQLiteQueryFenceSource:
         return CatalogQueryFence(self._deployment_id, int(row[0]), int(cursor_row[0]))
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path)
+        connection = open_sqlite(self._db_path)
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 

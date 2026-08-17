@@ -191,8 +191,15 @@ def test_last_event_id_disconnect_reconnect_resumes_without_duplicate(tmp_path: 
 def test_heartbeat_has_no_id_and_does_not_advance_cursor(tmp_path: Path) -> None:
     path = database(tmp_path)
     store = ActivityStore(path)
+    times = iter((0.0, 1.0))
     response = invoke(
-        router(path, store, Authorizer(), heartbeat_interval=0),
+        router(
+            path,
+            store,
+            Authorizer(),
+            heartbeat_interval=0.5,
+            monotonic=lambda: next(times),
+        ),
         HttpRequest("GET", "/v1/research/run-1/events?after_cursor=0"),
     )
     body = stream_body(response)

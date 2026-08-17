@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from rk.product.summary import ResearchSummaryProjection
+from rk.sqlite import open_sqlite
 
 
 class CatalogCursorError(ValueError):
@@ -213,7 +214,7 @@ class ResearchCatalog:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        c = sqlite3.connect(self._db_path)
+        c = open_sqlite(self._db_path)
         c.execute("PRAGMA foreign_keys=ON")
         return c
 

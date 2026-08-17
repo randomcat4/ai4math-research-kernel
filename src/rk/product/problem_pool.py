@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Literal, cast
 
 from rk.product.artifact_read import ExactArtifactRef
+from rk.sqlite import open_sqlite
 
 
 class ProblemPoolError(RuntimeError):
@@ -710,7 +711,7 @@ class ProblemPoolStore:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, isolation_level=None)
+        connection = open_sqlite(self._db_path, isolation_level=None)
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute(f"PRAGMA busy_timeout={self._busy_timeout_ms}")
         return connection

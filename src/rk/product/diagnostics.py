@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
 from rk.product.activity_store import ActivityRecord, ActivityStore
 from rk.product.deployment import DeploymentHealthReport, DeploymentHealthService
+from rk.sqlite import open_sqlite
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,7 +76,7 @@ class TypedDiagnosticService:
             ),
         )
         rows: list[ProjectionStateCount] = []
-        with sqlite3.connect(self._db_path) as connection:
+        with open_sqlite(self._db_path) as connection:
             for projection, statement in statements:
                 params: tuple[str, ...] = (self._deployment_id,) if projection == "JOB" else ()
                 rows.extend(

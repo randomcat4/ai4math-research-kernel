@@ -19,6 +19,7 @@ from rk.cas import ContentAddressedStore
 from rk.domain import ArtifactInput, ArtifactRef
 from rk.product.artifact_upload import ArtifactRegistry
 from rk.runtime import format_utc
+from rk.sqlite import open_sqlite
 
 _LOGICAL_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 _CAS_RELPATH = re.compile(r"^[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{64}$")
@@ -54,6 +55,8 @@ class BackupReceipt:
 class BackupArtifactReader(Protocol):
     def read_bytes(self, artifact: ArtifactRef) -> bytes: ...
 
+    def materialize(self, artifact: ArtifactRef, target: Path) -> None: ...
+
 
 class CasBackupArtifactReader:
     def __init__(self, cas: ContentAddressedStore) -> None:
@@ -64,6 +67,12 @@ class CasBackupArtifactReader:
         if len(data) != artifact.byte_count or hashlib.sha256(data).hexdigest() != artifact.sha256:
             raise BackupError("backup ArtifactRef differs from canonical CAS bytes")
         return data
+
+    def materialize(self, artifact: ArtifactRef, target: Path) -> None:
+        self._cas.copy_to(artifact.artifact_id, target)
+        if target.stat().st_size != artifact.byte_count or _sha256_file(target) != artifact.sha256:
+            target.unlink(missing_ok=True)
+            raise BackupError("backup ArtifactRef differs from canonical CAS bytes")
 
 
 class BackupService:
@@ -233,10 +242,10 @@ class BackupService:
         return self.get(str(row[0])) if row is not None else None
 
     def _online_snapshot(self, target: Path) -> None:
-        source = sqlite3.connect(
+        source = open_sqlite(
             self._db_path, timeout=self._busy_timeout_ms / 1_000, isolation_level=None
         )
-        destination = sqlite3.connect(target, isolation_level=None)
+        destination = open_sqlite(target, isolation_level=None)
         try:
             source.execute(f"PRAGMA busy_timeout={self._busy_timeout_ms}")
             source.backup(destination, pages=256)
@@ -271,10 +280,15 @@ class BackupService:
         return tuple(result)
 
     def _cas_entries(self, snapshot: Path) -> tuple[tuple[dict[str, object], Path], ...]:
-        with sqlite3.connect(snapshot) as connection:
+        with open_sqlite(snapshot) as connection:
             rows = connection.execute(
                 "SELECT artifact_id,sha256,byte_count,cas_relpath FROM artifacts "
-                "WHERE ingest_state='COMMITTED' ORDER BY artifact_id"
+                "WHERE ingest_state='COMMITTED' "
+                "AND media_type<>'application/vnd.rk.backup+zip' "
+                "AND artifact_id NOT IN ("
+                "SELECT backup_artifact_id FROM product_backups "
+                "WHERE backup_artifact_id IS NOT NULL"
+                ") ORDER BY artifact_id"
             ).fetchall()
         result: list[tuple[dict[str, object], Path]] = []
         for artifact_id, digest, byte_count, relpath in rows:
@@ -305,7 +319,7 @@ class BackupService:
         return tuple(result)
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path, timeout=self._busy_timeout_ms / 1_000, isolation_level=None
         )
         connection.execute("PRAGMA foreign_keys=ON")
@@ -350,7 +364,7 @@ def _receipt(row: tuple[Any, ...], artifact_row: tuple[Any, ...]) -> BackupRecei
 
 
 def _consistency(database: Path) -> dict[str, int]:
-    with sqlite3.connect(database) as connection:
+    with open_sqlite(database) as connection:
         activity = connection.execute(
             "SELECT COALESCE(MAX(cursor),0) FROM product_activity_events"
         ).fetchone()

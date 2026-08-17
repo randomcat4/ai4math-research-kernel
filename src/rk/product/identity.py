@@ -11,6 +11,8 @@ from enum import StrEnum
 from pathlib import Path
 from types import MappingProxyType
 
+from rk.sqlite import open_sqlite
+
 
 class ProductRole(StrEnum):
     MAIN = "MAIN"
@@ -197,6 +199,9 @@ class IdentityStore:
                 (identity_id,),
             ).fetchone()
         if row is None or not bool(row[5]):
+            # Spend the same KDF work for unknown/disabled identities so login
+            # timing does not reveal which account names exist.
+            _credential_digest(login_secret, bytes(16))
             raise IdentityAuthenticationError("IDENTITY_AUTHENTICATION_FAILED")
         actual = _credential_digest(login_secret, bytes(row[8]))
         if not hmac.compare_digest(actual, bytes(row[9])):
@@ -215,7 +220,7 @@ class IdentityStore:
         return self.get(identity_id)
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(f"PRAGMA busy_timeout = {self._busy_timeout_ms}")
         return connection

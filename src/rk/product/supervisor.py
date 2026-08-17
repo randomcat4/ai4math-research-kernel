@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Protocol
@@ -63,6 +64,7 @@ class RuntimeSupervisor:
         self._retry_policy = dict(retry_policy)
         self._orphan_resolver = orphan_resolver
         self._processes: dict[str, ManagedProcess] = {}
+        self._process_lock = threading.RLock()
 
     def enqueue(
         self,
@@ -139,9 +141,10 @@ class RuntimeSupervisor:
     def attach_process(self, lease: JobLease, process: ManagedProcess) -> None:
         if lease.holder_id != self._holder_id:
             raise JobStoreError("cannot attach a process owned by another supervisor")
-        if lease.lease_id in self._processes:
-            raise JobStoreError("lease already has a managed process")
-        self._processes[lease.lease_id] = process
+        with self._process_lock:
+            if lease.lease_id in self._processes:
+                raise JobStoreError("lease already has a managed process")
+            self._processes[lease.lease_id] = process
 
     def heartbeat(self, lease: JobLease, *, expires_at: str) -> JobLease:
         return self._store.heartbeat(lease, now=self._clock(), expires_at=expires_at)
@@ -151,29 +154,35 @@ class RuntimeSupervisor:
         if job.state == JobState.CANCEL_REQUESTED:
             if lease is None:
                 raise JobStoreError("running cancellation requires the active process lease")
-            process = self._processes.get(lease.lease_id)
+            with self._process_lock:
+                process = self._processes.get(lease.lease_id)
             if process is None:
                 raise JobStoreError("running cancellation requires an attached process")
             process.request_cancel()
         return job
 
     def harvest(self, lease: JobLease) -> DurableJob:
-        process = self._processes.get(lease.lease_id)
+        with self._process_lock:
+            process = self._processes.get(lease.lease_id)
         if process is None:
             raise JobStoreError("lease has no attached process")
         receipt = process.poll_receipt()
         if receipt is None:
             return self._store.get(lease.job_id)
-        job = self._store.record_execution(lease, receipt, now=self._clock())
-        del self._processes[lease.lease_id]
-        return job
+        try:
+            return self._store.record_execution(lease, receipt, now=self._clock())
+        finally:
+            # A terminal child must never remain attached even if persistence fails.
+            with self._process_lock:
+                self._processes.pop(lease.lease_id, None)
 
     def recover_startup(self) -> StartupRecovery:
         result = self._store.recover_expired(now=self._clock())
         recovered = set(result.requeued_job_ids) | set(result.unknown_job_ids)
-        for lease_id in tuple(self._processes):
-            if self._processes_job_id(lease_id) in recovered:
-                del self._processes[lease_id]
+        with self._process_lock:
+            for lease_id in tuple(self._processes):
+                if self._processes_job_id(lease_id) in recovered:
+                    del self._processes[lease_id]
         orphans = self._store.pending_orphans()
         if orphans and self._orphan_resolver is None:
             raise JobStoreError("PENDING receipt has no durable job and no orphan resolver")

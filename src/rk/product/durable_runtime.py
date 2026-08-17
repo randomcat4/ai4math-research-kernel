@@ -24,6 +24,7 @@ from rk.product.jobs import (
     JobStoreError,
 )
 from rk.product.supervisor import RuntimeSupervisor
+from rk.sqlite import open_sqlite
 
 
 class DurableExecutor(Protocol):
@@ -181,7 +182,7 @@ class DurableJobResolver:
         return digest
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute(f"PRAGMA busy_timeout={self._busy_timeout_ms}")
         return connection

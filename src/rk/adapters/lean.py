@@ -102,6 +102,16 @@ class LeanReplayAdapter:
             raise AdapterRequestError("source_relpath does not name a regular file")
         if self._read_toolchain(project_root / "lean-toolchain") != expected_toolchain:
             return {**common, "status": "ENVIRONMENT_DRIFT", "kernel_verdict": "NOT_RUN"}
+        lake_backed = any(
+            Path(item).name in {"lake", "lake.exe"} for item in self.profile.argv_prefix
+        )
+        if lake_backed and not (project_root / "lake-manifest.json").is_file():
+            return {
+                **common,
+                "status": "ENVIRONMENT_DRIFT",
+                "kernel_verdict": "NOT_RUN",
+                "reason": "MISSING_LAKE_MANIFEST",
+            }
         if (
             not binary_path.is_file()
             or self._sha256_file(binary_path) != self.profile.binary_sha256

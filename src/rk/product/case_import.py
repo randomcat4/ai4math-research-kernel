@@ -23,6 +23,7 @@ from rk.product.research_lineage import (
     ResearchLineageError,
     ResearchLineageStore,
 )
+from rk.sqlite import open_sqlite
 
 
 class ArtifactReader(Protocol):
@@ -256,7 +257,7 @@ class HistoricalCaseImporter:
         return {str(key): item for key, item in value.items()}
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, isolation_level=None)
+        connection = open_sqlite(self._db_path, isolation_level=None)
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute(f"PRAGMA busy_timeout={self._busy_timeout_ms}")
         return connection

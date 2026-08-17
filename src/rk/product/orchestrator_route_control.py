@@ -12,6 +12,7 @@ from rk.extensions import ProductActivity
 from rk.product.activity_store import ActivityStore
 from rk.product.route_plan import RoutePlanStore
 from rk.product.work_activity import WorkActivityError, WorkActivityStore, WorkItem
+from rk.sqlite import open_sqlite
 
 
 class RouteControlledWorkDeriver:
@@ -132,7 +133,7 @@ class RouteControlledWorkDeriver:
         return self._work_activity.get_work_item(work_item_id)
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path,
             timeout=self._busy_timeout_ms / 1_000,
             isolation_level=None,

@@ -11,6 +11,7 @@ from typing import cast
 from rk.extensions import ProductActivity
 from rk.product.activity_store import ActivityStore
 from rk.product.route_plan import RunFence, sqlite_run_fence
+from rk.sqlite import open_sqlite
 
 
 class GuidanceError(RuntimeError):
@@ -438,7 +439,7 @@ class GuidanceStore:
         return row
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path,
             timeout=self._busy_timeout_ms / 1_000,
             isolation_level=None,

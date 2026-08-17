@@ -8,6 +8,8 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from rk.sqlite import open_sqlite
+
 
 class LiteratureGraphError(RuntimeError):
     pass
@@ -274,7 +276,7 @@ class LiteratureGraphStore:
             raise LiteratureGraphError("graph edges require a successful source")
 
     def _connect(self) -> sqlite3.Connection:
-        c = sqlite3.connect(self._db, isolation_level=None)
+        c = open_sqlite(self._db, isolation_level=None)
         c.execute("PRAGMA foreign_keys=ON")
         return c
 

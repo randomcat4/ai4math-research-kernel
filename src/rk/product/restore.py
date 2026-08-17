@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import sqlite3
+import tempfile
 import zipfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ from rk.domain import ArtifactRef
 from rk.product.backup import BackupArtifactReader, BackupError
 from rk.product_release_migrations import ProductReleaseMigrationAssembler
 from rk.runtime import format_utc
+from rk.sqlite import open_sqlite
 
 _ARCHIVE_PATH = re.compile(
     r"^(?:database\.sqlite|configuration/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}|cas/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{64})$"
@@ -83,12 +85,26 @@ class RestoreRunner:
         if not parent.is_dir() or parent.is_symlink():
             raise RestoreError("restore target parent must be an existing regular directory")
         target_digest = hashlib.sha256(str(target).encode()).hexdigest()
-        data = self._reader.read_bytes(backup_artifact)
-        if (
-            len(data) != backup_artifact.byte_count
-            or hashlib.sha256(data).hexdigest() != backup_artifact.sha256
-        ):
-            raise RestoreError("backup ArtifactRef does not match bundle bytes")
+        descriptor, bundle_name = tempfile.mkstemp(prefix=".rk-restore-bundle-", dir=parent)
+        os.close(descriptor)
+        bundle_path = Path(bundle_name)
+        bundle_path.unlink()
+        try:
+            materialize = getattr(self._reader, "materialize", None)
+            if callable(materialize):
+                materialize(backup_artifact, bundle_path)
+            else:
+                # Compatibility for third-party v0.2 readers; the in-tree CAS
+                # adapter always takes the streaming path above.
+                bundle_path.write_bytes(self._reader.read_bytes(backup_artifact))
+            if (
+                bundle_path.stat().st_size != backup_artifact.byte_count
+                or _sha256_file(bundle_path) != backup_artifact.sha256
+            ):
+                raise RestoreError("backup ArtifactRef does not match bundle bytes")
+        except BaseException:
+            bundle_path.unlink(missing_ok=True)
+            raise
         restore_id, started_at = self._start(
             source_backup_id,
             deployment_id,
@@ -97,7 +113,7 @@ class RestoreRunner:
         )
         staging = parent / f".rk-restore-{restore_id}.partial"
         try:
-            manifest = self._extract_verified(data, staging)
+            manifest = self._extract_verified(bundle_path, staging)
             if manifest.get("backup_id") != source_backup_id:
                 raise RestoreError("source backup identity differs from bundle manifest")
             database = staging / "database.sqlite"
@@ -144,8 +160,10 @@ class RestoreRunner:
             if isinstance(error, (RestoreError, BackupError)):
                 raise
             raise RestoreError("restore failed before atomic publication") from error
+        finally:
+            bundle_path.unlink(missing_ok=True)
 
-    def _extract_verified(self, data: bytes, staging: Path) -> dict[str, object]:
+    def _extract_verified(self, bundle_path: Path, staging: Path) -> dict[str, object]:
         if staging.exists():
             resolved = staging.resolve()
             if resolved.parent != staging.parent.resolve() or not resolved.name.startswith(
@@ -155,9 +173,7 @@ class RestoreRunner:
             shutil.rmtree(resolved)
         staging.mkdir(mode=0o700)
         try:
-            import io
-
-            with zipfile.ZipFile(io.BytesIO(data)) as bundle:
+            with zipfile.ZipFile(bundle_path) as bundle:
                 names = set(bundle.namelist())
                 if "manifest.json" not in names:
                     raise RestoreError("backup bundle has no manifest")
@@ -197,7 +213,7 @@ class RestoreRunner:
             raise RestoreError("backup bundle is unreadable") from error
 
     def _upgrade_and_rebuild(self, database: Path) -> None:
-        with sqlite3.connect(
+        with open_sqlite(
             database, timeout=self._busy_timeout_ms / 1_000, isolation_level=None
         ) as connection:
             self._release.apply(connection)
@@ -314,7 +330,7 @@ class RestoreRunner:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._tracking_db, timeout=self._busy_timeout_ms / 1_000, isolation_level=None
         )
         connection.execute("PRAGMA foreign_keys=ON")
@@ -337,7 +353,7 @@ def _manifest_entries(manifest: Mapping[str, object]) -> tuple[Mapping[str, obje
 def _consistency(database: Path) -> dict[str, int]:
     terminal = ("CANCELLED", "SUCCEEDED", "FAILED", "OUTCOME_UNKNOWN", "STALE", "INVALIDATED")
     placeholders = ",".join("?" for _ in terminal)
-    with sqlite3.connect(database) as connection:
+    with open_sqlite(database) as connection:
         return {
             "activity_cursor": int(
                 connection.execute(

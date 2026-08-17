@@ -14,6 +14,7 @@ from typing import Any
 from rk.extensions import ExtensionRegistry
 from rk.product.budgeting import BackpressureDecision
 from rk.product.deployment import DeploymentHealthReport, ProbeStatus
+from rk.sqlite import open_sqlite
 from rk.wire import canonical_json_bytes
 
 
@@ -607,7 +608,7 @@ class ProductSchedulingStore:
         return int(row[0]) if row is not None else 0
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path,
             timeout=self._busy_timeout_ms / 1_000,
             isolation_level=None,

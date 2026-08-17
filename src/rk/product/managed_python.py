@@ -29,6 +29,7 @@ from rk.product.jobs import (
     JobStore,
 )
 from rk.product.tool_runs import ToolRunStore
+from rk.sqlite import open_sqlite
 from rk.wire import canonical_json_bytes
 
 
@@ -272,12 +273,16 @@ class ManagedPythonExecutor:
         self._reserve(request, job_id, self._clock())
         try:
             workspace.mkdir(mode=0o700)
-            input_dir.mkdir(mode=0o500)
+            # Stage inputs while the directory is private and writable, then
+            # freeze it before the untrusted interpreter starts.  Creating the
+            # directory as 0500 made the executor accidentally root-only.
+            input_dir.mkdir(mode=0o700)
             output_dir.mkdir(mode=0o700)
             _write_readonly(script_path, self._read_script(request.script_artifact))
             _write_readonly(wrapper_path, _WRAPPER.encode("utf-8"))
             for item in request.inputs:
                 _write_readonly(input_dir / item.logical_name, self._read(item.artifact))
+            input_dir.chmod(0o500)
             with log_path.open("xb") as log:
                 started = self._monotonic()
                 process = subprocess.Popen(
@@ -866,7 +871,7 @@ def _file_sha256(path: Path) -> str:
 
 
 def _connect(path: Path, busy_timeout_ms: int) -> sqlite3.Connection:
-    connection = sqlite3.connect(path, isolation_level=None)
+    connection = open_sqlite(path, isolation_level=None)
     connection.execute(f"PRAGMA busy_timeout={busy_timeout_ms}")
     connection.execute("PRAGMA foreign_keys=ON")
     return connection
@@ -896,11 +901,29 @@ def inside(path, roots):
 def audit(event, args):
     if event == "open" and args and isinstance(args[0], (str, bytes, os.PathLike)):
         mode = args[1] if len(args) > 1 else "r"
-        writable = isinstance(mode, str) and any(flag in mode for flag in "wax+")
+        write_flags = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND
+        writable = (
+            isinstance(mode, str) and any(flag in mode for flag in "wax+")
+        ) or (
+            any(isinstance(value, int) and bool(value & write_flags) for value in args[1:3])
+        )
         roots = (output_root,) if writable else read_roots
         if not inside(args[0], roots):
             raise PermissionError("managed Python filesystem policy")
-    if event.startswith(("subprocess.", "socket.")) or event in {
+    if event == "import" and args and args[0] in {"ctypes", "_ctypes"}:
+        raise PermissionError("managed Python native extension policy")
+    if event in {
+        "os.remove", "os.unlink", "os.truncate", "os.chmod", "os.chown",
+        "os.rmdir", "os.mkdir",
+    } and (not args or not inside(args[0], (output_root,))):
+        raise PermissionError("managed Python filesystem mutation policy")
+    if event in {"os.rename", "os.replace"} and (
+        len(args) < 2
+        or not inside(args[0], (output_root,))
+        or not inside(args[1], (output_root,))
+    ):
+        raise PermissionError("managed Python filesystem mutation policy")
+    if event.startswith(("subprocess.", "socket.", "ctypes.")) or event in {
         "os.system", "os.posix_spawn", "os.spawn", "os.fork", "os.exec",
         "os.symlink", "os.link", "os.chdir",
     }:

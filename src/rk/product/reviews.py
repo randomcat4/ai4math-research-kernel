@@ -13,6 +13,7 @@ from typing import Any
 from uuid import UUID
 
 from rk.product.identity import IdentityStore, ProductIdentity, ProductRole
+from rk.sqlite import open_sqlite
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -380,7 +381,7 @@ class ReviewTaskStore:
         return identity
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(f"PRAGMA busy_timeout = {self._busy_timeout_ms}")
         return connection

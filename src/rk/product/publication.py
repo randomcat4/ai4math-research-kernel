@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import os
 import sqlite3
-import subprocess
 import tempfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -15,6 +14,7 @@ from typing import Any
 
 from rk.cas import ContentAddressedStore
 from rk.domain import ArtifactRef
+from rk.latex_compile import compile_latex
 from rk.paper import VerifiedPaper
 from rk.product.artifact_read import ArtifactRangeResult, ArtifactReadService, ExactArtifactRef
 from rk.product.artifact_upload import ArtifactRegistry
@@ -27,6 +27,7 @@ from rk.product.reviews import (
     ReviewType,
 )
 from rk.runtime import format_utc
+from rk.sqlite import open_sqlite
 from rk.wire import canonical_json_bytes
 
 
@@ -289,19 +290,14 @@ class PublicationArtifactService:
                 writer.write(raw)
                 writer.flush()
                 os.fsync(writer.fileno())
-            completed = subprocess.run(
-                [self._compiler, "-interaction=nonstopmode", "-halt-on-error", "main.tex"],
-                cwd=root,
-                capture_output=True,
-                timeout=self._timeout,
-                check=False,
+            completed = compile_latex(
+                root, executable=self._compiler, timeout_seconds=self._timeout
             )
             self._append_log(stdout.log_id, completed.stdout)
             self._append_log(stderr.log_id, completed.stderr)
             stdout_ref = self._logs.seal(stdout.log_id)
             stderr_ref = self._logs.seal(stderr.log_id)
-            pdf_path = root / "main.pdf"
-            if completed.returncode != 0 or not pdf_path.is_file():
+            if completed.returncode != 0 or completed.pdf is None:
                 self._record_attempt(
                     attempt_id,
                     candidate,
@@ -310,10 +306,14 @@ class PublicationArtifactService:
                     stdout_ref,
                     stderr_ref,
                     outcome="FAILED",
-                    failure_code=f"COMPILER_EXIT_{completed.returncode}",
+                    failure_code=(
+                        "COMPILER_TIMEOUT"
+                        if completed.timed_out
+                        else f"COMPILER_EXIT_{completed.returncode}"
+                    ),
                 )
                 raise PublicationArtifactError(f"compilation failed in attempt {attempt_id}")
-            pdf = pdf_path.read_bytes()
+            pdf = completed.pdf
         if not pdf.startswith(b"%PDF-"):
             raise PublicationArtifactError("compiler output is not a PDF")
         pdf_ref = self._commit_bytes(
@@ -621,7 +621,7 @@ class PublicationArtifactService:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys=ON")
         return connection

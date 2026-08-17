@@ -21,6 +21,7 @@ from rk.product.compute import (
     ToolFunctionSpec,
 )
 from rk.product.jobs import JobLease, JobState, JobStore
+from rk.sqlite import open_sqlite
 from rk.wire import canonical_json_bytes
 
 
@@ -852,7 +853,7 @@ def _json(value: object) -> str:
 
 
 def _connect(path: Path, busy_timeout_ms: int) -> sqlite3.Connection:
-    connection = sqlite3.connect(path, isolation_level=None)
+    connection = open_sqlite(path, isolation_level=None)
     connection.execute(f"PRAGMA busy_timeout={busy_timeout_ms}")
     connection.execute("PRAGMA foreign_keys=ON")
     return connection

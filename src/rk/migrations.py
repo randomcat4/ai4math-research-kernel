@@ -10,8 +10,16 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from rk.sqlite import open_sqlite
+
 _FILE_RE = re.compile(r"^(?P<version>[0-9]+)\.sql$")
 _NAME_RE = re.compile(r"^-- migration-name: (?P<name>[A-Za-z0-9_]+)$", re.MULTILINE)
+_COMPATIBLE_RELEASE_DIGESTS: dict[int, frozenset[str]] = {
+    # v0.2 shipped 0007 without its required schema transaction.  v0.3 wraps
+    # the same statements atomically; an already-applied v0.2 ledger remains
+    # valid because its schema is identical to the successful v0.3 outcome.
+    7: frozenset({"d1e8bf0bbcc2868b4fce1803938c4ff2f4c820a26bfab11c96cadf4ccf23c321"}),
+}
 
 
 class MigrationError(RuntimeError):
@@ -177,7 +185,7 @@ class MigrationRunner:
             connection.close()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
+        connection = open_sqlite(
             self._db_path,
             timeout=self._busy_timeout_ms / 1_000,
             isolation_level=None,
@@ -226,7 +234,10 @@ class MigrationRunner:
             migration = available.get(version)
             if migration is None:
                 raise MigrationDriftError(f"applied migration file is missing: {version}")
-            if recorded.name != migration.name or recorded.sha256 != migration.sha256:
+            digest_matches = recorded.sha256 == migration.sha256 or recorded.sha256 in (
+                _COMPATIBLE_RELEASE_DIGESTS.get(version, frozenset())
+            )
+            if recorded.name != migration.name or not digest_matches:
                 raise MigrationDriftError(f"applied migration has drifted: {version}")
         if applied and sorted(applied) != list(range(1, max(applied) + 1)):
             raise MigrationDriftError("migration ledger contains a version gap")

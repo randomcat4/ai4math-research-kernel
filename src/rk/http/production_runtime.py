@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import signal
-import sqlite3
 import threading
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -23,6 +22,8 @@ from rk.http.app import build_application
 from rk.http.daemon_main import ProductHttpDaemon
 from rk.http.route_registry import PublishedRouteFactories
 from rk.http_shell import (
+    HttpErrorClass,
+    ProductHttpError,
     SessionPrincipal,
 )
 from rk.kernel import ResearchKernel
@@ -128,6 +129,7 @@ from rk.product.upgrade import UpgradeRunner
 from rk.product.work_activity import WorkActivityStore
 from rk.product_release_migrations import ProductReleaseMigrationAssembler
 from rk.runtime import SystemClock, Uuid7Generator, format_utc
+from rk.sqlite import open_sqlite
 from rk.storage import SQLiteStorage
 
 _DURABLE_COMMANDS = frozenset(DURABLE_COMMAND_TYPES)
@@ -256,7 +258,7 @@ def _session_resolver(
 ) -> Callable[[str], ProductSession]:
     def resolve(subject_id: str) -> ProductSession:
         now = clock()
-        with sqlite3.connect(db_path) as connection:
+        with open_sqlite(db_path) as connection:
             connection.execute("PRAGMA foreign_keys = ON")
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
@@ -435,7 +437,7 @@ def _publication_abstract(
         del payload
         if job.run_id is None:
             raise ValueError("publication job requires RUN scope")
-        with sqlite3.connect(db_path) as connection:
+        with open_sqlite(db_path) as connection:
             row = connection.execute(
                 "SELECT question_summary FROM research_catalog WHERE run_id=?",
                 (job.run_id,),
@@ -531,6 +533,9 @@ class _ProductionQueries(ProductQueryService):
 
 
 class _AuthenticatedAccess:
+    def __init__(self, db_path: Path) -> None:
+        self._db_path = db_path
+
     @staticmethod
     def _require(principal: SessionPrincipal) -> None:
         if not principal.session_id or not principal.subject_id or not principal.capability_ids:
@@ -540,6 +545,16 @@ class _AuthenticatedAccess:
         self._require(principal)
         if not run_id:
             raise PermissionError("run scope is required")
+        with open_sqlite(self._db_path) as connection:
+            exists = connection.execute(
+                "SELECT 1 FROM runs WHERE run_id=?", (run_id,)
+            ).fetchone()
+        if exists is None:
+            raise ProductHttpError(
+                code="RESEARCH_NOT_FOUND",
+                error_class=HttpErrorClass.NOT_FOUND,
+                path="$.run_id",
+            )
 
     def authorize_artifact(self, principal: SessionPrincipal, descriptor: Any) -> None:
         self._require(principal)
@@ -553,7 +568,7 @@ class _SQLiteReviewInbox(ReviewInboxIndex):
         self._db_path = db_path
 
     def task_ids_for_assignee(self, assignee_identity_id: str) -> Sequence[str]:
-        with sqlite3.connect(self._db_path) as connection:
+        with open_sqlite(self._db_path) as connection:
             rows = connection.execute(
                 "SELECT review_task_id FROM product_review_tasks "
                 "WHERE assignee_identity_id=? "
@@ -611,6 +626,9 @@ def _assert_query_catalog(
 def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRuntime:
     """Materialize one real route graph over one durable SQLite/CAS data root."""
 
+    from rk.resources import resource_root
+
+    repository_root = resource_root()
     root = config.data_root.resolve()
     db_path = root / "product.sqlite"
     if not db_path.is_file():
@@ -658,7 +676,7 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
         max_tail_bytes=config.max_log_tail_bytes,
         busy_timeout_ms=config.busy_timeout_ms,
     )
-    access = _AuthenticatedAccess()
+    access = _AuthenticatedAccess(db_path)
     upload_router = artifact_upload_router(
         uploads=uploads, authorize=lambda principal, operation: access._require(principal)
     )
@@ -674,8 +692,7 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
         tasks=review_tasks,
         artifacts=ArtifactReadContentReader(artifact_reader),
         signatures=HmacKeyringVerifier(config.review_keys),
-        review_schema_path=Path(__file__).resolve().parents[3]
-        / "docs/spec/product/review.schema.json",
+        review_schema_path=repository_root / "docs/spec/product/review.schema.json",
     )
     reviews = review_router(
         sessions=sessions,
@@ -691,7 +708,6 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
         clock=now,
         retry_policy={name: RetrySafety.MANUAL_ONLY for name in _DURABLE_COMMANDS},
     )
-    repository_root = Path(__file__).resolve().parents[3]
     kernel = ResearchKernel.from_config(
         KernelConfig.from_mapping(
             {
@@ -1051,7 +1067,11 @@ def build_production_runtime(config: ProductionRuntimeConfig) -> ProductionRunti
     )
     app = build_application(config=published, sessions=sessions, clock=now, factories=factories)
     daemon = ProductHttpDaemon(
-        app=app, deployment_id=config.deployment_id, host=config.host, port=config.port
+        app=app,
+        deployment_id=config.deployment_id,
+        host=config.host,
+        port=config.port,
+        max_request_body_bytes=config.max_upload_bytes,
     )
     return ProductionRuntime(app, daemon, sessions, published, job_pump)
 

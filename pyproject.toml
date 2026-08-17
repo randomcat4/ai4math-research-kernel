@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai4math-research-kernel"
-version = "0.2.0"
+version = "0.3.0"
 description = "Auditable research kernel for typed mathematical evidence and composition gates"
 readme = "README.md"
 requires-python = ">=3.12"

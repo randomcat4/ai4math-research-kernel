@@ -54,6 +54,7 @@ from rk.reporting import (
     workflow_report_appendix,
     workflow_summary,
 )
+from rk.resources import resource_root
 from rk.runtime import SystemClock, Uuid7Generator
 from rk.storage import RunNotFound, SQLiteStorage, StorageConflict
 from rk.strategy import StrategyRunner
@@ -436,7 +437,7 @@ def _load_config(path: Path | None) -> KernelConfig:
     chosen = explicit or (default_path if default_path.is_file() else None)
     if chosen is not None:
         return KernelConfig.load(chosen)
-    project_root = Path(__file__).resolve().parents[2]
+    project_root = resource_root()
     spec_root = project_root / "docs" / "spec"
     state_root = default_path.parent / "state"
     return KernelConfig.from_mapping(
@@ -594,7 +595,10 @@ def _run(args: argparse.Namespace) -> tuple[dict[str, Any] | str, int]:
                 f"修好部署后运行：rkctl 开始 {run_id}",
                 6,
             )
-        return workflow_summary("submit_run", workflow, run_id=run_id), code
+        return (
+            workflow_summary("submit_run", workflow, run_id=run_id),
+            max(code, _workflow_exit_code(workflow)),
+        )
     if args.operation in {"start", "continue", "pause", "resume", "review"}:
         return _run_workflow(args, config)
     if args.operation in {
@@ -621,6 +625,21 @@ def _run(args: argparse.Namespace) -> tuple[dict[str, Any] | str, int]:
     return _run_protocol(args, config, value)
 
 
+def _write_private_bytes(path: Path, data: bytes) -> None:
+    """Create a secret once with restrictive permissions, without a chmod race."""
+
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            descriptor = -1
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
 def _initialize_service(args: argparse.Namespace) -> str:
     root = args.directory.expanduser().resolve()
     if root.exists() and any(root.iterdir()):
@@ -641,7 +660,7 @@ def _initialize_service(args: argparse.Namespace) -> str:
     verifier_cap_path = secret_root / "verifier.cap.json"
     config_path = root / "config.json"
     key = secrets.token_bytes(48)
-    key_path.write_bytes(key)
+    _write_private_bytes(key_path, key)
     now = datetime.now(UTC)
     key_id = f"rk-product-{uuid.uuid4()}"
     role_ids = {role: str(uuid.uuid4()) for role in ("main", "worker", "verifier")}
@@ -701,12 +720,10 @@ def _initialize_service(args: argparse.Namespace) -> str:
         ),
     }
     for path, value in credentials.items():
-        path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    if os.name == "posix":
-        key_path.chmod(0o600)
-        for path in credentials:
-            path.chmod(0o600)
-    project_root = Path(__file__).resolve().parents[2]
+        _write_private_bytes(
+            path, (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+        )
+    project_root = resource_root()
     profile_base = {
         "version": "product-v1",
         "source_commit": "UNATTESTED",
@@ -734,6 +751,7 @@ def _initialize_service(args: argparse.Namespace) -> str:
                 **profile_base,
                 "name": "research-model",
                 "env_whitelist": [str(args.key_env)],
+                "credential_env": str(args.key_env),
                 "endpoint": str(args.endpoint),
             },
             "research-search": {
@@ -857,7 +875,7 @@ def _configure_math_tools(args: argparse.Namespace) -> str:
         "verifier_writer_capability_ids": list(verifier_ids),
     }
     manifest_candidates = sorted(
-        (Path(__file__).resolve().parents[2] / "docs" / "evidence").glob(
+        (resource_root() / "docs" / "evidence").glob(
             f"mathlib-{commit[:7]}-closure.json"
         )
     )
@@ -1047,7 +1065,24 @@ def _run_workflow(
                 review_kind=review_kind,
                 blind_review=blind_review,
             )
-    return workflow_summary(args.operation, result, run_id=args.run_id), 0
+    return (
+        workflow_summary(args.operation, result, run_id=args.run_id),
+        0 if args.operation == "pause" else _workflow_exit_code(result),
+    )
+
+
+def _workflow_exit_code(result: object) -> int:
+    """Make automation observe deployment pauses instead of reporting false success."""
+
+    status = getattr(result, "status", None)
+    pause_reason = getattr(result, "pause_reason", None)
+    if isinstance(result, Mapping):
+        status = result.get("status", status)
+        pause_reason = result.get("pause_reason", pause_reason)
+    status_value = getattr(status, "value", status)
+    if status_value == "PAUSED" and pause_reason != "USER_REQUEST":
+        return 7
+    return 0
 
 
 def _managed_role_capability(config: KernelConfig, role: str, action: str, run_id: str) -> Any:

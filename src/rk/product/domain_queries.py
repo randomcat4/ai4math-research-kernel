@@ -19,6 +19,7 @@ from rk.product.research_lineage import ResearchLineageStore
 from rk.product.route_plan import RoutePlanStore
 from rk.product.tool_runs import ToolCatalogStore, ToolRunStore
 from rk.product.work_activity import WorkActivityStore
+from rk.sqlite import open_sqlite
 
 
 class DomainObjectNotFound(KeyError):
@@ -487,7 +488,7 @@ class DomainQueries:
         )
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys=ON")
         return connection

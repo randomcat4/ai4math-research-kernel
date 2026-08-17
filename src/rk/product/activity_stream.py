@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,6 +9,7 @@ from types import MappingProxyType
 from typing import Any
 
 from rk.product.activity_store import ActivityRecord, ActivityStore
+from rk.sqlite import open_sqlite
 
 
 class ActivityStreamError(RuntimeError):
@@ -68,6 +68,11 @@ class PersistedActivityStream:
         self._clock = clock
         self._busy_timeout_ms = busy_timeout_ms
         self._closed = False
+        self._connection = open_sqlite(
+            self._db_path,
+            timeout=self._busy_timeout_ms / 1_000,
+            check_same_thread=False,
+        )
         self._ensure_available(self._cursor)
 
     @property
@@ -125,13 +130,15 @@ class PersistedActivityStream:
                 return
 
     def close(self) -> None:
+        if self._closed:
+            return
         self._closed = True
+        self._connection.close()
 
     def _ensure_available(self, after_cursor: int) -> None:
-        with sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000) as connection:
-            row = connection.execute(
-                "SELECT first_available_cursor FROM product_activity_retention WHERE singleton=1"
-            ).fetchone()
+        row = self._connection.execute(
+            "SELECT first_available_cursor FROM product_activity_retention WHERE singleton=1"
+        ).fetchone()
         if row is None:
             raise ActivityStreamError("activity retention watermark is missing")
         first_available = int(row[0])

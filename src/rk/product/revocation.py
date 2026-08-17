@@ -17,6 +17,7 @@ from rk.product.invalidation import (
     AuthorityObjectKind,
     InvalidatedObject,
 )
+from rk.sqlite import open_sqlite
 
 
 class RevocationError(RuntimeError):
@@ -497,7 +498,7 @@ class RevocationService:
         return RevocationPreview(str(row[0]), closure, str(row[9]), str(row[10]), str(row[11]))
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(f"PRAGMA busy_timeout = {self._busy_timeout_ms}")
         return connection

@@ -7,6 +7,8 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from rk.sqlite import open_sqlite
+
 
 class NoveltyBoundaryError(RuntimeError):
     pass
@@ -119,7 +121,7 @@ class NoveltyStore:
             raise NoveltyBoundaryError("novelty boundary requires an independent reviewer")
 
     def _connect(self) -> sqlite3.Connection:
-        c = sqlite3.connect(self._db)
+        c = open_sqlite(self._db)
         c.execute("PRAGMA foreign_keys=ON")
         return c
 

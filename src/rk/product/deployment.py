@@ -18,6 +18,8 @@ from pathlib import Path
 from types import MappingProxyType
 from urllib.parse import urlsplit
 
+from rk.sqlite import open_sqlite
+
 
 class ProbeStatus(StrEnum):
     AVAILABLE = "AVAILABLE"
@@ -361,7 +363,7 @@ class DeploymentHealthService:
             connection.commit()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._config.db_path)
+        connection = open_sqlite(self._config.db_path)
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 

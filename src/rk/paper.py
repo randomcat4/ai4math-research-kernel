@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-import subprocess
 import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -11,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from rk.factgraph import VerifiedFactGraph
+from rk.latex_compile import compile_latex
 
 
 def _tex(value: object) -> str:
@@ -179,22 +179,14 @@ class VerifiedPaper:
             root = Path(directory)
             source = root / "main.tex"
             source.write_bytes(tex)
-            completed = subprocess.run(
-                [executable, "-interaction=nonstopmode", "-halt-on-error", "main.tex"],
-                cwd=root,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=120,
-                check=False,
-            )
-            log = (completed.stdout + "\n" + completed.stderr).strip()
-            pdf = root / "main.pdf"
-            if completed.returncode != 0 or not pdf.is_file():
+            completed = compile_latex(root, executable=executable, timeout_seconds=120)
+            log = (completed.stdout + b"\n" + completed.stderr).decode(
+                "utf-8", errors="replace"
+            ).strip()
+            if completed.returncode != 0 or completed.pdf is None:
                 tail = "\n".join(log.splitlines()[-40:])
                 raise RuntimeError(f"LaTeX compilation failed:\n{tail}")
-            return pdf.read_bytes(), log
+            return completed.pdf, log
 
 
 def paper_math_review_status(

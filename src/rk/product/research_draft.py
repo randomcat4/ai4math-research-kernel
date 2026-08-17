@@ -12,6 +12,7 @@ from typing import Protocol
 
 from rk.product.artifact_read import ExactArtifactRef
 from rk.product.claims import ClaimArtifactBinding, ClaimKind
+from rk.sqlite import open_sqlite
 from rk.wire import canonical_json_bytes
 
 
@@ -269,7 +270,7 @@ class ResearchDraftStore:
         return self.get(draft_id).source_artifact
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, isolation_level=None)
+        connection = open_sqlite(self._db_path, isolation_level=None)
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute(f"PRAGMA busy_timeout={self._busy_timeout_ms}")
         return connection

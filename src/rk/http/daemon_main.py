@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import socket
 import threading
 from collections.abc import Mapping, Sequence
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -13,11 +14,50 @@ from urllib.parse import urlsplit
 
 from rk.http_shell import (
     HttpApplicationProtocol,
+    HttpErrorClass,
     HttpRequest,
     HttpResponse,
     HttpStreamResponse,
+    ProductHttpError,
     error_response,
 )
+
+
+class _BoundedThreadingHTTPServer(ThreadingHTTPServer):
+    """Bound request concurrency before allocating another handler thread."""
+
+    def __init__(
+        self,
+        server_address: tuple[str, int],
+        handler: type[BaseHTTPRequestHandler],
+        *,
+        max_connections: int,
+    ) -> None:
+        self._slots = threading.BoundedSemaphore(max_connections)
+        super().__init__(server_address, handler)
+
+    def process_request(
+        self, request: socket.socket | tuple[bytes, socket.socket], client_address: object
+    ) -> None:
+        if not self._slots.acquire(blocking=False):
+            if isinstance(request, tuple):
+                request[1].close()
+            else:
+                request.close()
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self._slots.release()
+            raise
+
+    def process_request_thread(
+        self, request: socket.socket | tuple[bytes, socket.socket], client_address: object
+    ) -> None:
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._slots.release()
 
 
 class ProductHttpDaemon:
@@ -30,15 +70,25 @@ class ProductHttpDaemon:
         deployment_id: str,
         host: str,
         port: int,
+        max_request_body_bytes: int = 16 * 1024 * 1024,
+        request_timeout_seconds: float = 15.0,
+        max_connections: int = 128,
     ) -> None:
         if not deployment_id or not host or not 0 <= port <= 65_535:
             raise ValueError("daemon listener configuration is invalid")
+        if max_request_body_bytes <= 0 or request_timeout_seconds <= 0 or max_connections <= 0:
+            raise ValueError("daemon limits must be positive")
         self._app = app
         self._deployment_id = deployment_id
         self._host = host
         self._port = port
+        self._max_request_body_bytes = max_request_body_bytes
+        self._request_timeout_seconds = request_timeout_seconds
+        self._max_connections = max_connections
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._loop_thread: threading.Thread | None = None
 
     @property
     def address(self) -> tuple[str, int]:
@@ -51,6 +101,11 @@ class ProductHttpDaemon:
         if self._server is not None:
             raise RuntimeError("daemon is already running")
         daemon = self
+        loop = asyncio.new_event_loop()
+        loop_thread = threading.Thread(target=loop.run_forever, name="rk-product-async")
+        loop_thread.start()
+        self._loop = loop
+        self._loop_thread = loop_thread
 
         class Handler(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.1"
@@ -68,6 +123,7 @@ class ProductHttpDaemon:
                 self._dispatch()
 
             def _dispatch(self) -> None:
+                self.connection.settimeout(daemon._request_timeout_seconds)
                 if self.command == "GET" and urlsplit(self.path).path == "/healthz":
                     daemon._write_response(
                         self,
@@ -81,8 +137,24 @@ class ProductHttpDaemon:
                         ),
                     )
                     return
-                content_length = int(self.headers.get("content-length", "0"))
-                body = self.rfile.read(content_length) if content_length else b""
+                try:
+                    content_length = daemon._content_length(self.headers.get_all("content-length"))
+                    body = self.rfile.read(content_length) if content_length else b""
+                    if len(body) != content_length:
+                        raise ValueError("request body ended before Content-Length")
+                except (ValueError, TimeoutError):
+                    daemon._write_response(
+                        self,
+                        error_response(
+                            ProductHttpError(
+                                code="REQUEST_BODY_INVALID",
+                                error_class=HttpErrorClass.SCHEMA,
+                                path="$.headers.content-length",
+                            )
+                        ),
+                    )
+                    self.close_connection = True
+                    return
                 request = HttpRequest(
                     self.command,
                     self.path,
@@ -90,7 +162,11 @@ class ProductHttpDaemon:
                     body,
                 )
                 try:
-                    result = asyncio.run(daemon._app(request))
+                    if daemon._loop is None:
+                        raise RuntimeError("daemon async runtime is unavailable")
+                    result = asyncio.run_coroutine_threadsafe(
+                        daemon._app(request), daemon._loop
+                    ).result()
                 except Exception as error:
                     result = error_response(error)
                 daemon._write_response(self, result)
@@ -98,12 +174,27 @@ class ProductHttpDaemon:
             def log_message(self, format: str, *args: object) -> None:
                 return None
 
-        server = ThreadingHTTPServer((self._host, self._port), Handler)
+        server = _BoundedThreadingHTTPServer(
+            (self._host, self._port), Handler, max_connections=self._max_connections
+        )
         server.daemon_threads = True
         thread = threading.Thread(target=server.serve_forever, name="rk-product-http")
         thread.start()
         self._server = server
         self._thread = thread
+
+    def _content_length(self, values: list[str] | None) -> int:
+        if not values:
+            return 0
+        if len(set(values)) != 1:
+            raise ValueError("conflicting Content-Length headers")
+        raw = values[0]
+        if not raw.isascii() or not raw.isdecimal():
+            raise ValueError("Content-Length must be a non-negative decimal")
+        value = int(raw)
+        if value > self._max_request_body_bytes:
+            raise ValueError("request body exceeds configured limit")
+        return value
 
     def stop(self) -> None:
         server = self._server
@@ -113,8 +204,16 @@ class ProductHttpDaemon:
         server.shutdown()
         server.server_close()
         thread.join()
+        loop = self._loop
+        loop_thread = self._loop_thread
+        if loop is not None and loop_thread is not None:
+            loop.call_soon_threadsafe(loop.stop)
+            loop_thread.join()
+            loop.close()
         self._server = None
         self._thread = None
+        self._loop = None
+        self._loop_thread = None
 
     def __enter__(self) -> Self:
         self.start()

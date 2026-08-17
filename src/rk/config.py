@@ -130,8 +130,16 @@ class KernelConfig:
     def prepare_local_directories(self) -> None:
         """Create only host-owned state directories, never external source paths."""
 
-        self.workspace_root.mkdir(parents=True, exist_ok=True)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.cas_root.mkdir(parents=True, exist_ok=True)
+        self.workspace_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.cas_root.mkdir(parents=True, exist_ok=True, mode=0o700)
         for root in self.inbox_roots:
-            root.mkdir(parents=True, exist_ok=True)
+            root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if os.name != "nt":
+            for root in {
+                self.workspace_root,
+                self.db_path.parent,
+                self.cas_root,
+                *self.inbox_roots,
+            }:
+                root.chmod(0o700)

@@ -34,6 +34,7 @@ from rk.migrations import MigrationRunner
 from rk.paper import VerifiedPaper, paper_math_review_status
 from rk.ports import Clock, IdGenerator
 from rk.projector import ProjectionContext, ProjectionWriter
+from rk.resources import resource_root
 from rk.runtime import SystemClock, Uuid7Generator, format_utc
 from rk.storage import RunNotFound, SQLiteStorage, StorageConflict
 from rk.wire import WireValidator, canonical_json_bytes, request_digest
@@ -188,7 +189,7 @@ class ResearchKernel:
         extensions: ExtensionRegistry | None = None,
     ) -> ResearchKernel:
         config.prepare_local_directories()
-        root = Path(__file__).resolve().parents[2]
+        root = resource_root()
         migration_root = (migrations_dir or root / "migrations").resolve()
         MigrationRunner(config.db_path, migration_root, config.busy_timeout_ms).migrate()
         ids = Uuid7Generator()

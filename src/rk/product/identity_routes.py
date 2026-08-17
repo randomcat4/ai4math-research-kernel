@@ -77,13 +77,15 @@ class IdentityRouter:
         if option != "SHARED":
             raise _http_error("SESSION_OPTION_UNKNOWN", HttpErrorClass.SCHEMA, "$.payload.option")
         now = self._clock()
-        session_id = await self._existing_session_id(request.principal, now)
         try:
             view = await asyncio.to_thread(
                 self._sessions.enter_shared,
                 now=now,
                 expires_at=self._expires_at(now),
-                session_id=session_id,
+                # Entering the public view always rotates the cookie. Reusing an
+                # authenticated session here would let an anonymous route change
+                # its active identity and capability set.
+                session_id=None,
             )
         except KeyError as error:
             raise _http_error(

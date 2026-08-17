@@ -12,6 +12,7 @@ from rk.domain import CapabilityError, VerifiedCapability
 from rk.product.api import ProductSession
 from rk.product.identity import IdentityStore, ProductIdentity, ProductRole
 from rk.runtime import parse_utc
+from rk.sqlite import open_sqlite
 
 
 class SessionAuthenticationError(PermissionError):
@@ -62,6 +63,11 @@ class SessionStore:
         session_id: str | None = None,
     ) -> SessionView:
         identity = self._identities.authenticate(identity_id, login_secret)
+        # A shared cookie is a read-only admission token, not an authenticated
+        # session container.  Successful login rotates it into a fresh managed
+        # session so the read-only marker can never survive authentication.
+        if session_id is not None and session_id.startswith("shared."):
+            session_id = None
         return self._enter_identity(
             identity,
             now=now,
@@ -78,6 +84,8 @@ class SessionStore:
     ) -> SessionView:
         """Enter the shared read-only product view without browser credentials."""
 
+        if session_id is not None:
+            raise SessionAuthenticationError("SHARED_SESSION_REQUIRES_ROTATION")
         identity = self._identities.first_enabled_by_role(ProductRole.MAIN)
         return self._enter_identity(
             identity,
@@ -256,7 +264,7 @@ class SessionStore:
         return row
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._db_path, timeout=self._busy_timeout_ms / 1_000)
+        connection = open_sqlite(self._db_path, timeout=self._busy_timeout_ms / 1_000)
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(f"PRAGMA busy_timeout = {self._busy_timeout_ms}")
         return connection
