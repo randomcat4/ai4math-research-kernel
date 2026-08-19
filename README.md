@@ -66,6 +66,68 @@ rkctl --version
 `math-tools` 安装 SymPy 和 Z3。Lean、Mathlib、LeanSearch、jixia 与模型服务按部署需要单独配置；
 未配置的可选组件会明确显示不可用，不会生成占位成功结果。
 
+## 全能力部署真值表
+
+公共仓库已经包含 RK 内核、研究编排器、组件注册表和下列适配器的具体实现；它不分发第三方
+模型权重、Lean/Mathlib 缓存、jixia/Rethlas/OpenCode 二进制或各 provider 的账号。所谓
+“支持”表示 RK 知道如何安全调用、记录回执并限制权威，不表示克隆仓库后该外部组件已经安装。
+
+| 能力 | 仓库内现成接缝 | 一键部署必须另外准备 | 最高信任上限 | v0.3 自动配置程度 |
+|---|---|---|---|---|
+| 研究状态机 | `ResearchOrchestrator` → `ComponentRuntime` | 一个已配置的角色模型 | 只能通过 `ResearchKernel` 改数学状态 | CLI 已接通 |
+| OpenAI-compatible 角色模型 | `research-model` / `ask_mathematical_role` | HTTPS endpoint、model id、仅通过环境变量提供的凭据 | `SOFT_MODEL` | `rkctl 初始化服务` 生成配置 |
+| LeanSearch | `research-search` / `search_lean` | 公共 endpoint，或部署并探测本地检索/重排服务 | `PREMISE_CANDIDATE` | 默认配置公共 endpoint；本地服务需管理员配置 |
+| Crossref 文献检索 | `research-literature` / `search_literature` | 可访问 Crossref；生产使用时应记录来源快照 | `BIBLIOGRAPHIC_CANDIDATE` | `rkctl 初始化服务` 生成配置 |
+| Lean 4 + Mathlib | `research-lean` / `replay_lean` | 固定 Lean 工具链、固定 Mathlib commit、已构建 `.olean` 缓存和依赖闭包清单 | `LEAN_KERNEL_REPLAY`；只有符合权威模式的独立重放才可影响机器轴 | `rkctl 配置数学工具` 接线，但不下载/编译第三方资产 |
+| jixia | `research-jixia` / `analyze_lean` | 与项目完全匹配的 jixia binary、commit、Lean toolchain 和二进制哈希 | `STATIC_STRUCTURE_AND_PROOF_STATE`，不是 Lean verdict | `rkctl 配置数学工具 --jixia路径 ...` 接线 |
+| Rethlas | `research-rethlas` / `verify_rethlas` | 独立 Rethlas 服务、它所需的 provider/CLI 凭据、健康与真实 `/verify` 探针 | 永久 `SOFT_MODEL` | 适配器已有；服务安装、启动和 profile 仍需部署方完成 |
+| QED-Nano / DeepSeek-Prover 等本地模型 | `research-local-proof-model` / `run_local_proof_model` | 固定模型 revision/分片、ROCm/CUDA 推理环境，以及受限 JSON→JSON runner | `SOFT_CANDIDATE_ONLY` | 适配器已有；权重和 runner 不随 wheel 分发 |
+| OpenCode 外壳 | `OpenCodeAdapter` | 固定 OpenCode 版本、provider 配置、权限策略和超时/退出探针 | `SOFT_MODEL` | 适配器已有；不在默认 `ComponentRuntime` 注册表中 |
+| SymPy / Z3 | `math-tools` 与受管工具运行合同 | `pip install -e ".[math-tools]"`，生产还需固定脚本/函数 schema | 不自动构成数学事实 | Python 依赖可安装；具体工具 profile 需注册 |
+| 精确枚举 / 自定义 CAS/SMT | `RegisteredFileToolAdapter` | 固定可执行文件、输入输出 schema、资源上限和哈希 | 由 profile 声明，默认不得写事实图 | 通用实现已有；具体工具不随仓库假装存在 |
+| 产品 HTTP/GUI | `ResearchProduct`、冻结 HTTP/SDK 合同、durable jobs | 产品数据根、审查密钥、同源代理和服务管理 | 所有数学写入仍必须经过 `ResearchKernel` | 产品命令可用；普通 HTTP turn 尚不会自动启动完整 `ResearchOrchestrator` |
+
+### “一键全栈部署”必须做什么
+
+截至 v0.3.0，仓库没有一个可以安装所有第三方组件的单命令脚本。任何新增的 Docker、Ansible、
+PowerShell 或 shell 一键部署器，至少必须按以下顺序完成，并在失败处诚实停止：
+
+1. 安装 Python 3.12；需要 GUI 时再安装 Node.js 20/npm 10；安装 RK wheel 与所需 extras。
+2. 运行 `rkctl 初始化服务`，生成独立服务目录、能力密钥和模型 profile；密钥值只能来自进程环境
+   或系统凭据库，不得写进仓库、普通配置或前端。
+3. 检查角色模型 endpoint 的 `/models`（如有）及一次最小 completion；记录 provider、model、
+   延迟、状态和探测时间。HTTP 429/401/超时不得显示为“已接通”。
+4. 若启用形式化能力，安装并固定 Lean、Mathlib commit 与已构建缓存，再运行
+   `rkctl 配置数学工具`；启用 jixia 时必须同时固定其 commit、binary SHA-256 和匹配工具链。
+5. 按需部署 LeanSearch、Rethlas、本地证明模型、OpenCode、CAS/SMT/枚举器；每项都通过
+   `AdapterProfile` 和 `ComponentRuntime` 注册，禁止让模型提交任意命令或任意可执行路径。
+6. 对每项能力执行当前部署的真实探针并保存回执。健康端点成功不能替代真实调用成功；历史回执
+   不能让今天的部署变绿；相邻组件成功也不能替失败组件补票。
+7. 需要 GUI/HTTP 时另行 bootstrap 产品数据根和受管身份，安装 systemd/Windows 服务与同源代理。
+   CLI 研究服务目录和产品数据根是两个不同部署对象，不能通过复制 SQLite 文件合并。
+8. 若产品希望“一条用户消息启动完整研究”，必须显式实现并验收
+   `durable job → ResearchOrchestrator → ComponentReceipt → ResearchProduct 投影`；当前普通 HTTP
+   turn 或一次模型 completion 不能宣称是完整 RK 研究。
+9. 最终验收必须至少覆盖：重启恢复、幂等重放、外部超时、取消、权限隔离、Lean fail-closed、
+   Claim 未被模型/软验证器越权晋级，以及缺组件时的明确降级。
+
+### 给自动化智能体和贡献者的接线规则
+
+在新增“模型、工具、编排或部署”代码前，必须先检查以下现成模块：
+
+- `src/rk/component_runtime.py`：唯一组件注册、函数 schema、调度和 `ComponentReceipt` 接缝；
+- `src/rk/orchestrator.py`：完整研究角色与工具反馈循环；
+- `src/rk/adapters/`：LeanSearch、Lean、jixia、Rethlas、OpenCode、本地模型及通用工具适配器；
+- `src/rk/host_execution.py`：宿主执行回执和可信绑定；
+- `src/rk/product/tool_adapters.py`、`tool_runs.py`：产品工具目录、运行和公开回执；
+- `src/rk/http/production_runtime.py`：产品服务的唯一生产组合根。
+
+禁止为了“接一个工具”另建第二套消息协议、工具目录、运行状态机、SQLite/JSONL 真值源或 Claim
+晋级逻辑。正确扩展方式是：实现或复用一个窄 adapter，在部署配置中注册 profile，通过
+`ComponentRuntime`/`ResearchProduct` 调用，并让 `ResearchKernel.create/apply/inspect/export`
+继续成为唯一数学权威接缝。若现有生产组合根尚未装配某能力，应补装配和端到端测试，不应从
+前端、CLI shell 或 provider 原始事件反推数学状态。
+
 ## CLI：从一道题开始
 
 管理员先创建服务目录。模型密钥只通过环境变量提供，不写入仓库或配置文件：
